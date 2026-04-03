@@ -1,0 +1,104 @@
+# ========================
+# Python
+# ========================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+*.manifest
+*.spec
+pip-log.txt
+pip-delete-this-directory.txt
+venv/
+.venv/
+ENV/
+env/
+*.pyo
+.Python
+develop-eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+celerybeat-schedule
+celerybeat.pid
+
+# ========================
+# Node / JavaScript
+# ========================
+node_modules/
+dist/
+.npm
+.eslintcache
+.parcel-cache
+*.tsbuildinfo
+.next/
+out/
+
+# ========================
+# Environment Variables
+# ========================
+.env
+.env.local
+.env.*.local
+.env.production
+.env.staging
+
+# ========================
+# IDE / Editor
+# ========================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+*.sublime-project
+*.sublime-workspace
+
+# ========================
+# OS Files
+# ========================
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# ========================
+# Docker
+# ========================
+*.log
+docker-compose.override.yml
+
+# ========================
+# Misc
+# ========================
+*.bak
+*.tmp
+*.temp
+.sass-cache/
+*.map

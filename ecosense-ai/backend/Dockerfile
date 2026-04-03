@@ -1,0 +1,55 @@
+# ===========================================
+# EcoSense AI — Backend Dockerfile
+# Python 3.11 + GDAL + PostGIS client
+# ===========================================
+
+FROM python:3.11-slim
+
+# Prevent Python from writing .pyc files and enable unbuffered output
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+# ===========================================
+# Install system dependencies
+# ===========================================
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gdal-bin \
+    libgdal-dev \
+    python3-gdal \
+    libpq-dev \
+    gcc \
+    g++ \
+    python3-dev \
+    libgeos-dev \
+    libproj-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# ===========================================
+# Set GDAL / GEOS environment variables
+# ===========================================
+ENV GDAL_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu/libgdal.so
+ENV GEOS_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu/libgeos_c.so
+ENV PYTHONPATH=/usr/lib/python3/dist-packages:$PYTHONPATH
+
+# ===========================================
+# Install Python dependencies
+# ===========================================
+WORKDIR /app
+
+COPY requirements.txt .
+
+# 1. Upgrade pip
+# 2. Delete Debian's system numpy to prevent uninstall/RECORD file conflicts
+# 3. Cleanly install all Python requirements
+RUN pip install --no-cache-dir --upgrade pip && \
+    rm -rf /usr/lib/python3/dist-packages/numpy* && \
+    pip install --no-cache-dir -r requirements.txt
+
+# ===========================================
+# Copy application code
+# ===========================================
+COPY . .
+
+EXPOSE 8000
+
+CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]

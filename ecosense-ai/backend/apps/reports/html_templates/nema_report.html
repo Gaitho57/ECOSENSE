@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>EIA Report - {{ project.name }}</title>
+    <link rel="stylesheet" href="nema_report.css">
+</head>
+<body>
+
+    <!-- Header & Footer defined structurally for WeasyPrint -->
+    <div id="page-header">EcoSense AI — {{ project.name }}</div>
+    <div id="page-footer">Page <span class="page-number"></span> | Prepared using EcoSense AI | {{ project.date }}</div>
+
+    <!-- 1. Cover -->
+    <section class="page-break" style="text-align: center; margin-top: 200px;">
+        <h1 style="color: #166534; font-size: 36px; border-bottom: 4px solid #22c55e; padding-bottom: 20px;">
+            Enviromental Impact Assessment
+        </h1>
+        <h2 style="font-size: 28px; margin-top: 50px; color: #1e293b;">{{ project.name }}</h2>
+        <p style="font-size: 20px; color: #64748b; margin-top: 20px;">Project Type: {{ project.type }}</p>
+        <p style="font-size: 20px; color: #64748b;">Scale: {{ project.scale_ha }} ha</p>
+        
+        <div style="margin-top: 100px; font-size: 18px; font-weight: bold; color: #475569;">
+            Prepared by: {{ project.lead_consultant }}
+        </div>
+        <p style="margin-top: 10px; font-size: 16px; color: #94a3b8;">{{ project.date }}</p>
+    </section>
+
+    <!-- 2. Exec Summary -->
+    <section class="page-break">
+        <h2>1. Executive Summary</h2>
+        <p>This report structurally analyzes the proposed <strong>{{ project.name }}</strong> at coordinates [{{ project.location }}]. 
+        Baseline environmental integrity is rated <strong>Grade {{ baseline.sensitivity_grade }}</strong>. 
+        Deep learning matrices predict specific impact scopes across {{ predictions|length }} localized parameters.</p>
+        <p>Public engagement tracked {{ community.total_count }} inputs. 
+        Top concern thresholds span: {{ community.top_concerns | join(', ') }}.</p>
+    </section>
+
+    <!-- 3. Project Description -->
+    <section class="page-break">
+        <h2>2. Project Description</h2>
+        <p>The {{ project.type }} development encompasses {{ project.scale_ha }} hectares. Structurally configured to abide strictly with regional NEMA mandates minimizing local footprint boundaries.</p>
+    </section>
+
+    <!-- 4. Legal Framework -->
+    <section class="page-break">
+        <h2>3. Policy and Legal Framework</h2>
+        <ul>
+            {% for item in compliance %}
+            <li><strong>{{ item.name }}</strong>: {{ item.status }}</li>
+            {% endfor %}
+        </ul>
+    </section>
+
+    <!-- 5. Baseline -->
+    <section class="page-break">
+        <h2>4. Description of Environment</h2>
+        <table>
+            <tr><th>Metric</th><th>Value</th></tr>
+            <tr><td>NDVI Base</td><td>{{ baseline.ndvi }}</td></tr>
+            <tr><td>Air Quality (AQI)</td><td>{{ baseline.air_quality_aqi }}</td></tr>
+            <tr><td>Biodiversity</td><td>{{ baseline.biodiversity_summary }}</td></tr>
+            <tr><td>Soil Type</td><td>{{ baseline.soil_type }}</td></tr>
+            <tr><td>Overall Grade</td><td><strong>{{ baseline.sensitivity_grade }}</strong></td></tr>
+        </table>
+    </section>
+
+    <!-- 6. Impacts -->
+    <section class="page-break">
+        <h2>5. Potential Impacts and Mitigation Measures</h2>
+        <table class="impact-table">
+            <thead>
+                <tr>
+                    <th>Category</th>
+                    <th>Severity</th>
+                    <th>Probability</th>
+                    <th>Top Mitigation</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for pred in predictions %}
+                <tr>
+                    <td><strong>{{ pred.category }}</strong></td>
+                    <td class="sev-{{ pred.severity|lower }}">{{ pred.severity }}</td>
+                    <td>{{ "%.1f"|format(pred.probability * 100) }}%</td>
+                    <td>{{ pred.top_mitigations[0] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+
+    <!-- 7. EMP -->
+    <section class="page-break">
+        <h2>6. Environmental Management Plan</h2>
+        <p>Execution tracking bounds mapping operational compliance phases actively monitoring IoT arrays.</p>
+        <ul>
+            {% for pred in predictions %}
+            <li><strong>{{ pred.category }} Management:</strong> {{ pred.top_mitigations|join("; ") }}</li>
+            {% endfor %}
+        </ul>
+    </section>
+
+    <!-- 8. Public Participation -->
+    <section class="page-break">
+        <h2>7. Public Participation Summary</h2>
+        <p>Total Submissions: <strong>{{ community.total_count }}</strong></p>
+        
+        <table class="community-table">
+            <tr><th>Sentiment</th><th>Volume</th></tr>
+            <tr>
+                <td style="color: green; font-weight: bold;">Positive</td>
+                <td>{{ community.sentiment_breakdown.positive }}</td>
+            </tr>
+            <tr>
+                <td style="color: gray; font-weight: bold;">Neutral</td>
+                <td>{{ community.sentiment_breakdown.neutral }}</td>
+            </tr>
+            <tr>
+                <td style="color: red; font-weight: bold;">Negative</td>
+                <td>{{ community.sentiment_breakdown.negative }}</td>
+            </tr>
+        </table>
+
+        <h3>Sample Anonymized Quotes:</h3>
+        <ul style="font-style: italic; color: #475569;">
+            {% for q in community.sample_quotes %}
+            <li>"{{ q }}"</li>
+            {% endfor %}
+        </ul>
+    </section>
+
+    <!-- 9. Conclusion -->
+    <section class="page-break">
+        <h2>8. Conclusion and Recommendations</h2>
+        <p>Structured impact parameters denote safe operational boundaries contingent on complete execution of the recommended mitigation frameworks across the {{ project.name }} footprint.</p>
+    </section>
+
+    <!-- 10. Appendices -->
+    <section class="page-break">
+        <h2>9. Appendices</h2>
+        <p>Generated dynamically via EcoSense AI Blockchain verification arrays.</p>
+    </section>
+
+</body>
+</html>

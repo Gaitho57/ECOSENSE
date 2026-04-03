@@ -1,0 +1,12 @@
+[
+  { "id": "cover", "title": "Cover Page", "required": true, "data_sources": ["project"] },
+  { "id": "executive_summary", "title": "Executive Summary", "required": true, "max_words": 500, "data_sources": ["project","predictions","community"] },
+  { "id": "project_description", "title": "Project Description", "required": true, "data_sources": ["project"] },
+  { "id": "legal_framework", "title": "Policy and Legal Framework", "required": true, "data_sources": ["compliance"] },
+  { "id": "environment_description", "title": "Description of Environment", "required": true, "data_sources": ["baseline"] },
+  { "id": "impacts", "title": "Potential Impacts and Mitigation Measures", "required": true, "data_sources": ["predictions"] },
+  { "id": "emp", "title": "Environmental Management Plan", "required": true, "data_sources": ["predictions","emp"] },
+  { "id": "public_participation", "title": "Public Participation Summary", "required": true, "data_sources": ["community"] },
+  { "id": "conclusion", "title": "Conclusion and Recommendations", "required": true, "data_sources": ["predictions","compliance"] },
+  { "id": "appendices", "title": "Appendices", "required": false, "data_sources": ["baseline","community"] }
+]

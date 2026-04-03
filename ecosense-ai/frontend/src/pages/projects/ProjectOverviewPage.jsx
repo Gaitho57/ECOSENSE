@@ -1,0 +1,138 @@
+import React, { useState, useEffect } from 'react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import axiosInstance from '../../api/axiosInstance';
+
+export default function ProjectOverviewPage() {
+  const { projectId } = useParams();
+  const navigate = useNavigate();
+  const [project, setProject] = useState(null);
+  const [stats, setStats] = useState({ sens_grade: 'A', predictions: 12, feedbacks: 145, compliance: 85 });
+
+  useEffect(() => {
+       const fetchLogic = async () => {
+             try {
+                 const res = await axiosInstance.get(`/projects/${projectId}/`);
+                 setProject(res.data.data);
+             } catch (e) {
+                 console.error("Mapping bounds failed resolving natively.");
+             }
+       };
+       fetchLogic();
+  }, [projectId]);
+
+  if (!project) return <div className="p-10 animate-pulse text-gray-400 font-bold tracking-widest uppercase">Executing Orchestration Blocks...</div>;
+
+  const PIPELINE_STAGES = [
+      { id: 'scoping', label: '1. Scoping Matrix', path: `/dashboard/projects/${projectId}/map` },
+      { id: 'baseline', label: '2. Baseline Scan', path: `/dashboard/projects/${projectId}/baseline` },
+      { id: 'assessment', label: '3. ML Impact Engine', path: `/dashboard/projects/${projectId}/predictions` },
+      { id: 'review', label: '4. Public Feedback', path: `/dashboard/projects/${projectId}/community` },
+      { id: 'submitted', label: '5. Document Generation', path: `/dashboard/projects/${projectId}/report` },
+      { id: 'approved', label: '6. NEMA Approval', path: `/dashboard/projects/${projectId}` },   // Static anchor natively 
+      { id: 'compliance', label: '7. Legal Check', path: `/dashboard/projects/${projectId}/compliance` }, // Extra structural steps visually
+      { id: 'monitoring', label: '8. ESG Telemetry', path: `/dashboard/projects/${projectId}/monitoring` }
+  ];
+
+  // Logic to determine active step
+  const getIndex = (s) => {
+       const map = { 'scoping':0, 'baseline':1, 'assessment':2, 'review':3, 'submitted':4, 'approved':5, 'monitoring':7 };
+       return map[s] !== undefined ? map[s] : 0;
+  };
+  
+  const currentIndex = getIndex(project.status);
+  const nextTarget = PIPELINE_STAGES[currentIndex + 1] || PIPELINE_STAGES[PIPELINE_STAGES.length - 1];
+
+  return (
+    <div className="p-6 lg:p-10 space-y-8 bg-gray-50 min-h-screen">
+        
+        {/* Header Block constraints securely mapping natively */}
+        <div className="bg-white rounded-3xl p-8 border border-gray-100 flex flex-col md:flex-row md:items-end justify-between gap-6 shadow-sm">
+             <div>
+                 <div className="flex gap-3 mb-3">
+                      <span className="text-[10px] uppercase font-black text-blue-600 bg-blue-50 px-3 py-1 rounded-sm border border-blue-100">{project.project_type.replace('_', ' ')}</span>
+                      <span className="text-[10px] uppercase font-black text-gray-500 bg-gray-100 flex items-center px-3 py-1 rounded-sm border border-gray-200">Scale: {project.scale_ha || 0} ha</span>
+                 </div>
+                 <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight">{project.name}</h1>
+                 <p className="text-gray-500 max-w-3xl mt-3 text-sm leading-relaxed">{project.description || "No architectural bounds initialized explicitly for this configuration..."}</p>
+                 
+                 <div className="flex gap-6 mt-6 pt-6 border-t border-gray-100">
+                     <span className="text-xs font-bold text-gray-500 flex items-center gap-2">👨‍💼 Lead: <span className="text-gray-800">{project.lead_consultant_name || 'N/A'}</span></span>
+                     <span className="text-xs font-bold text-gray-500 flex items-center gap-2">📜 NEMA Ref: <span className="text-gray-800">{project.nema_ref || 'Pending Generation'}</span></span>
+                 </div>
+             </div>
+             
+             {/* Thumbnail Map Mockup purely visual placeholder for 1-click execution bounds */}
+             <div className="w-full md:w-64 h-40 bg-gray-100 rounded-xl border-2 border-gray-200 overflow-hidden relative shadow-inner shrink-0 group hover:border-blue-400 transition-colors">
+                  <div className="absolute inset-0" style={{background: 'url("https://api.mapbox.com/styles/v1/mapbox/satellite-v9/static/36.8219,-1.2921,12,0/300x200?access_token=pk.mock") center/cover'}}>
+                       <div className="absolute inset-0 bg-blue-900/10 mix-blend-multiply"></div>
+                  </div>
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                       <span className="text-3xl drop-shadow-md">📍</span>
+                  </div>
+             </div>
+        </div>
+
+        {/* WORKFLOW PROGRESS BAR */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8">
+             <div className="flex justify-between items-center mb-6">
+                 <h3 className="font-extrabold text-gray-800 text-lg">Lifecyle Execution Pipeline</h3>
+                 <button 
+                      onClick={() => navigate(nextTarget.path)}
+                      className="bg-gray-900 hover:bg-black text-white px-5 py-2.5 rounded-lg text-sm font-bold transition-transform active:scale-95 shadow-md flex items-center gap-2"
+                 >
+                     Continue Execution → 
+                 </button>
+             </div>
+             
+             <div className="relative">
+                  <div className="absolute top-1/2 left-0 right-0 h-1 bg-gray-100 -translate-y-1/2 z-0 rounded-full overflow-hidden">
+                       <div className="h-full bg-blue-500 transition-all duration-1000 ease-in-out" style={{ width: `${(currentIndex / (PIPELINE_STAGES.length - 1)) * 100}%` }}></div>
+                  </div>
+                  
+                  <div className="flex justify-between relative z-10 w-full overflow-x-auto pb-4 snap-x snap-mandatory hide-scroll-bar">
+                       {PIPELINE_STAGES.map((s, i) => {
+                            const isCompleted = i < currentIndex;
+                            const isActive = i === currentIndex;
+                            
+                            return (
+                                 <div key={s.id} className="flex flex-col items-center gap-3 shrink-0 px-2 lg:px-0 w-28 lg:w-32 snap-center">
+                                      <div className={`w-8 h-8 rounded-full border-4 flex items-center justify-center bg-white shadow-sm transition-colors duration-500 ${
+                                          isCompleted ? 'border-blue-500 text-blue-500' :
+                                          isActive ? 'border-gray-800 text-gray-800 scale-125' :
+                                          'border-gray-200 text-transparent'
+                                      }`}>
+                                          {isCompleted ? <span className="text-sm font-black">✓</span> : <span className="w-2.5 h-2.5 rounded-full bg-current"></span>}
+                                      </div>
+                                      <span className={`text-[10px] uppercase font-black tracking-widest text-center ${isActive ? 'text-gray-900' : 'text-gray-400'}`}>
+                                          {s.label}
+                                      </span>
+                                 </div>
+                            );
+                       })}
+                  </div>
+             </div>
+        </div>
+
+        {/* QUICK STATS ROW */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+             <div className="bg-red-50 border border-red-200 p-6 rounded-2xl shadow-sm">
+                 <span className="text-red-400 uppercase tracking-widest text-[10px] font-black inline-block mb-2">Sensitivity Grade</span>
+                 <div className="text-5xl font-black text-red-600 leading-none">{stats.sens_grade}</div>
+             </div>
+             <div className="bg-white border border-gray-100 p-6 rounded-2xl shadow-sm flex flex-col justify-center">
+                 <span className="text-gray-400 uppercase tracking-widest text-[10px] font-black inline-block mb-1">Impact Predictions</span>
+                 <div className="text-4xl font-black text-gray-800">{stats.predictions}</div>
+             </div>
+             <div className="bg-white border border-gray-100 p-6 rounded-2xl shadow-sm flex flex-col justify-center">
+                 <span className="text-gray-400 uppercase tracking-widest text-[10px] font-black inline-block mb-1">Community Feedback</span>
+                 <div className="text-4xl font-black text-gray-800">{stats.feedbacks}</div>
+             </div>
+             <div className="bg-green-50 border border-green-200 p-6 rounded-2xl shadow-sm flex flex-col justify-center">
+                 <span className="text-green-500 uppercase tracking-widest text-[10px] font-black inline-block mb-1">Compliance Score</span>
+                 <div className="text-4xl font-black text-green-700">{stats.compliance}%</div>
+             </div>
+        </div>
+
+    </div>
+  );
+}

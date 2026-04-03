@@ -1,0 +1,191 @@
+# ===========================================
+# EcoSense AI — CI/CD Pipeline
+# ===========================================
+# Runs on every push/PR to main and develop branches.
+# Job 1: test — lints, migrates, runs pytest + frontend lint
+# Job 2: deploy-staging — builds & pushes Docker images to ECR
+# ===========================================
+
+name: EcoSense AI CI/CD
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+env:
+  PYTHON_VERSION: "3.11"
+  NODE_VERSION: "20"
+
+jobs:
+  # ===========================================
+  # JOB 1: Test
+  # ===========================================
+  test:
+    name: Test Suite
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgis/postgis:15-3.3
+        env:
+          POSTGRES_DB: ecosense_test
+          POSTGRES_USER: ecosense
+          POSTGRES_PASSWORD: test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ecosense"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgis://ecosense:test@localhost:5432/ecosense_test
+      DEBUG: "True"
+      SECRET_KEY: test-key-for-ci-only-do-not-use-in-production
+      REDIS_URL: redis://localhost:6379/0
+      ALLOWED_HOSTS: localhost,127.0.0.1
+      CORS_ALLOWED_ORIGINS: http://localhost:5173
+      FRONTEND_URL: http://localhost:5173
+
+    steps:
+      # ------------------------------------------
+      # Checkout
+      # ------------------------------------------
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # ------------------------------------------
+      # Backend — Python setup & tests
+      # ------------------------------------------
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install GDAL system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            gdal-bin \
+            libgdal-dev \
+            libpq-dev \
+            libgeos-dev \
+            libproj-dev
+
+      - name: Install Python dependencies
+        run: pip install -r backend/requirements.txt
+
+      - name: Run database migrations
+        working-directory: backend
+        run: python manage.py migrate
+
+      - name: Run backend tests with coverage
+        working-directory: backend
+        run: pytest --cov=apps --cov-report=xml -x
+
+      # ------------------------------------------
+      # Frontend — Node setup & lint
+      # ------------------------------------------
+      - name: Set up Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Run frontend lint
+        working-directory: frontend
+        run: npm run lint
+
+      # ------------------------------------------
+      # Artifacts
+      # ------------------------------------------
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: backend/coverage.xml
+          retention-days: 30
+
+  # ===========================================
+  # JOB 2: Deploy to Staging
+  # ===========================================
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Log in to Amazon ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push backend image
+        env:
+          ECR_REGISTRY: ${{ steps.ecr-login.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $ECR_REGISTRY/ecosense-backend:$IMAGE_TAG ./backend
+          docker push $ECR_REGISTRY/ecosense-backend:$IMAGE_TAG
+          docker tag $ECR_REGISTRY/ecosense-backend:$IMAGE_TAG $ECR_REGISTRY/ecosense-backend:latest
+          docker push $ECR_REGISTRY/ecosense-backend:latest
+
+      - name: Build and push frontend image
+        env:
+          ECR_REGISTRY: ${{ steps.ecr-login.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $ECR_REGISTRY/ecosense-frontend:$IMAGE_TAG ./frontend
+          docker push $ECR_REGISTRY/ecosense-frontend:$IMAGE_TAG
+          docker tag $ECR_REGISTRY/ecosense-frontend:$IMAGE_TAG $ECR_REGISTRY/ecosense-frontend:latest
+          docker push $ECR_REGISTRY/ecosense-frontend:latest
+
+      # ------------------------------------------
+      # TODO: SSH into staging EC2 and run deploy script
+      # This is a manual step for now. Example:
+      #
+      # - name: Deploy to staging EC2
+      #   uses: appleboy/ssh-action@v1
+      #   with:
+      #     host: ${{ secrets.STAGING_HOST }}
+      #     username: ${{ secrets.STAGING_USER }}
+      #     key: ${{ secrets.STAGING_SSH_KEY }}
+      #     script: |
+      #       cd /opt/ecosense-ai
+      #       ./scripts/deploy.sh ${{ github.sha }}
+      # ------------------------------------------
+      - name: Staging deployment note
+        run: |
+          echo "✅ Docker images pushed to ECR with tag: ${{ github.sha }}"
+          echo "📋 Manual step: SSH into staging EC2 and pull the new images."
