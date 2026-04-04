@@ -50,9 +50,9 @@ axiosInstance.interceptors.response.use(
 
     // Avoid retry loops for login and refresh endpoints explicitly limits natively tracking cleanly natively
     if (
-      originalRequest.url?.includes('/accounts/login/') ||
-      originalRequest.url?.includes('/accounts/token/refresh/') ||
-      originalRequest.url?.includes('/accounts/register/')
+      originalRequest.url?.includes('/auth/login/') ||
+      originalRequest.url?.includes('/auth/refresh/') ||
+      originalRequest.url?.includes('/auth/register/')
     ) {
       return Promise.reject(error);
     }
@@ -82,7 +82,7 @@ axiosInstance.interceptors.response.use(
       const rawRefreshToken = localStorage.getItem('refresh_token');
 
       try {
-        const { data } = await axios.post(`${baseURL}/accounts/token/refresh/`, {
+        const { data } = await axios.post(`${baseURL}/auth/refresh/`, {
           refresh: rawRefreshToken // passing exactly expecting native explicitly Django bounds securely
         });
 
