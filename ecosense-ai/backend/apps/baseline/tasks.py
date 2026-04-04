@@ -55,17 +55,19 @@ def generate_baseline(self, project_id: str):
             gbif_data = future_gbif.result()
             usgs_data = future_usgs.result()
 
-        # Update and link outputs
+        # Update and link outputs (ensuring null-safety for partial failures)
         baseline.data_sources = ["GEE", "OpenWeather", "GBIF", "USGS"]
-        baseline.satellite_data = gee_data.get("data")
         
-        # Optionally assign NDVI straight to field if needed
+        # Guard against None results from retry_api_call failures
+        sat_blob = gee_data.get("data") if gee_data else {}
+        baseline.satellite_data = sat_blob
+        
         if baseline.satellite_data:
             baseline.ndvi_score = baseline.satellite_data.get("ndvi")
 
-        baseline.air_quality_baseline = wx_data.get("data")
-        baseline.biodiversity_data = gbif_data.get("data")
-        baseline.soil_data = usgs_data.get("data")
+        baseline.air_quality_baseline = wx_data.get("data") if wx_data else {}
+        baseline.biodiversity_data = gbif_data.get("data") if gbif_data else {}
+        baseline.soil_data = usgs_data.get("data") if usgs_data else {}
         baseline.hydrology_data = {"proximity": "none"} # Hardcoded fallback
 
         # Calculate scores based on the collected properties dicts

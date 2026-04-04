@@ -104,10 +104,15 @@ class TaskStatusView(APIView):
     def get(self, request, task_id):
         res = AsyncResult(task_id)
         
+        # Ensure result is JSON serializable (exceptions are not by default)
+        result = res.result
+        if isinstance(result, Exception):
+            result = str(result)
+
         data = {
             "task_id": task_id,
             "status": res.status,
-            "result": res.result if res.ready() else None,
+            "result": result if res.ready() else None,
             "progress_percent": 100 if res.ready() else 0 # Placeholder for advanced tasks mapping metadata iteration
         }
         return envelope(data=data)

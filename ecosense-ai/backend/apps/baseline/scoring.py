@@ -9,6 +9,10 @@ def calculate_sensitivity_score(baseline_data: dict) -> dict:
     Computes component and overall sensitivity scores.
     Expects data block outputs aggregated from USGS, GBIF, GEE, and OpenWeather.
     """
+    # Guard against missing or null compilation mapping
+    if not baseline_data:
+        baseline_data = {}
+
     scores = {
         "vegetation": 15,
         "hydrology": 20, 
@@ -18,7 +22,8 @@ def calculate_sensitivity_score(baseline_data: dict) -> dict:
     }
 
     # -- 1. Vegetation (GEE)
-    ndvi = baseline_data.get("satellite", {}).get("ndvi", 0)
+    satellite = baseline_data.get("satellite") or {}
+    ndvi = satellite.get("ndvi", 0) if isinstance(satellite, dict) else 0
     if ndvi > 0.6:
         scores["vegetation"] = 85
     elif 0.4 <= ndvi <= 0.6:
@@ -28,9 +33,9 @@ def calculate_sensitivity_score(baseline_data: dict) -> dict:
     else:
         scores["vegetation"] = 15
 
-    # -- 2. Hydrology (Mocked for now as we don't have a direct hydrology client yet)
-    # wetland = 90, river = 60, none = 20
-    hydro = baseline_data.get("hydrology", {}).get("proximity", "none")
+    # -- 2. Hydrology
+    hydrology = baseline_data.get("hydrology") or {}
+    hydro = hydrology.get("proximity", "none") if isinstance(hydrology, dict) else "none"
     if hydro == "wetland":
         scores["hydrology"] = 90
     elif hydro == "river":
@@ -39,7 +44,8 @@ def calculate_sensitivity_score(baseline_data: dict) -> dict:
         scores["hydrology"] = 20
 
     # -- 3. Biodiversity (GBIF)
-    threatened = baseline_data.get("biodiversity", {}).get("threatened_species_count", 0)
+    biodiversity = baseline_data.get("biodiversity") or {}
+    threatened = biodiversity.get("threatened_species_count", 0) if isinstance(biodiversity, dict) else 0
     if threatened > 10:
         scores["biodiversity"] = 90
     elif 5 <= threatened <= 10:
@@ -50,7 +56,8 @@ def calculate_sensitivity_score(baseline_data: dict) -> dict:
         scores["biodiversity"] = 15
 
     # -- 4. Air Quality (OpenWeather)
-    aqi = baseline_data.get("air_quality", {}).get("aqi", 1)
+    air_quality = baseline_data.get("air_quality") or {}
+    aqi = air_quality.get("aqi", 1) if isinstance(air_quality, dict) else 1
     if aqi >= 4:
         scores["air_quality"] = 80
     elif aqi == 3:
@@ -59,7 +66,8 @@ def calculate_sensitivity_score(baseline_data: dict) -> dict:
         scores["air_quality"] = 20
 
     # -- 5. Soil (USGS)
-    org_carb = baseline_data.get("soil", {}).get("organic_carbon_percent", 0)
+    soil = baseline_data.get("soil") or {}
+    org_carb = soil.get("organic_carbon_percent", 0) if isinstance(soil, dict) else 0
     if org_carb > 3.0:
         scores["soil"] = 70
     elif 1.0 <= org_carb <= 3.0:
