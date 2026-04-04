@@ -33,12 +33,11 @@ export default function AcceptInvitePage() {
     setApiError(null);
     try {
       const response = await axios.post(`/api/v1/auth/accept-invite/${token}/`, data);
-      
+
       const { user, access_token, refresh_token } = response.data.data;
-      
-      setAuth(user, access_token);
-      localStorage.setItem('refresh_token', refresh_token);
-      
+
+      setAuth(user, access_token, refresh_token);
+
       navigate('/dashboard');
     } catch (error) {
       if (error.response?.data?.error?.message) {
@@ -63,7 +62,7 @@ export default function AcceptInvitePage() {
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow-xl sm:rounded-lg sm:px-10 border border-green-100">
           <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
-            
+
             {apiError && (
               <div className="bg-red-50 border-l-4 border-red-400 p-4 mb-4">
                 <p className="text-sm text-red-700">{apiError}</p>
@@ -116,7 +115,7 @@ export default function AcceptInvitePage() {
               </button>
             </div>
           </form>
-          
+
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">
               <Link to="/login" className="font-medium text-green-600 hover:text-green-500">

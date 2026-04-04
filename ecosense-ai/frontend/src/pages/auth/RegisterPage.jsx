@@ -24,8 +24,8 @@ export default function RegisterPage() {
             const response = await axios.post(`${baseURL}/auth/register/`, formData);
 
             // The backend limits natively map JWT extraction automatically post-registration mapping 1 API bound
-            const { user, access, refresh } = response.data.data;
-            setAuth(user, access, refresh);
+            const { user, access_token, refresh_token } = response.data.data;
+            setAuth(user, access_token, refresh_token);
             navigate('/dashboard');
         } catch (err) {
             const errorMessage = err.response?.data?.error?.message || 'Validation error.';

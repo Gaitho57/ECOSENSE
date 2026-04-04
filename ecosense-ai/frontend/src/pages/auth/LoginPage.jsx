@@ -27,10 +27,10 @@ export default function LoginPage() {
                 email, password
             });
 
-            const { user, access, refresh } = response.data.data;
+            const { user, access_token, refresh_token } = response.data.data;
 
             // Securely inject constraints scaling natively explicitly securely
-            setAuth(user, access, refresh);
+            setAuth(user, access_token, refresh_token);
 
             navigate(from, { replace: true });
         } catch (err) {

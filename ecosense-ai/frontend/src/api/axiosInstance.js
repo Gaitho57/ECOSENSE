@@ -60,7 +60,7 @@ axiosInstance.interceptors.response.use(
     if (error.response?.status === 401 && !originalRequest._retry) {
       if (isRefreshing) {
         // Queue the request until refresh finishes
-        return new Promise(function(resolve, reject) {
+        return new Promise(function (resolve, reject) {
           failedQueue.push({ resolve, reject });
         }).then(token => {
           originalRequest.headers['Authorization'] = 'Bearer ' + token;
@@ -83,11 +83,11 @@ axiosInstance.interceptors.response.use(
 
       try {
         const { data } = await axios.post(`${baseURL}/auth/refresh/`, {
-          refresh: rawRefreshToken // passing exactly expecting native explicitly Django bounds securely
+          refresh_token: rawRefreshToken // passing exactly expecting native explicitly Django bounds securely
         });
 
-        const newAccessToken = data.data?.access || data.access;
-        const newRefreshToken = data.data?.refresh || data.refresh;
+        const newAccessToken = data.data?.access_token || data.access_token;
+        const newRefreshToken = data.data?.refresh_token || data.refresh_token;
 
         if (newRefreshToken) {
           localStorage.setItem('refresh_token', newRefreshToken);
