@@ -1,16 +1,11 @@
 # ===========================================
-# EcoSense AI — Docker Compose (Local Dev)
-# ===========================================
-# Usage: docker-compose -f infra/docker-compose.yml up --build
-# Run from project root: ecosense-ai/
+# EcoSense AI — Docker Compose (DEV)
 # ===========================================
 
-
+version: "3.8"
 
 services:
-  # ------------------------------------------
-  # SERVICE 1: PostgreSQL 15 + PostGIS
-  # ------------------------------------------
+
   db:
     image: postgis/postgis:15-3.3
     container_name: ecosense-db
@@ -20,97 +15,59 @@ services:
       POSTGRES_USER: ecosense
       POSTGRES_PASSWORD: ecosense_dev
     ports:
-      - "5432:5432"
+      - "5434:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ecosense"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
-  # ------------------------------------------
-  # SERVICE 2: Redis 7
-  # ------------------------------------------
   redis:
     image: redis:7-alpine
     container_name: ecosense-redis
     restart: unless-stopped
     ports:
       - "6379:6379"
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
-  # ------------------------------------------
-  # SERVICE 3: Django Backend
-  # ------------------------------------------
   backend:
     build:
       context: ../backend
       dockerfile: Dockerfile
     container_name: ecosense-backend
-    restart: unless-stopped
     command: python manage.py runserver 0.0.0.0:8000
-    working_dir: /app
     env_file:
       - ../backend/.env
-    ports:
-      - "8000:8000"
     volumes:
       - ../backend:/app
+    ports:
+      - "8000:8000"
     depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+      - db
+      - redis
 
-  # ------------------------------------------
-  # SERVICE 4: React Frontend (Vite)
-  # ------------------------------------------
   frontend:
     build:
       context: ../frontend
       dockerfile: Dockerfile
-    container_name: ecosense-frontend
-    restart: unless-stopped
     command: npm run dev -- --host
-    ports:
-      - "5173:5173"
     volumes:
       - ../frontend:/app
       - /app/node_modules
+    ports:
+      - "5173:5173"
     depends_on:
       - backend
 
-  # ------------------------------------------
-  # SERVICE 5: Celery Worker
-  # ------------------------------------------
   celery_worker:
     build:
       context: ../backend
       dockerfile: Dockerfile
     container_name: ecosense-celery-worker
-    restart: unless-stopped
     command: celery -A core worker --loglevel=info
-    working_dir: /app
     env_file:
       - ../backend/.env
     volumes:
       - ../backend:/app
     depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+      - db
+      - redis
 
-# ===========================================
-# Named Volumes
-# ===========================================
 volumes:
   postgres_data:
-  redis_data:

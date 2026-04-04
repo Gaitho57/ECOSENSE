@@ -1,17 +1,15 @@
 # ===========================================
-# EcoSense AI — Backend Dockerfile
-# Python 3.11 + GDAL + PostGIS client
+# EcoSense AI — Backend Dockerfile (DEV)
 # ===========================================
 
-FROM python:3.11-slim
+FROM python:3.11-slim-bookworm
 
-# Prevent Python from writing .pyc files and enable unbuffered output
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-# ===========================================
-# Install system dependencies
-# ===========================================
+# -------------------------------------------
+# System dependencies
+# -------------------------------------------
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gdal-bin \
     libgdal-dev \
@@ -22,32 +20,31 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-dev \
     libgeos-dev \
     libproj-dev \
+    libpango-1.0-0 \
+    libharfbuzz0b \
+    libpangoft2-1.0-0 \
+    libpangocairo-1.0-0 \
+    libglib2.0-0 \
+    libffi-dev \
+    shared-mime-info \
     && rm -rf /var/lib/apt/lists/*
 
-# ===========================================
-# Set GDAL / GEOS environment variables
-# ===========================================
+# -------------------------------------------
+# GDAL / GEOS config
+# -------------------------------------------
 ENV GDAL_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu/libgdal.so
 ENV GEOS_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu/libgeos_c.so
-ENV PYTHONPATH=/usr/lib/python3/dist-packages:$PYTHONPATH
 
-# ===========================================
-# Install Python dependencies
-# ===========================================
+# -------------------------------------------
+# App setup
+# -------------------------------------------
 WORKDIR /app
 
 COPY requirements.txt .
 
-# 1. Upgrade pip
-# 2. Delete Debian's system numpy to prevent uninstall/RECORD file conflicts
-# 3. Cleanly install all Python requirements
-RUN pip install --no-cache-dir --upgrade pip && \
-    rm -rf /usr/lib/python3/dist-packages/numpy* && \
-    pip install --no-cache-dir -r requirements.txt
+RUN pip install --upgrade pip && \
+    pip install --no-cache-dir --use-feature=fast-deps -r requirements.txt
 
-# ===========================================
-# Copy application code
-# ===========================================
 COPY . .
 
 EXPOSE 8000

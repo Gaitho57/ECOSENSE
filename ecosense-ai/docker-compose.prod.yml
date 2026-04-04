@@ -1,26 +1,27 @@
-version: '3.8'
+# ===========================================
+# EcoSense AI — Docker Compose (PRODUCTION)
+# ===========================================
+
+version: "3.8"
 
 services:
+
   db:
     image: postgis/postgis:15-3.3
     volumes:
       - ecosense_prod_pgdata:/var/lib/postgresql/data
     environment:
-      - POSTGRES_USER=${DB_USER}
-      - POSTGRES_PASSWORD=${DB_PASSWORD}
-      - POSTGRES_DB=${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
     restart: unless-stopped
-    networks:
-      - backend-net
 
   redis:
     image: redis:7-alpine
     restart: unless-stopped
-    networks:
-      - backend-net
 
   web:
-    build: 
+    build:
       context: ./backend
       dockerfile: Dockerfile.prod
     command: gunicorn core.wsgi:application --bind 0.0.0.0:8000 --workers 4 --threads 2
@@ -28,61 +29,29 @@ services:
       - static_volume:/app/staticfiles
       - media_volume:/app/media
     environment:
-      - DATABASE_URL=postgis://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
-      - REDIS_URL=redis://redis:6379/0
-      - CELERY_BROKER_URL=redis://redis:6379/1
-      - CELERY_RESULT_BACKEND=redis://redis:6379/2
-      - DJANGO_SETTINGS_MODULE=core.settings
-      - SECRET_KEY=${SECRET_KEY}
-      - DEBUG=False
-      - ALLOWED_HOSTS=${ALLOWED_HOSTS}
-      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS}
-      - POLYGON_PRIVATE_KEY=${POLYGON_PRIVATE_KEY}
+      DATABASE_URL: postgis://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+      DJANGO_SETTINGS_MODULE: core.settings
+      SECRET_KEY: ${SECRET_KEY}
+      DEBUG: "False"
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS}
     depends_on:
       - db
       - redis
-    restart: unless-stopped
-    networks:
-      - backend-net
 
   celery_worker:
-    build: 
+    build:
       context: ./backend
       dockerfile: Dockerfile.prod
-    command: celery -A core worker -l INFO -c 4
+    command: celery -A core worker -l INFO
     environment:
-      - DATABASE_URL=postgis://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
-      - REDIS_URL=redis://redis:6379/0
-      - CELERY_BROKER_URL=redis://redis:6379/1
-      - CELERY_RESULT_BACKEND=redis://redis:6379/2
-      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-      - POLYGON_PRIVATE_KEY=${POLYGON_PRIVATE_KEY}
+      DATABASE_URL: postgis://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
+      CELERY_BROKER_URL: redis://redis:6379/1
     depends_on:
-      - web
       - db
       - redis
-    restart: unless-stopped
-    networks:
-      - backend-net
-
-  celery_beat:
-    build: 
-      context: ./backend
-      dockerfile: Dockerfile.prod
-    command: celery -A core beat -l INFO
-    environment:
-      - DATABASE_URL=postgis://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
-      - REDIS_URL=redis://redis:6379/0
-      - CELERY_BROKER_URL=redis://redis:6379/1
-      - CELERY_RESULT_BACKEND=redis://redis:6379/2
-    depends_on:
-      - web
-      - db
-      - redis
-    restart: unless-stopped
-    networks:
-      - backend-net
 
   nginx:
     build:
@@ -90,24 +59,13 @@ services:
       dockerfile: nginx/Dockerfile
     ports:
       - "80:80"
-      - "443:443"
     volumes:
       - static_volume:/app/staticfiles
       - media_volume:/app/media
-      - certbot_conf:/etc/letsencrypt
-      - certbot_www:/var/www/certbot
     depends_on:
       - web
-    restart: unless-stopped
-    networks:
-      - backend-net
-
-networks:
-  backend-net:
 
 volumes:
   ecosense_prod_pgdata:
   static_volume:
   media_volume:
-  certbot_conf:
-  certbot_www:
