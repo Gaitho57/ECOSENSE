@@ -63,14 +63,14 @@ export default function BaselinePage() {
     return <div className="p-8 text-center text-gray-500">Loading project data...</div>;
   }
 
-  // State: Baseline hasn't started natively
-  if (!baseline && !isGenerating) {
+  // State: Baseline hasn't started natively or failed to load
+  if ((!baseline && !isGenerating) || (baseline && Object.keys(baseline).length === 0 && !isGenerating)) {
     return (
       <div className="h-full flex flex-col items-center justify-center p-8 bg-gray-50 min-h-screen">
         <div className="bg-white p-8 rounded-xl shadow-sm text-center max-w-lg border border-gray-100">
           <div className="text-4xl mb-4">🌍</div>
-          <h2 className="text-xl font-bold text-gray-800">No Baseline Generated</h2>
-          <p className="text-gray-500 mt-2 mb-6">Aggregate planetary data, satellite health metrics, and soil compositions remotely to establish impact bounds.</p>
+          <h2 className="text-xl font-bold text-gray-800">No Environmental Baseline Generated</h2>
+          <p className="text-gray-500 mt-2 mb-6 tracking-tight">Aggregate planetary data, satellite health metrics, and biodiversity indices remotely to establish valid impact bounds natively.</p>
           <button 
             onClick={handleGenerate}
             className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-6 rounded-lg transition-colors"
@@ -88,8 +88,8 @@ export default function BaselinePage() {
       {/* Header element */}
       <div className="bg-white px-6 py-4 border-b border-gray-200 flex justify-between items-center z-10 shrink-0">
         <div>
-          <h1 className="text-xl font-bold text-gray-800">Nairobi Expressway Expansion</h1>
-          <p className="text-sm text-gray-500">Project Baseline Dashboard</p>
+          <h1 className="text-xl font-extrabold text-gray-900 tracking-tight">EcoSense Intelligence</h1>
+          <p className="text-sm font-medium text-gray-500">Project Baseline Dashboard Orchestrator</p>
         </div>
         
         {baseline && !isGenerating && (

@@ -14,6 +14,15 @@ import ProjectsPage from './pages/projects/ProjectsPage';
 import ProjectOverviewPage from './pages/projects/ProjectOverviewPage';
 import MonitoringPage from './pages/projects/MonitoringPage';
 import ESGPage from './pages/projects/ESGPage';
+
+// Sub-Module Activations
+import BaselinePage from './pages/projects/BaselinePage';
+import PredictionsPage from './pages/projects/PredictionsPage';
+import GISPage from './pages/projects/GISPage';
+import CommunityPage from './pages/projects/CommunityPage';
+import ReportPage from './pages/projects/ReportPage';
+import CompliancePage from './pages/projects/CompliancePage';
+
 import SettingsPage from './pages/settings/SettingsPage';
 import VerificationPage from './pages/public/VerificationPage';
 
@@ -38,16 +47,16 @@ function App() {
              <Route path="projects" element={<ProjectsPage />} />
              <Route path="projects/:projectId" element={<ProjectOverviewPage />} />
              
-             {/* Sub Module Endpoints natively matching the requirements actively spanning layout limits smoothly */}
+             {/* Sub Module Endpoints natively integrated and actively spanning layout limits smoothly */}
              <Route path="projects/:projectId/monitoring" element={<MonitoringPage />} />
              <Route path="projects/:projectId/esg" element={<ESGPage />} />
-             {/* Mock visual placeholders mapping other UI segments strictly omitted per exact spec mapping  */}
-             <Route path="projects/:projectId/baseline" element={<div className="p-10 font-black text-gray-300 text-3xl">Baseline Viewer Module</div>} />
-             <Route path="projects/:projectId/predictions" element={<div className="p-10 font-black text-gray-300 text-3xl">AI Prediction Module</div>} />
-             <Route path="projects/:projectId/map" element={<div className="p-10 font-black text-gray-300 text-3xl">GIS Viewer Module</div>} />
-             <Route path="projects/:projectId/community" element={<div className="p-10 font-black text-gray-300 text-3xl">Community Module</div>} />
-             <Route path="projects/:projectId/report" element={<div className="p-10 font-black text-gray-300 text-3xl">Report Configuration Module</div>} />
-             <Route path="projects/:projectId/compliance" element={<div className="p-10 font-black text-gray-300 text-3xl">Compliance Checks Module</div>} />
+             
+             <Route path="projects/:projectId/baseline" element={<BaselinePage />} />
+             <Route path="projects/:projectId/predictions" element={<PredictionsPage />} />
+             <Route path="projects/:projectId/map" element={<GISPage />} />
+             <Route path="projects/:projectId/community" element={<CommunityPage />} />
+             <Route path="projects/:projectId/report" element={<ReportPage />} />
+             <Route path="projects/:projectId/compliance" element={<CompliancePage />} />
              
              <Route path="settings" element={<SettingsPage />} />
         </Route>
