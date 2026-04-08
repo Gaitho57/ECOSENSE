@@ -25,8 +25,8 @@ urlpatterns = [
     # API v1 — Core modules
     path("api/v1/projects/", include("apps.projects.urls")),
     path("api/v1/projects/", include("apps.baseline.urls")), # Merges baseline endpoints under projects
+    path("api/v1/projects/", include("apps.predictions.urls")), # Merges predictions endpoints under projects
     path("api/v1/tasks/", include("apps.baseline.urls_tasks")),
-    path("api/v1/predictions/", include("apps.predictions.urls")),
     path("api/v1/community/", include("apps.community.urls")),
     path("api/v1/public/", include("apps.community.urls_public")),
     path("api/v1/public/esg/", include("apps.esg.urls_public")),
@@ -35,3 +35,4 @@ urlpatterns = [
     path("api/v1/emp/", include("apps.emp.urls")),
     path("api/v1/esg/", include("apps.esg.urls")),
 ]
+# RELOAD Sun Apr  5 12:17:43 PM EAT 2026

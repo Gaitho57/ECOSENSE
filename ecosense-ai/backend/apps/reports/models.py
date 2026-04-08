@@ -22,7 +22,8 @@ class EIAReport(BaseModel):
         ("generating", "Generating"),
         ("ready", "Ready"),
         ("submitted", "Submitted"),
-        ("failed", "Failed")
+        ("failed", "Failed"),
+        ("compliance_blocked", "Compliance Blocked")
     ]
 
     project = models.ForeignKey(
@@ -36,13 +37,14 @@ class EIAReport(BaseModel):
     jurisdiction = models.CharField(max_length=100, default="NEMA_Kenya")
     
     s3_key = models.CharField(max_length=500, blank=True)
-    s3_url = models.URLField(max_length=1000, blank=True)
+    s3_url = models.CharField(max_length=1000, blank=True)
     file_size_bytes = models.IntegerField(null=True, blank=True)
     
     blockchain_hash = models.CharField(max_length=256, blank=True)
     blockchain_tx = models.CharField(max_length=256, blank=True)
     
     status = models.CharField(max_length=50, default="draft", choices=STATUS_CHOICES)
+    error_message = models.TextField(blank=True, null=True)
     generated_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:

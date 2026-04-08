@@ -74,8 +74,13 @@ def analyse_feedback(feedback_text: str) -> dict:
     
     txt = feedback_text.lower()
     
-    # 1. Classification via exact structural mapping
-    base_cats = ["water", "displacement", "jobs", "noise", "dust", "wildlife", "health", "traffic", "compensation", "consultation"]
+    # 1. Classification via exact structural mapping — NEMA EIA specific mappings
+    base_cats = [
+        "water", "displacement", "jobs", "noise", "dust", "wildlife", "health", 
+        "traffic", "compensation", "consultation", "livelihoods", "sacred", 
+        "heritage", "resettlement", "vulnerable", "safety", "pollution", 
+        "drainage", "employment", "land", "access", "trees", "rivers", "economy"
+    ]
     for c in base_cats:
         if c in txt:
              res["categories"].append(c)
@@ -101,8 +106,16 @@ def analyse_feedback(feedback_text: str) -> dict:
     return res
 
 def _fallback_sentiment(txt: str) -> str:
-    pos_w = ["good", "great", "excellent", "happy", "support", "thanks", "approve", "better", "safe"]
-    neg_w = ["bad", "terrible", "angry", "hate", "worry", "dangerous", "unhappy", "oppose", "noisy", "dirty"]
+    pos_w = [
+        "good", "great", "excellent", "happy", "support", "thanks", "approve", 
+        "better", "safe", "welcome", "benefits", "opportunity", "progress", 
+        "positive", "needed", "agree", "okay", "yes"
+    ]
+    neg_w = [
+        "bad", "terrible", "angry", "hate", "worry", "dangerous", "unhappy", 
+        "oppose", "noisy", "dirty", "stop", "no", "problem", "fear", "harm", 
+        "damage", "worse", "illegal", "threat"
+    ]
     
     pos_c = sum(1 for w in pos_w if w in txt)
     neg_c = sum(1 for w in neg_w if w in txt)

@@ -4,8 +4,8 @@ API routes resolving to /api/v1/projects/{project_id}/ Predictions bounds native
 
 from django.urls import path
 from apps.predictions.views import (
-     RunPredictionView, ProjectPredictionsView, ProjectScenariosView,
-     DispersionSimulationView, FloodSimulationView
+    RunPredictionView, ProjectPredictionsView, ProjectScenariosView,
+    DispersionSimulationView, FloodSimulationView, AIMSuggestedMitigationsView
 )
 
 app_name = "predictions"
@@ -16,4 +16,5 @@ urlpatterns = [
     path('<uuid:project_id>/scenarios/', ProjectScenariosView.as_view(), name='project_scenarios'),
     path('<uuid:project_id>/simulations/dispersion/', DispersionSimulationView.as_view(), name='sim_dispersion'),
     path('<uuid:project_id>/simulations/flood/', FloodSimulationView.as_view(), name='sim_flood'),
+    path('<uuid:project_id>/ai-mitigations/', AIMSuggestedMitigationsView.as_view(), name='ai_mitigations'),
 ]

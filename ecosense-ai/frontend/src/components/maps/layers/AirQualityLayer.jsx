@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import mapboxgl from 'mapbox-gl';
+import maplibregl from 'maplibre-gl';
 import { useMap } from '../MapContext';
 
 export default function AirQualityLayer({ air_quality_baseline, center, isVisible = true }) {
@@ -42,7 +42,7 @@ export default function AirQualityLayer({ air_quality_baseline, center, isVisibl
 
     // Initialize marker if not exists
     if (!markerRef.current) {
-      markerRef.current = new mapboxgl.Marker({ element: el })
+      markerRef.current = new maplibregl.Marker({ element: el })
         .setLngLat(center)
         // Offset slightly above the center
         .setOffset([0, -40])

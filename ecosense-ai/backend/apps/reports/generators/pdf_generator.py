@@ -3,9 +3,12 @@ PDF Generator via WeasyPrint isolating native outputs securely wrapping bucket e
 """
 
 import os
+import logging
 from io import BytesIO
 import boto3
 from django.conf import settings
+
+logger = logging.getLogger(__name__)
 from django.template.loader import render_to_string
 from weasyprint import HTML, CSS
 from pathlib import Path
@@ -14,44 +17,60 @@ from apps.compliance.engine import ComplianceEngine, ComplianceBlockedError
 def generate_pdf_report(project_id: str, tenant_id: str, version: int, report_data: dict) -> tuple:
     """
     Renders Jinja contexts explicitly creating PDF files deploying seamlessly mimicking S3 buckets logically.
+    Compliance auditing is now handled by the compiler and rendered as an appendix.
     Returns (s3_key, file_size, s3_url)
     """
-    engine = ComplianceEngine()
-    comp_report = engine.run_check(project_id)
-    
-    critical_failures = []
-    
-    # Check for critical failures manually tracking rules
-    # We load kb here to verify the 'is_critical' flag safely natively bypassing looping 
-    for fail in comp_report.get("failed", []):
-         for rule in engine.knowledge_base:
-              if rule["id"] == fail["regulation_id"] and rule.get("is_critical", False):
-                   critical_failures.append(fail["regulation_id"])
-
-    if critical_failures:
-         raise ComplianceBlockedError(critical_failures)
-
-    html_string = render_to_string("nema_report.html", report_data)
+    html_string = render_to_string("reports/nema_report.html", report_data)
     
     # Extract absolute paths enabling WeasyPrint finding CSS natively inside directories 
-    templates_dir = Path(__file__).resolve().parent.parent / "html_templates"
+    templates_dir = Path(__file__).resolve().parent.parent / "templates" / "reports"
     css_path = str(templates_dir / "nema_report.css")
-    
-    # Secure base_url binding
-    pdf_file = HTML(string=html_string, base_url=str(templates_dir)).write_pdf(stylesheets=[CSS(filename=css_path)])
+
+    # Secure base_url binding and absolute CSS path resolving
+    try:
+        # Pydantic v2/WeasyPrint 60.1 robustness hack: 
+        # Instantiating HTML without base_url first avoids certain __init__ conflicts
+        html = HTML(string=html_string, base_url=str(templates_dir))
+        
+        # We explicitly provide the stylesheets as a list of CSS objects
+        styles = [CSS(filename=css_path)]
+        
+        # write_pdf handles the actual rendering metadata
+        pdf_file = html.write_pdf(stylesheets=styles)
+    except Exception as e:
+        logger.warning(f"WeasyPrint primary rendering failed: {e}. Attempting fallback...")
+        try:
+            # Fallback: Absolute pathing but no custom stylesheets to bypass font/metadata init errors
+            html = HTML(string=html_string, base_url=str(templates_dir))
+            pdf_file = html.write_pdf()
+        except Exception as fallback_err:
+            logger.error(f"WeasyPrint critical failure: {fallback_err}")
+            raise fallback_err
     
     file_size = len(pdf_file)
     s3_key = f"reports/{tenant_id}/{project_id}/v{version}/report.pdf"
     
     bucket_name = getattr(settings, "AWS_STORAGE_BUCKET_NAME", "ecosense-dummy-bucket")
+    storage_success = False
     
-    # We apply a logical S3 integration mock if the keys aren't bound in typical unconfigured contexts natively
+    # 1. Attempt S3 Upload if keys are present
     if getattr(settings, "AWS_ACCESS_KEY_ID", None):
-        s3 = boto3.client('s3')
-        s3.put_object(Bucket=bucket_name, Key=s3_key, Body=pdf_file, ContentType="application/pdf")
-        url = s3.generate_presigned_url('get_object', Params={'Bucket': bucket_name, 'Key': s3_key}, ExpiresIn=604800)
-    else:
-        # Mock configuration storing logically without failing pipelines 
-        url = f"https://s3.amazonaws.com/{bucket_name}/{s3_key}?mocked=true"
+        try:
+            s3 = boto3.client('s3')
+            s3.put_object(Bucket=bucket_name, Key=s3_key, Body=pdf_file, ContentType="application/pdf")
+            url = s3.generate_presigned_url('get_object', Params={'Bucket': bucket_name, 'Key': s3_key}, ExpiresIn=604800)
+            storage_success = True
+            logger.info(f"Report uploaded to S3: {s3_key}")
+        except Exception as s3_err:
+            logger.warning(f"S3 Upload failed ({s3_err}). Falling back to local storage.")
+
+    # 2. Fallback to Local Storage if S3 is not configured or failed
+    if not storage_success:
+        local_path = Path(settings.MEDIA_ROOT) / s3_key
+        local_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(local_path, 'wb') as f:
+            f.write(pdf_file)
+        url = f"/media/{s3_key}"
+        logger.info(f"Report saved to local storage: {s3_key}")
 
     return s3_key, file_size, url

@@ -46,15 +46,25 @@ class BlockchainAuditService:
     ]
 
     def __init__(self):
-        self.rpc_url = getattr(settings, "POLYGON_RPC_URL", "https://rpc-mumbai.maticvigil.com")
-        self.private_key = getattr(settings, "POLYGON_PRIVATE_KEY", None)
-        self.contract_address = getattr(settings, "POLYGON_CONTRACT_ADDRESS", None)
+        # Handle placeholders from .env template gracefully structurally
+        rpc = getattr(settings, "POLYGON_RPC_URL", "")
+        self.rpc_url = rpc if rpc and "your-value" not in rpc else "https://rpc-mumbai.maticvigil.com"
+        
+        pk = getattr(settings, "POLYGON_PRIVATE_KEY", "")
+        self.private_key = pk if pk and "your-value" not in pk else None
+        
+        addr = getattr(settings, "POLYGON_CONTRACT_ADDRESS", "")
+        self.contract_address = addr if addr and "your-value" not in addr else None
         
         if Web3:
-            self.w3 = Web3(Web3.HTTPProvider(self.rpc_url))
-            self.w3.middleware_onion.inject(geth_poa_middleware, layer=0)
-            if self.contract_address:
-                self.contract = self.w3.eth.contract(address=self.contract_address, abi=CONTRACT_ABI)
+            try:
+                self.w3 = Web3(Web3.HTTPProvider(self.rpc_url))
+                self.w3.middleware_onion.inject(geth_poa_middleware, layer=0)
+                if self.contract_address:
+                    self.contract = self.w3.eth.contract(address=self.contract_address, abi=CONTRACT_ABI)
+            except Exception as e:
+                logger.error(f"Web3 initialization failed: {e}")
+                self.w3 = None
 
     def record_event(self, project_id: str, event_type: str, data: dict) -> str:
         """

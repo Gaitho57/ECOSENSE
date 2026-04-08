@@ -102,3 +102,9 @@ docker-compose.override.yml
 *.temp
 .sass-cache/
 *.map
+
+# ========================
+# Data and Media
+# ========================
+backend/data/
+backend/media/

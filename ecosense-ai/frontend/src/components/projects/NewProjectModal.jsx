@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axiosInstance from '../../api/axiosInstance';
-import mapboxgl from 'mapbox-gl';
-import 'mapbox-gl/dist/mapbox-gl.css';
+import maplibregl from 'maplibre-gl';
+import 'maplibre-gl/dist/maplibre-gl.css';
 
 // Initialize token from environment structurally securely natively
-mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN || 'pk.mock';
+maplibregl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN || 'pk.mock';
 
 export default function NewProjectModal({ onClose, onCreated }) {
   const navigate = useNavigate();

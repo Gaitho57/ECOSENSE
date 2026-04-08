@@ -224,3 +224,7 @@ FRONTEND_URL = env("FRONTEND_URL")
 # ===========================================
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# CELERY HOTFIX (Enables synchronous task fulfillment in dev to bypass stale workers)
+CELERY_TASK_ALWAYS_EAGER = True
+CELERY_TASK_EAGER_PROPAGATES = True

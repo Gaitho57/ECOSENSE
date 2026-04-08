@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import axiosInstance from '../../api/axiosInstance';
 
 export default function CommunityPage() {
   const { projectId = 'placeholder-id' } = useParams();
+  const navigate = useNavigate();
   const [feedbacks, setFeedbacks] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isCompleting, setIsCompleting] = useState(false);
   
   // Filtering states
   const [filterChannel, setFilterChannel] = useState('all');
@@ -26,6 +28,19 @@ export default function CommunityPage() {
            console.error("Failed loading community tracking endpoints.");
        }
        setIsLoading(false);
+  };
+
+  const handleCompletePhase = async () => {
+       setIsCompleting(true);
+       try {
+           // Move to Step 5: Document Generation
+           await axiosInstance.patch(`/projects/${projectId}/`, { status: 'submitted' });
+           navigate(`/dashboard/projects/${projectId}/report`);
+       } catch (e) {
+           console.error("Failed to advance project lifecycle stage.");
+           alert("Phase advancement failed. Please try again.");
+       }
+       setIsCompleting(false);
   };
 
   const handleExport = () => {
@@ -72,9 +87,16 @@ export default function CommunityPage() {
               <p className="text-gray-500 mt-1 max-w-2xl">NLP Aggregation mapping public participation via SMS payloads and direct portal metrics cleanly.</p>
           </div>
           <div className="flex gap-4">
-              <Link to={`/participate/${projectId}`} target="_blank" className="bg-blue-50 text-blue-700 font-bold py-2 px-6 rounded-lg opacity-90 hover:opacity-100 transition-opacity">
+              <Link to={`/participate/${projectId}`} target="_blank" className="bg-blue-50 text-blue-700 font-bold py-2 px-6 rounded-lg opacity-90 hover:opacity-100 transition-opacity flex items-center">
                   View Public Portal
               </Link>
+              <button 
+                  onClick={handleCompletePhase} 
+                  disabled={isCompleting}
+                  className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-lg transition-colors shadow-md disabled:opacity-50"
+              >
+                  {isCompleting ? 'Processing...' : 'Complete Phase'}
+              </button>
               <button onClick={handleExport} className="bg-gray-900 hover:bg-black text-white font-bold py-2 px-6 rounded-lg transition-colors shadow-md">
                   Export CSV
               </button>
@@ -231,6 +253,23 @@ export default function CommunityPage() {
                    </tbody>
                </table>
            </div>
+      </div>
+
+      {/* NEXT STAGE ACTION */}
+      <div className="pt-6 pb-20 border-t border-gray-200">
+          <Link 
+              to={`/dashboard/projects/${projectId}/report`}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-5 px-8 rounded-2xl flex items-center justify-between group transition-all shadow-xl hover:shadow-2xl active:scale-[0.98]"
+          >
+              <div className="text-left">
+                  <p className="text-[10px] uppercase tracking-widest opacity-60">Next Stage</p>
+                  <p className="text-xl">Automated Report Generator</p>
+              </div>
+              <div className="flex items-center gap-4">
+                   <span className="text-sm opacity-60 font-medium hidden sm:block">Proceed to final document assembly</span>
+                   <span className="text-3xl group-hover:translate-x-2 transition-transform">→</span>
+              </div>
+          </Link>
       </div>
 
     </div>

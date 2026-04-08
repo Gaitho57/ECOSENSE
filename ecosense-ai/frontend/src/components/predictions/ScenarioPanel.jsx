@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import axiosInstance from '../../api/axiosInstance';
 
 const AVAILABLE_MITIGATIONS = [
   { id: 'dust_suppression', label: 'Dust Suppression Protocols', desc: 'Water tankers and structural covers lowering particulate limits natively.' },
@@ -10,8 +11,10 @@ const AVAILABLE_MITIGATIONS = [
 
 const SEV_RANKS = {"low": 1, "medium": 2, "high": 3, "critical": 4};
 
-export default function ScenarioPanel({ basePredictions, onRunScenario, isRunning }) {
+export default function ScenarioPanel({ projectId, basePredictions, onRunScenario, isRunning }) {
   const [selectedMitigations, setSelectedMitigations] = useState([]);
+  const [dynamicMitigations, setDynamicMitigations] = useState([]);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [mitigatePredictions, setMitigatePredictions] = useState(null); // Local state if we want to show immediately, but we rely on API 
 
   const handleToggle = (id) => {
@@ -25,6 +28,19 @@ export default function ScenarioPanel({ basePredictions, onRunScenario, isRunnin
             onRunScenario(selectedMitigations);
        }
   };
+
+  const handleSuggestAI = async () => {
+       setIsGenerating(true);
+       try {
+           const res = await axiosInstance.get(`/projects/${projectId}/ai-mitigations/`);
+           setDynamicMitigations(res.data.data);
+       } catch (e) {
+           console.error("AI Suggestion failed", e);
+       }
+       setIsGenerating(false);
+  };
+
+  const allMitigations = [...AVAILABLE_MITIGATIONS, ...dynamicMitigations];
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 flex flex-col h-[400px]">
@@ -42,28 +58,52 @@ export default function ScenarioPanel({ basePredictions, onRunScenario, isRunnin
            </button>
        </div>
 
-       <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-3">
-          {AVAILABLE_MITIGATIONS.map(mit => (
-               <div 
-                   key={mit.id} 
-                   onClick={() => handleToggle(mit.id)}
-                   className={`p-3 rounded-lg border-2 cursor-pointer transition-colors flex gap-3
-                       ${selectedMitigations.includes(mit.id) ? 'border-blue-500 bg-blue-50' : 'border-gray-100 hover:border-gray-300 bg-gray-50'}
-                   `}
-               >
-                   <input 
-                       type="checkbox" 
-                       readOnly
-                       checked={selectedMitigations.includes(mit.id)}
-                       className="form-checkbox mt-1 h-4 w-4 text-blue-600 rounded" 
-                   />
-                   <div>
-                       <h4 className="text-sm font-bold text-gray-800">{mit.label}</h4>
-                       <p className="text-xs text-gray-500 mt-1 leading-relaxed">{mit.desc}</p>
-                   </div>
-               </div>
-          ))}
-       </div>
+        <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-3 mb-4">
+           {allMitigations.map(mit => (
+                <div 
+                    key={mit.id} 
+                    onClick={() => handleToggle(mit.id)}
+                    className={`p-3 rounded-lg border-2 cursor-pointer transition-colors flex gap-3
+                        ${selectedMitigations.includes(mit.id) ? 'border-blue-500 bg-blue-50' : 'border-gray-100 hover:border-gray-300 bg-gray-50'}
+                        ${mit.is_ai_generated ? 'border-dashed' : ''}
+                    `}
+                >
+                    <div className="relative">
+                        <input 
+                            type="checkbox" 
+                            readOnly
+                            checked={selectedMitigations.includes(mit.id)}
+                            className="form-checkbox mt-1 h-4 w-4 text-blue-600 rounded" 
+                        />
+                        {mit.is_ai_generated && (
+                            <span className="absolute -top-3 -left-3 text-[10px] bg-purple-600 text-white px-1 rounded-sm font-bold shadow-sm">AI</span>
+                        )}
+                    </div>
+                    <div>
+                        <h4 className="text-sm font-bold text-gray-800">{mit.label}</h4>
+                        <p className="text-xs text-gray-500 mt-1 leading-relaxed">{mit.desc}</p>
+                    </div>
+                </div>
+           ))}
+        </div>
+
+        <button 
+            onClick={handleSuggestAI}
+            disabled={isGenerating || isRunning}
+            className="w-full flex items-center justify-center gap-2 py-3 bg-white border-2 border-dashed border-gray-300 rounded-xl text-sm font-bold text-gray-500 hover:border-blue-500 hover:text-blue-600 transition-all active:scale-[0.98]"
+        >
+            {isGenerating ? (
+                <>
+                    <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-b-transparent rounded-full"></div>
+                    Generating AI Strategy...
+                </>
+            ) : (
+                <>
+                    <span className="text-lg">💡</span>
+                    Generate AI Mitigation Strategy
+                </>
+            )}
+        </button>
     </div>
   );
 }

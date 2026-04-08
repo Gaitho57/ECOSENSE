@@ -8,13 +8,19 @@ class ProjectSerializer(serializers.ModelSerializer):
     coordinates = serializers.SerializerMethodField()
     boundary_coordinates = serializers.SerializerMethodField()
 
+    # Project Summaries for Dashboards
+    prediction_count = serializers.SerializerMethodField()
+    feedback_count = serializers.SerializerMethodField()
+    baseline = serializers.SerializerMethodField()
+
     class Meta:
         model = Project
         fields = [
             'id', 'tenant_id', 'name', 'description', 'project_type', 
             'status', 'lead_consultant', 'lead_consultant_name',
             'nema_ref', 'public_token', 'approved_at', 'scale_ha',
-            'created_at', 'updated_at', 'coordinates', 'boundary_coordinates'
+            'created_at', 'updated_at', 'coordinates', 'boundary_coordinates',
+            'prediction_count', 'feedback_count', 'baseline'
         ]
         read_only_fields = ['id', 'tenant_id', 'public_token']
 
@@ -27,6 +33,25 @@ class ProjectSerializer(serializers.ModelSerializer):
         if obj.boundary:
              return list(obj.boundary.coords)
         return None
+
+    def get_prediction_count(self, obj):
+        return obj.predictions.count()
+
+    def get_feedback_count(self, obj):
+        return obj.feedback.count()
+
+    def get_baseline(self, obj):
+        # We handle cases where baseline object results might be missing natively
+        try:
+             # Using the related_name implicitly mapping BaselineReport->Project
+             baseline = obj.baseline
+             return {
+                 "status": baseline.status,
+                 "scoring_summary": baseline.scoring_summary,
+                 "generated_at": baseline.generated_at
+             }
+        except Exception:
+             return None
 
     def create(self, validated_data):
         request = self.context.get('request')

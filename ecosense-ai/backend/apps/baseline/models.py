@@ -21,13 +21,22 @@ class BaselineReport(BaseModel):
         help_text="The project this baseline belongs to."
     )
     
-    satellite_data = JSONField(null=True, blank=True)
+    # ---- Physical Environment ----
+    satellite_data = JSONField(null=True, blank=True, help_text="GEE: NDVI, land cover, tree cover")
     ndvi_score = models.DecimalField(max_digits=5, decimal_places=4, null=True, blank=True)
-    hydrology_data = JSONField(null=True, blank=True)
-    soil_data = JSONField(null=True, blank=True)
-    biodiversity_data = JSONField(null=True, blank=True)
-    air_quality_baseline = JSONField(null=True, blank=True)
+    climate_data = JSONField(null=True, blank=True, help_text="Open-Meteo: temperature, rainfall, humidity, wind")
+    hydrology_data = JSONField(null=True, blank=True, help_text="Overpass: rivers, lakes, wetlands, proximity")
+    soil_data = JSONField(null=True, blank=True, help_text="SoilGrids: pH, carbon, texture, erosion risk")
+    air_quality_baseline = JSONField(null=True, blank=True, help_text="OpenWeather: AQI, pollutants, WHO limits")
+    topography_data = JSONField(null=True, blank=True, help_text="Elevation, slope proxy, terrain context")
     
+    # ---- Biological Environment ----
+    biodiversity_data = JSONField(null=True, blank=True, help_text="GBIF: species, IUCN status, taxonomy, diversity index")
+    
+    # ---- Noise Baseline (placeholder for IoT/manual input) ----
+    noise_data = JSONField(null=True, blank=True, help_text="Noise baseline — populated from IoT sensors or manual input")
+    
+    # ---- Scoring & Metadata ----
     sensitivity_scores = JSONField(default=dict)
     data_sources = JSONField(default=list)
     

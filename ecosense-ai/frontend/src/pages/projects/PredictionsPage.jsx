@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import axiosInstance from '../../api/axiosInstance';
 import ImpactMatrix from '../../components/predictions/ImpactMatrix';
 import ImpactRadarChart from '../../components/charts/ImpactRadarChart';
 import ScenarioPanel from '../../components/predictions/ScenarioPanel';
+import AssessmentGuide from '../../components/predictions/AssessmentGuide';
 
 export default function PredictionsPage() {
   const { projectId = 'placeholder-id' } = useParams();
@@ -103,8 +104,8 @@ export default function PredictionsPage() {
       {/* Header section */}
       <div className="flex justify-between items-center mb-8">
            <div>
-               <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">AI Impact Assessment</h1>
-               <p className="text-gray-500 mt-1 max-w-2xl">Multivariate execution paths converting structured mapping logic securely into probability matrices mapping exact mitigations thresholds.</p>
+               <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight text-center lg:text-left">AI Impact Assessment</h1>
+               <p className="text-gray-500 mt-1 max-w-2xl text-center lg:text-left">Multivariate execution paths converting structured mapping logic securely into probability matrices mapping exact mitigations thresholds.</p>
            </div>
            
            <div className="flex gap-4">
@@ -124,6 +125,9 @@ export default function PredictionsPage() {
                </button>
            </div>
       </div>
+
+      {/* NEW: AI Assessment Guide */}
+      <AssessmentGuide />
 
       {activeTaskId && (
           <div className="mb-8 p-6 bg-blue-50 border-2 border-blue-200 rounded-xl flex items-center justify-center space-x-4">
@@ -158,10 +162,28 @@ export default function PredictionsPage() {
                        mitigatePredictions={scenarioPredictions} 
                   />
                   <ScenarioPanel 
+                       projectId={projectId}
                        basePredictions={basePredictions}
                        onRunScenario={handleRunScenario}
                        isRunning={!!activeTaskId}
                   />
+              </div>
+
+              {/* NEXT STAGE ACTION */}
+              <div className="pt-6 pb-20 border-t border-gray-200">
+                  <Link 
+                      to={`/dashboard/projects/${projectId}/map`}
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-5 px-8 rounded-2xl flex items-center justify-between group transition-all shadow-xl hover:shadow-2xl active:scale-[0.98]"
+                  >
+                      <div className="text-left">
+                          <p className="text-[10px] uppercase tracking-widest opacity-60">Next Stage</p>
+                          <p className="text-xl">Interactive GIS Mapping</p>
+                      </div>
+                      <div className="flex items-center gap-4">
+                           <span className="text-sm opacity-60 font-medium hidden sm:block">Proceed to project spatial analysis</span>
+                           <span className="text-3xl group-hover:translate-x-2 transition-transform">→</span>
+                      </div>
+                  </Link>
               </div>
           </div>
       )}

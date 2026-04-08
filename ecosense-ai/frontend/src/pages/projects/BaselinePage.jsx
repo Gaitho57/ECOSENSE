@@ -16,7 +16,7 @@ import AirQualityLayer from '../../components/maps/layers/AirQualityLayer';
 import ProjectBoundaryLayer from '../../components/maps/layers/ProjectBoundaryLayer';
 
 export default function BaselinePage() {
-  const { projectId = 'placeholder-id' } = useParams(); // Should come from router typically
+  const { projectId = 'placeholder-id' } = useParams();
 
   // Data fetching
   const { data: baseline, isLoading: isLoadingBaseline, refetch } = useBaseline(projectId);
@@ -24,28 +24,34 @@ export default function BaselinePage() {
   
   // Local state
   const [activeTaskId, setActiveTaskId] = useState(null);
-  const [mapCenter, setMapCenter] = useState([36.8219, -1.2921]); // Nairobi default
+  const [mapCenter, setMapCenter] = useState([36.8219, -1.2921]);
   
   // Layer visibility state
   const [layers, setLayers] = useState({
-    satellite: true, // Base map style actually, but keeping in logical object
+    satellite: true,
     ndvi: true,
     hydrology: true,
     biodiversity: false,
     air_quality: false,
-    boundary: true
+    boundary: true,
   });
 
   // Task execution polling
   const { data: taskStatus } = useTaskStatus(activeTaskId);
 
   useEffect(() => {
-    // If the task completes via checking Celery, clear standard polling and refetch actual record
     if (taskStatus && (taskStatus.status === 'complete' || taskStatus.status === 'SUCCESS')) {
       setActiveTaskId(null);
       refetch();
     }
   }, [taskStatus, refetch]);
+
+  // Center map on project location when data loads
+  useEffect(() => {
+    if (baseline?.project_location) {
+        setMapCenter([baseline.project_location.lng, baseline.project_location.lat]);
+    }
+  }, [baseline]);
 
   const handleGenerate = () => {
     generateMutation.mutate(undefined, {
@@ -57,13 +63,25 @@ export default function BaselinePage() {
 
   const isGenerating = !!activeTaskId || generateMutation.isPending;
 
-  // Render logic components
+  // Build boundary GeoJSON as a FeatureCollection for the map layer
+  const boundaryGeoJSON = baseline?.project_boundary
+    ? {
+        type: 'FeatureCollection',
+        features: [{
+          type: 'Feature',
+          geometry: baseline.project_boundary,
+          properties: { name: 'Project Boundary' },
+        }],
+      }
+    : null;
+
+  // Build hydrology GeoJSON from backend features
+  const hydrologyGeoJSON = baseline?.hydrology_data || null;
 
   if (isLoadingBaseline && !isGenerating && !baseline) {
     return <div className="p-8 text-center text-gray-500">Loading project data...</div>;
   }
 
-  // State: Baseline hasn't started natively or failed to load
   if ((!baseline && !isGenerating) || (baseline && Object.keys(baseline).length === 0 && !isGenerating)) {
     return (
       <div className="h-full flex flex-col items-center justify-center p-8 bg-gray-50 min-h-screen">
@@ -85,21 +103,28 @@ export default function BaselinePage() {
   return (
     <div className="h-screen flex flex-col overflow-hidden bg-gray-50">
       
-      {/* Header element */}
+      {/* Header */}
       <div className="bg-white px-6 py-4 border-b border-gray-200 flex justify-between items-center z-10 shrink-0">
         <div>
           <h1 className="text-xl font-extrabold text-gray-900 tracking-tight">EcoSense Intelligence</h1>
           <p className="text-sm font-medium text-gray-500">Project Baseline Dashboard Orchestrator</p>
         </div>
         
-        {baseline && !isGenerating && (
-          <button 
-            onClick={handleGenerate}
-            className="text-sm font-medium text-green-600 border border-green-200 bg-green-50 hover:bg-green-100 px-4 py-2 rounded-lg transition-colors"
-          >
-            Regenerate API Data
-          </button>
-        )}
+        <div className="flex items-center gap-3">
+          {baseline?.data_sources?.length > 0 && (
+            <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wider hidden lg:block">
+              {baseline.data_sources.length} data sources
+            </span>
+          )}
+          {baseline && !isGenerating && (
+            <button 
+              onClick={handleGenerate}
+              className="text-sm font-medium text-green-600 border border-green-200 bg-green-50 hover:bg-green-100 px-4 py-2 rounded-lg transition-colors"
+            >
+              Regenerate API Data
+            </button>
+          )}
+        </div>
       </div>
 
       {isGenerating && (
@@ -109,15 +134,15 @@ export default function BaselinePage() {
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
-              <span>{taskStatus?.status === 'running' ? 'Analysing geospatial bounds... Please wait.' : 'Fetching automated satellite data...'}</span>
+              <span>{taskStatus?.status === 'running' ? 'Analysing geospatial bounds... Please wait.' : 'Fetching satellite, climate, hydrology & biodiversity data...'}</span>
             </span>
          </div>
       )}
 
-      {/* Main Content Area (60/40 Split natively mapping stacked grids for mobile) */}
+      {/* Main Content Area */}
       <div className={`flex flex-col lg:flex-row flex-1 overflow-hidden transition-opacity duration-500 ${isGenerating ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
         
-        {/* Left Side: Map Container (60%) */}
+        {/* Left Side: Map (60%) */}
         <div className="lg:w-3/5 h-1/2 lg:h-full relative border-r border-gray-200">
           <MapProvider>
             <BaseMap center={mapCenter} zoom={13}>
@@ -126,7 +151,10 @@ export default function BaselinePage() {
               
               {baseline && (
                 <>
-                  <ProjectBoundaryLayer boundaryGeoJSON={null} isVisible={layers.boundary} />
+                  <ProjectBoundaryLayer 
+                    boundaryGeoJSON={boundaryGeoJSON} 
+                    isVisible={layers.boundary} 
+                  />
                   
                   <NDVILayer 
                     ndvi_score={baseline.satellite_data?.ndvi} 
@@ -135,7 +163,7 @@ export default function BaselinePage() {
                   />
                   
                   <HydrologyLayer 
-                    hydrology_data={baseline.hydrology_data} 
+                    hydrology_data={hydrologyGeoJSON} 
                     isVisible={layers.hydrology} 
                   />
                   

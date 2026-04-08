@@ -26,7 +26,7 @@ class ProjectListCreateView(generics.ListCreateAPIView):
         self.perform_create(serializer)
         return envelope(data=serializer.data, status_code=status.HTTP_201_CREATED)
 
-class ProjectDetailView(generics.RetrieveAPIView):
+class ProjectDetailView(generics.RetrieveUpdateAPIView):
     serializer_class = ProjectSerializer
     permission_classes = [IsAuthenticated, IsSameTenant]
     lookup_field = 'id'
@@ -37,4 +37,12 @@ class ProjectDetailView(generics.RetrieveAPIView):
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
         serializer = self.get_serializer(instance)
+        return envelope(data=serializer.data)
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
         return envelope(data=serializer.data)

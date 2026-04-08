@@ -1,11 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import axiosInstance from '../../api/axiosInstance';
+import { useBaseline } from '../../hooks/useBaseline';
 import { useMap, MapProvider } from '../../components/maps/MapContext';
 import BaseMap from '../../components/maps/BaseMap';
 import LayerControl from '../../components/maps/LayerControl';
+
+// Simulation Layers
 import DispersionLayer from '../../components/maps/layers/DispersionLayer';
 import FloodLayer from '../../components/maps/layers/FloodLayer';
+
+// Baseline Layers - Natively integrating environmental bounds
+import NDVILayer from '../../components/maps/layers/NDVILayer';
+import HydrologyLayer from '../../components/maps/layers/HydrologyLayer';
+import BiodiversityLayer from '../../components/maps/layers/BiodiversityLayer';
+import AirQualityLayer from '../../components/maps/layers/AirQualityLayer';
+import ProjectBoundaryLayer from '../../components/maps/layers/ProjectBoundaryLayer';
 import * as turf from '@turf/turf'; // We use turf to draw strict geographic boundary circles natively.
 
 function BufferRingsLayer({ center }) {
@@ -57,8 +67,12 @@ function BufferRingsLayer({ center }) {
 
 export default function GISPage() {
   const { projectId = 'placeholder-id' } = useParams();
-  const [mapCenter] = useState([36.8219, -1.2921]); // Nairobi Default
+  const [mapCenter, setMapCenter] = useState([36.8219, -1.2921]); // Default to Nairobi
+  const [isLoadingProject, setIsLoadingProject] = useState(true);
   
+  // Data Fetching - Baseline context natively 
+  const { data: baseline, isLoading: isLoadingBaseline } = useBaseline(projectId);
+
   // Tab State
   const [activeTab, setActiveTab] = useState('dispersion');
 
@@ -76,11 +90,48 @@ export default function GISPage() {
   const [isSimulating, setIsSimulating] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
-  // Layers mapping 
+  // Layers mapping - Synchronized with LayerControl keys
   const [layers, setLayers] = useState({
       dispersion: true,
-      flood: true
+      flood: true,
+      ndvi: true,
+      hydrology: true,
+      biodiversity: true,
+      air_quality: true,
+      boundary: true
   });
+
+  // Fetch Project Coordinates to center map generically 
+  useEffect(() => {
+      const fetchProject = async () => {
+          try {
+              const res = await axiosInstance.get(`/projects/${projectId}/`);
+              const coords = res.data.data;
+              if (coords && coords.coordinates) {
+                  setMapCenter([coords.coordinates.lng, coords.coordinates.lat]);
+              }
+          } catch (e) {
+              console.error("Failed to sync project coordinates natively.", e);
+          } finally {
+              setIsLoadingProject(false);
+          }
+      };
+      fetchProject();
+  }, [projectId]);
+
+  // Transform Baseline data for layers
+  const boundaryGeoJSON = baseline?.project_boundary
+    ? {
+        type: 'FeatureCollection',
+        features: [{
+          type: 'Feature',
+          geometry: baseline.project_boundary,
+          properties: { name: 'Project Boundary' },
+        }],
+      }
+    : null;
+
+  const hydrologyGeoJSON = baseline?.hydrology_data || null;
 
   // Handlers
   const runDispersion = async () => {
@@ -118,23 +169,59 @@ export default function GISPage() {
   return (
     <div className="h-screen w-full relative flex overflow-hidden">
         
-       {/* Full Screen Map Execution Canvas */}
+        {/* Full Screen Map Execution Canvas */}
        <div className="flex-1 h-full w-full absolute inset-0 z-0">
-          <MapProvider>
-              <BaseMap center={mapCenter} zoom={12} style="mapbox://styles/mapbox/satellite-v9">
-                  
-                  {/* Layer Control Top Right */}
-                  <LayerControl layers={layers} setLayers={setLayers} />
-                  
-                  {/* Static Baseline Rings */}
-                  <BufferRingsLayer center={mapCenter} />
+          {!isLoadingProject && (
+              <MapProvider>
+                  <BaseMap center={mapCenter} zoom={12} style="mapbox://styles/mapbox/satellite-v9">
+                      
+                      {/* Layer Control Top Right */}
+                      <LayerControl layers={layers} setLayers={setLayers} />
+                      
+                      {/* Static Baseline Rings */}
+                      <BufferRingsLayer center={mapCenter} />
 
-                  {/* Dynamic Simulation Outputs */}
-                  <DispersionLayer geoJSON={dispersionData} isVisible={layers.dispersion} />
-                  <FloodLayer geoJSON={floodData} isVisible={layers.flood} />
-                  
-              </BaseMap>
-          </MapProvider>
+                      {/* Baseline Environmental Layers */}
+                      <ProjectBoundaryLayer 
+                        boundaryGeoJSON={boundaryGeoJSON} 
+                        isVisible={layers.boundary} 
+                      />
+                      
+                      <NDVILayer 
+                        ndvi_score={baseline?.satellite_data?.ndvi} 
+                        center={mapCenter}
+                        isVisible={layers.ndvi} 
+                      />
+                      
+                      <HydrologyLayer 
+                        hydrology_data={hydrologyGeoJSON} 
+                        isVisible={layers.hydrology} 
+                      />
+                      
+                      <BiodiversityLayer 
+                        biodiversity_data={baseline?.biodiversity_data} 
+                        center={mapCenter}
+                        isVisible={layers.biodiversity} 
+                      />
+                      
+                      <AirQualityLayer 
+                        air_quality_baseline={baseline?.air_quality_baseline} 
+                        center={mapCenter}
+                        isVisible={layers.air_quality} 
+                      />
+
+                      {/* Dynamic Simulation Outputs */}
+                      <DispersionLayer geoJSON={dispersionData} isVisible={layers.dispersion} />
+                      <FloodLayer geoJSON={floodData} isVisible={layers.flood} />
+                      
+                  </BaseMap>
+              </MapProvider>
+          )}
+          {isLoadingProject && (
+              <div className="h-full w-full bg-slate-900 flex items-center justify-center">
+                  <div className="text-white font-black animate-pulse">Initializing Geospatial Engine...</div>
+              </div>
+          )}
        </div>
 
        {/* Floating Sidebar Left */}
@@ -252,8 +339,22 @@ export default function GISPage() {
                        </div>
                    </div>
                )}
-          </div>
-       </div>
+           </div>
+
+           {/* NEXT STAGE ACTION */}
+           <div className="p-4 border-t border-gray-100 bg-gray-50 rounded-b-xl">
+                <Link 
+                    to={`/dashboard/projects/${projectId}/community`}
+                    className="w-full bg-gray-900 hover:bg-black text-white font-bold py-4 px-4 rounded-xl flex items-center justify-between group transition-all shadow-lg active:scale-[0.98]"
+                >
+                    <div className="text-left">
+                        <p className="text-[9px] uppercase tracking-widest opacity-60">Next Stage</p>
+                        <p className="text-sm">Public Feedback</p>
+                    </div>
+                    <span className="text-xl group-hover:translate-x-1 transition-transform">→</span>
+                </Link>
+           </div>
+        </div>
 
     </div>
   );

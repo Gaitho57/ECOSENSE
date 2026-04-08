@@ -11,21 +11,29 @@ export default function HydrologyLayer({ hydrology_data, isVisible = true }) {
     const fillLayerId = 'hydro-fill';
     const lineLayerId = 'hydro-line';
 
-    // Mock geojson feature format processing
-    const hasData = hydrology_data.features && hydrology_data.features.length > 0;
-    
-    // In scenarios lacking pure coordinate returns, build dummy spatial logic matching proximity triggers
-    const geoJsonData = hasData ? hydrology_data : {
-        type: 'FeatureCollection',
-        features: []
-    };
+    // Support both FeatureCollections and raw feature arrays for resiliency
+    let geoJsonData = { type: 'FeatureCollection', features: [] };
+    if (hydrology_data) {
+        if (hydrology_data.type === 'FeatureCollection' && Array.isArray(hydrology_data.features)) {
+            geoJsonData = hydrology_data;
+        } else if (Array.isArray(hydrology_data)) {
+            geoJsonData = { type: 'FeatureCollection', features: hydrology_data };
+        } else if (hydrology_data.type === 'Feature') {
+            geoJsonData = { type: 'FeatureCollection', features: [hydrology_data] };
+        }
+    }
+
+    const hasData = geoJsonData.features.length > 0;
 
     const addLayer = () => {
-      if (!map.getSource(sourceId)) {
+      const source = map.getSource(sourceId);
+      if (!source) {
         map.addSource(sourceId, {
           type: 'geojson',
           data: geoJsonData
         });
+      } else {
+        source.setData(geoJsonData);
       }
 
       if (!map.getLayer(fillLayerId)) {
@@ -48,8 +56,9 @@ export default function HydrologyLayer({ hydrology_data, isVisible = true }) {
           source: sourceId,
           filter: ['==', '$type', 'LineString'],
           paint: {
-            'line-color': '#2563eb',
-            'line-width': 3
+            'line-color': '#00b4ff', // Electric eco-blue
+            'line-width': 5,
+            'line-opacity': 0.9
           }
         });
       }
@@ -62,9 +71,11 @@ export default function HydrologyLayer({ hydrology_data, isVisible = true }) {
 
     return () => {
       map.off('style.load', addLayer);
-      if (map.getLayer(fillLayerId)) map.removeLayer(fillLayerId);
-      if (map.getLayer(lineLayerId)) map.removeLayer(lineLayerId);
-      if (map.getSource(sourceId)) map.removeSource(sourceId);
+      if (map && map.getStyle()) {
+          if (map.getLayer(fillLayerId)) map.removeLayer(fillLayerId);
+          if (map.getLayer(lineLayerId)) map.removeLayer(lineLayerId);
+          if (map.getSource(sourceId)) map.removeSource(sourceId);
+      }
     };
   }, [map, hydrology_data, isVisible]);
 

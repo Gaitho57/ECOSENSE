@@ -68,8 +68,8 @@ def run_predictions(self, project_id: str, scenario_params: dict = None):
     with transaction.atomic():
          created_objs = ImpactPrediction.objects.bulk_create(objs)
          
-         # 7. Update status map
-         project.status = "assessment"
+         # 7. Update status map to next phase (Public Feedback)
+         project.status = "review"
          project.save(update_fields=["status"])
          
          record_audit_event.delay(

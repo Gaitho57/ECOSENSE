@@ -56,8 +56,12 @@ class PredictionEngine:
 
         # Initialize LLM
         openai_key = getattr(settings, "OPENAI_API_KEY", "")
-        if ChatOpenAI and openai_key:
-            self.llm = ChatOpenAI(temperature=0.7, openai_api_key=openai_key)
+        if ChatOpenAI and openai_key and "your-value" not in openai_key:
+            try:
+                self.llm = ChatOpenAI(temperature=0.7, openai_api_key=openai_key)
+            except Exception as e:
+                logger.warning(f"LLM (ChatOpenAI) initialization failed: {e}")
+                self.llm = None
 
     def extract_features(self, baseline_data: dict) -> dict:
         """
@@ -123,13 +127,16 @@ class PredictionEngine:
             out_severity = "medium"
             out_prob = 0.500
             
-            # Prediction boundaries
+            # Prediction boundaries (ML Logic with Heuristic Fallback)
             if cat in self.models:
                  pred_cls_idx = int(self.models[cat]["clf"].predict(X_array)[0])
                  out_severity = SEV_REVERSE_MAPPING.get(pred_cls_idx, "medium")
                  
                  pred_reg_val = float(self.models[cat]["reg"].predict(X_array)[0])
                  out_prob = max(0.001, min(0.999, pred_reg_val))
+            else:
+                 # EcoSense Heuristic Fallback (Dynamic Logic for Athi River sites)
+                 out_severity, out_prob = self._get_heuristic_prediction(cat, features, scale_ha, project_type)
                  
             # LLM Prompt Engineering boundary
             desc, mitigations = self._generate_llm_description(project_type, cat, out_severity, out_prob)
@@ -146,6 +153,65 @@ class PredictionEngine:
             })
 
         return predictions
+
+    def _get_heuristic_prediction(self, category: str, features: dict, scale_ha: float, project_type: str) -> tuple:
+        """
+        Expert heuristic fallback for EIA impact modeling when ML binaries are missing.
+        Uses EMCA criteria mapping baseline features to qualitative risk levels.
+        """
+        # Baseline severity mappings
+        sev = "medium"
+        prob = 0.50
+
+        if category == "air":
+            if features["aqi_baseline"] >= 4:
+                sev, prob = "critical", 0.88
+            elif features["aqi_baseline"] == 3:
+                sev, prob = "high", 0.68
+            else:
+                sev, prob = "medium", 0.42
+
+        elif category == "water":
+            if features["distance_to_water_km"] <= 0.2:
+                sev, prob = "critical", 0.94
+            elif features["distance_to_water_km"] <= 1.0:
+                sev, prob = "high", 0.76
+            elif features["distance_to_water_km"] <= 3.0:
+                sev, prob = "medium", 0.48
+            else:
+                sev, prob = "low", 0.18
+
+        elif category == "biodiversity":
+            if features["threatened_species_count"] > 0:
+                sev, prob = "critical", 0.92
+            elif features["ndvi_score"] > 0.6:
+                sev, prob = "high", 0.72
+            elif features["ndvi_score"] < 0.2:
+                # Disturbed habitat but still has social/soil value
+                sev, prob = "medium", 0.38
+            else:
+                sev, prob = "low", 0.22
+
+        elif category == "soil":
+            if features["rainfall_mm"] > 1500 or scale_ha > 1000:
+                sev, prob = "high", 0.74
+            else:
+                sev, prob = "medium", 0.46
+        
+        elif category == "noise":
+            if project_type.lower() in ("industrial", "infrastructure") and scale_ha > 50:
+                sev, prob = "high", 0.70
+            else:
+                sev, prob = "medium", 0.52
+
+        elif category == "social":
+            # Social impact is usually high for large-scale development
+            if scale_ha > 500:
+                sev, prob = "high", 0.65
+            else:
+                sev, prob = "medium", 0.48
+
+        return sev, prob
 
     def _generate_llm_description(self, project_type: str, category: str, severity: str, prob: float) -> tuple:
         """
@@ -219,3 +285,51 @@ class PredictionEngine:
             modified.append(new_pred)
             
         return modified
+
+    def generate_mitigation_strategy(self, project_type: str, scale_ha: float, base_predictions: list) -> list:
+        """
+        Expert AI Strategy Generator: Converts risk probabilities into 5 advanced remedies.
+        """
+        if not self.llm:
+             # Basic heuristic strategies
+             return [
+                  {"id": "ai_water_recycling", "label": "Zero Liquid Discharge (ZLD)", "desc": "Closed-loop water treatment recycling 95% of industrial effluent."},
+                  {"id": "ai_green_buffer", "label": "Vertical Foliage Screen", "desc": "Multilayered bio-shields reducing noise and particulate drift."},
+                  {"id": "ai_solar_microgrid", "label": "On-site Solar Microgrid", "desc": "Renewable energy integration lowering the overall carbon footprint."}
+             ]
+
+        try:
+            # Aggregate the most critical risks to focus the LLM
+            high_risks = [p["category"] for p in base_predictions if p["severity"] in ("high", "critical")]
+            risk_context = ", ".join(high_risks) if high_risks else "general industrial impacts"
+            
+            prompt = (
+                f"You are a NEMA-certified EIA expert. For a {project_type} project ({scale_ha} ha) "
+                f"with high risks in {risk_context}, generate 5 innovative, specific mitigation measures. "
+                f"Format as: Label | Short Description (max 15 words)."
+            )
+            
+            messages = [
+                SystemMessage(content="You generate professional EIA mitigation strategies. Unique ID each suggestion."),
+                HumanMessage(content=prompt)
+            ]
+            
+            res = self.llm(messages).content
+            
+            # Parsing "Label | Desc" format
+            lines = [l.strip() for l in res.split('\n') if "|" in l]
+            suggested = []
+            for i, line in enumerate(lines[:6]):
+                label, desc = line.split("|")
+                suggested.append({
+                    "id": f"ai_gen_{i}",
+                    "label": label.strip().lstrip("-*123. "),
+                    "desc": desc.strip(),
+                    "is_ai_generated": True
+                })
+            
+            return suggested if suggested else self.generate_mitigation_strategy(project_type, scale_ha, []) # Fallback 
+            
+        except Exception as e:
+            logger.warning(f"AI Strategy Generation Failed: {e}")
+            return self.generate_mitigation_strategy(project_type, scale_ha, []) # Basic Fallback

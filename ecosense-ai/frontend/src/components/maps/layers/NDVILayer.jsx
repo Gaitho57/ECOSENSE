@@ -12,20 +12,25 @@ export default function NDVILayer({ ndvi_score, center, isVisible = true }) {
 
     // Ensure map 'style.load' triggers re-adds for resilient context passing
     const addLayer = () => {
-      if (!map.getSource(sourceId)) {
+      const source = map.getSource(sourceId);
+      const data = {
+        type: 'Feature',
+        geometry: {
+          type: 'Point',
+          coordinates: center
+        },
+        properties: {
+          ndvi: ndvi_score
+        }
+      };
+
+      if (!source) {
         map.addSource(sourceId, {
           type: 'geojson',
-          data: {
-            type: 'Feature',
-            geometry: {
-              type: 'Point',
-              coordinates: center
-            },
-            properties: {
-              ndvi: ndvi_score
-            }
-          }
+          data: data
         });
+      } else {
+        source.setData(data);
       }
 
       if (!map.getLayer(layerId)) {
@@ -34,16 +39,20 @@ export default function NDVILayer({ ndvi_score, center, isVisible = true }) {
           type: 'circle',
           source: sourceId,
           paint: {
-            'circle-radius': 100, // Fixed radius representing boundary expansion
+            'circle-radius': [
+              'interpolate', ['linear'], ['zoom'],
+              10, 50,
+              15, 150
+            ],
             'circle-color': [
               'interpolate',
               ['linear'],
               ['get', 'ndvi'],
-              0.2, '#ef4444', // Red
-              0.5, '#eab308', // Yellow
-              0.8, '#22c55e'  // Green
+              0.1, '#dc2626', // Bright Red (Vulnerable)
+              0.4, '#fbbf24', // Amber (Moderate)
+              0.8, '#16a34a'  // Forest Green (Healthy)
             ],
-            'circle-opacity': 0.6,
+            'circle-opacity': 0.7,
             'circle-stroke-width': 2,
             'circle-stroke-color': '#ffffff'
           }

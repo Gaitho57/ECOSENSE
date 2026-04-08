@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import axiosInstance from '../../api/axiosInstance';
-import mapboxgl from 'mapbox-gl';
+import maplibregl from 'maplibre-gl';
 
 export default function ParticipationPortal() {
   const { projectToken } = useParams();

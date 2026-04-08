@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Professional EIA Report - {{ project.name }}</title>
+    <link rel="stylesheet" href="nema_report.css">
+</head>
+<body>
+
+    <!-- Header & Footer -->
+    <div id="page-header">EcoSense AI — Professional Environmental Impact Assessment — {{ project.name }}</div>
+    <div id="page-footer">Page <span class="page-number"></span> | Prepared using EcoSense AI | {{ project.date }}</div>
+
+    <!-- 1. COVER PAGE -->
+    <section class="page-break" style="text-align: center; padding-top: 150px;">
+        <div style="margin-bottom: 50px;">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/e/e4/Globe.png" width="120" alt="EcoSense Logo">
+        </div>
+        <h1 style="color: #166534; font-size: 42px; border-bottom: 5px solid #22c55e; padding-bottom: 20px; display: inline-block;">
+            Environmental Impact Assessment
+        </h1>
+        <h2 style="font-size: 32px; margin-top: 40px; color: #0f172a; border: none;">{{ project.name }}</h2>
+        
+        <div style="margin-top: 60px; font-size: 20px; color: #475569;">
+            <p><strong>Project Type:</strong> {{ project.type }}</p>
+            <p><strong>Scale:</strong> {{ project.scale_ha }} Hectares</p>
+            <p><strong>Location:</strong> {{ project.location_coords }}</p>
+        </div>
+
+        <div class="map-container" style="margin-top: 50px;">
+            <img src="{{ project.map_url }}" alt="Project Location Map">
+            <p style="font-size: 10px; color: #94a3b8; margin-top: 5px;">Satellite Imagery & Vector Overlay — Yandex Maps API</p>
+        </div>
+        
+        <div style="margin-top: 80px; padding-top: 30px; border-top: 1px solid #e2e8f0;">
+            <p style="font-weight: bold; color: #1e293b;">Lead Consultant Body: {{ project.lead_consultant }}</p>
+            <p style="font-size: 14px; color: #64748b;">Date of Compilation: {{ project.date }}</p>
+            <p style="font-size: 12px; color: #94a3b8;">Document ID: {{ project.id }}-V1</p>
+        </div>
+    </section>
+
+    <!-- 2. TABLE OF CONTENTS -->
+    <section class="page-break toc">
+        <h2>Table of Contents</h2>
+        <ul>
+            <li><span>1. Executive Summary</span> <span>2</span></li>
+            <li><span>2. Project Description & Location</span> <span>3</span></li>
+            <li><span>3. Description of the Existing Environment</span> <span>4</span></li>
+            <li><span>4. Potential Environmental Impacts</span> <span>15</span></li>
+            <li><span>5. Environmental Management Plan (EMP)</span> <span>22</span></li>
+            <li><span>6. Public Participation Summary</span> <span>35</span></li>
+            <li><span>7. Conclusion & Recommendations</span> <span>48</span></li>
+            <li><span>Appendix A: Regulatory Compliance Audit</span> <span>50</span></li>
+            <li><span>Appendix B: Detailed Bio-Intelligence Log</span> <span>55</span></li>
+        </ul>
+    </section>
+
+    <!-- 3. EXECUTIVE SUMMARY -->
+    <section class="page-break">
+        <h2>1. Executive Summary</h2>
+        <p>This Environmental Impact Assessment (EIA) report has been compiled for the proposed <strong>{{ project.name }}</strong> project. The assessment evaluates the environmental and social implications associated with the development of a <strong>{{ project.type }}</strong> facility encompassing <strong>{{ project.scale_ha }} hectares</strong>.</p>
+        
+        <h3>1.1 Environmental Integrity Grade</h3>
+        <p>The baseline environmental sensitivity for this coordinate bound is rated as <strong>Grade {{ baseline.sensitivity_grade }}</strong> (Score: {{ baseline.sensitivity_score }}%). This denotes a region with {{ baseline.sensitivity_desc }} ecological value requiring strict mitigation protocols.</p>
+        
+        <h3>1.2 Summary of Key Findings</h3>
+        <ul>
+            <li><strong>Vegetation:</strong> Baseline NDVI of {{ baseline.ndvi }} indicates {{ baseline.ndvi_interpretation }} vegetation health.</li>
+            <li><strong>Community:</strong> Total of {{ community.total_count }} public insights recorded with a dominant {{ community.dominant_sentiment }} sentiment.</li>
+            <li><strong>Critical Impacts:</strong> {{ critical_impact_count }} critical impact vectors identified requiring immediate shielding.</li>
+        </ul>
+    </section>
+
+    <!-- 4. PROJECT DESCRIPTION -->
+    <section class="page-break">
+        <h2>2. Project Description</h2>
+        <p>The project footprint is located at <strong>{{ project.location_coords }}</strong>. The site encompasses diverse terrain with a mean elevation of {{ baseline.topography.elevation_m }}m above sea level. The dominant land cover is identified as <strong>{{ baseline.topography.land_cover_class }}</strong>.</p>
+        
+        <div class="map-container">
+            <img src="{{ project.map_url }}" alt="Detailed Site Map">
+            <p style="font-size: 10px; color: #94a3b8;">Figure 2.1: Cadastral Boundary Overlay</p>
+        </div>
+    </section>
+
+    <!-- 5. BASELINE ENVIRONMENT -->
+    <section class="page-break">
+        <h2>3. Description of the Existing Environment</h2>
+        
+        <h3>3.1 Climate and Meteorology</h3>
+        <p>Historical data ({{ baseline.climate.period.start }} to {{ baseline.climate.period.end }}) indicates a <strong>{{ baseline.climate.climate_classification.name }}</strong> climate regime.</p>
+        <table>
+            <thead>
+                <tr>
+                    <th>Month</th>
+                    <th>Temp (Max/Min)</th>
+                    <th>Precipitation</th>
+                    <th>Humidity</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for m in baseline.climate.monthly %}
+                <tr>
+                    <td>{{ m.month }}</td>
+                    <td>{{ m.temperature.max_avg }}°C / {{ m.temperature.min_avg }}°C</td>
+                    <td>{{ m.precipitation_mm }} mm</td>
+                    <td>{{ m.humidity_percent.max_avg }}%</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div style="page-break-before: always;"></div>
+
+        <h3>3.2 Biological Environment (Flora & Fauna)</h3>
+        <p>GBIF records for this grid boundary identify the following key species and biodiversity metrics:</p>
+        <table>
+            <thead>
+                <tr>
+                    <th>Metric</th>
+                    <th>Value</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>Total Species Count</td><td>{{ baseline.biodiversity.total_species_count }}</td></tr>
+                <tr><td>IUCN Threatened Count</td><td>{{ baseline.biodiversity.threatened_count }}</td></tr>
+                <tr><td>Dominant Taxon</td><td>{{ baseline.biodiversity.dominant_taxon }}</td></tr>
+            </tbody>
+        </table>
+        
+        <h3>3.3 Physico-Chemical Parameters</h3>
+        <table>
+            <tr><th>Air Quality Index (AQI)</th><td>{{ baseline.air_quality.aqi }} ({{ baseline.air_quality.status }})</td></tr>
+            <tr><th>Soil Classification</th><td>{{ baseline.soil.soil_type }}</td></tr>
+            <tr><th>Hydrological Proximity</th><td>{{ baseline.hydrology.source }}</td></tr>
+        </table>
+    </section>
+
+    <!-- 6. IMPACTS AND MITIGATION -->
+    <section class="page-break">
+        <h2>4. Potential Environmental Impacts</h2>
+        <p>The following impacts were identified using EcoSense AI's deep learning impact prediction matrices. Each vector is scored by probability and severity.</p>
+        
+        {% for pred in predictions %}
+        <div style="margin-bottom: 30px; border: 1px solid #e2e8f0; padding: 20px; border-radius: 8px;">
+            <h3 style="margin-top: 0; color: #1e293b;">4.{{ forloop.counter }} Impact: {{ pred.category }}</h3>
+            <p><strong>Severity:</strong> <span class="sev-{{ pred.severity|lower }}">{{ pred.severity }}</span> | <strong>Probability:</strong> {{ pred.probability|floatformat:1 }}%</p>
+            <p><strong>Description:</strong> {{ pred.description }}</p>
+            
+            <h4 style="font-size: 14px; margin-top: 15px;">Mandatory Mitigation Steps:</h4>
+            <ul style="font-size: 13px;">
+                {% for step in pred.mitigations %}
+                <li>{{ step }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% if forloop.counter|divisibleby:2 %}<div style="page-break-after: always;"></div>{% endif %}
+        {% endfor %}
+    </section>
+
+    <!-- 7. PUBLIC PARTICIPATION -->
+    <section class="page-break" style="page-break-before: always;">
+        <h2>6. Public Participation Summary</h2>
+        <p>A total of <strong>{{ community.total_count }}</strong> verifiable submissions were recorded via multi-channel engagement (SMS, Web, WhatsApp).</p>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Channel</th>
+                    <th>Location</th>
+                    <th>Sentiment</th>
+                    <th>Feedback Summary</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for f in community.entries %}
+                <tr>
+                    <td>{{ f.date }}</td>
+                    <td>{{ f.channel }}</td>
+                    <td>{{ f.location }}</td>
+                    <td>{{ f.sentiment }}</td>
+                    <td style="font-style: italic;">"{{ f.text|truncatechars:100 }}"</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+
+    <!-- 8. COMPLIANCE AUDIT APPENDIX -->
+    <section class="page-break" style="page-break-before: always;">
+        <h2>Appendix A: Regulatory Compliance Audit</h2>
+        <p>The following table summarizes the project's compliance with NEMA Environmental Management and Coordination Act (EMCA) regulations. <strong>Total Compliance Score: {{ audit.score }}% (Grade {{ audit.grade }})</strong>.</p>
+        
+        <table class="compliance-table">
+            <thead>
+                <tr>
+                    <th>Reg ID</th>
+                    <th>Requirement</th>
+                    <th>Status</th>
+                    <th>Evidence / Remedy</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in audit.passed %}
+                <tr>
+                    <td>{{ item.regulation_id }}</td>
+                    <td>{{ item.requirement }}</td>
+                    <td class="status-passed">PASSED</td>
+                    <td>{{ item.evidence }}</td>
+                </tr>
+                {% endfor %}
+                {% for item in audit.failed %}
+                <tr>
+                    <td>{{ item.regulation_id }}</td>
+                    <td>{{ item.requirement }}</td>
+                    <td class="status-failed">FAILED</td>
+                    <td><strong>Issue:</strong> {{ item.evidence }} <br> <strong>Remedy:</strong> {{ item.remedy }}</td>
+                </tr>
+                {% endfor %}
+                {% for item in audit.warnings %}
+                <tr>
+                    <td>{{ item.regulation_id }}</td>
+                    <td>{{ item.requirement }}</td>
+                    <td class="status-warning">WARNING</td>
+                    <td>{{ item.evidence }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+
+    <!-- 9. CONCLUSION -->
+    <section>
+        <h2>7. Conclusion</h2>
+        <p>Based on the findings of this assessment, the <strong>{{ project.name }}</strong> project presents {{ audit.grade }} environmental challenges. Full adherence to the mitigation framework outlined in Section 5 is mandatory for NEMA licensing approval.</p>
+        <p style="margin-top: 50px;"><strong>Certified by:</strong> EcoSense AI Automatic Systems</p>
+        <p><strong>Hash:</strong> {{ audit.score }}{{ project.id }}{{ timestamp }}</p>
+    </section>
+
+</body>
+</html>

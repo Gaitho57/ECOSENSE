@@ -9,84 +9,106 @@ from apps.projects.models import Project
 from apps.baseline.models import BaselineReport
 from apps.predictions.models import ImpactPrediction
 from apps.community.models import CommunityFeedback
+from apps.compliance.engine import ComplianceEngine
 
 def compile_report_data(project_id: str) -> dict:
     """
     Builds the massive structured context array resolving parameters seamlessly safely catching missing modules.
+    Expands data for professional-grade 20-100 page reports.
     """
     project = Project.objects.get(id=project_id)
+    lat, lng = (project.location.y, project.location.x) if project.location else (-1.2921, 36.8219)
     
-    # Baseline
+    # 1. Baseline Exhaustive Mapping
     try:
         baseline = BaselineReport.objects.get(project=project)
-        ndv = baseline.satellite_data.get("ndvi", "N/A") if baseline.satellite_data else "N/A"
-        air = baseline.air_quality_baseline.get("aqi", "N/A") if baseline.air_quality_baseline else "N/A"
-        bio = baseline.biodiversity_data.get("total_species_count", "N/A") if baseline.biodiversity_data else "N/A"
-        soil = baseline.soil_data.get("soil_type", "N/A") if baseline.soil_data else "N/A"
-        grade = baseline.sensitivity_scores.get("grade", "N/A") if baseline.sensitivity_scores else "N/A"
+        baseline_data = {
+            "ndvi": baseline.satellite_data.get("ndvi", "N/A"),
+            "air_quality": baseline.air_quality_baseline or {},
+            "biodiversity": baseline.biodiversity_data or {},
+            "soil": baseline.soil_data or {},
+            "climate": baseline.climate_data or {},
+            "hydrology": baseline.hydrology_data or {},
+            "topography": baseline.topography_data or {},
+            "sensitivity_grade": baseline.sensitivity_scores.get("grade", "N/A"),
+            "sensitivity_score": baseline.sensitivity_scores.get("overall", 0),
+        }
     except BaselineReport.DoesNotExist:
-        ndv = air = bio = soil = grade = "Data Missing"
+        baseline_data = {"status": "Missing"}
 
-    # Predictions
-    preds = ImpactPrediction.objects.filter(project=project, scenario_name="baseline").order_by("-probability")
+    # 2. Predictions & Every Mitigation Step
+    preds = ImpactPrediction.objects.filter(project=project).order_by("-probability")
     predictions_data = []
     for p in preds:
          predictions_data.append({
-              "category": p.category.title(),
+              "category": p.category.replace("_", " ").title(),
               "severity": p.severity.upper(),
               "probability": float(p.probability),
-              "top_mitigations": p.mitigation_suggestions[:3] if p.mitigation_suggestions else ["Monitor structural integrity continuously."]
+              "description": p.description,
+              "mitigations": p.mitigation_suggestions or ["No specific mitigations identified."]
          })
 
-    # Community
-    feedback = CommunityFeedback.objects.filter(project=project)
+    # 3. Community Feedback - Full Extraction
+    feedback_objs = CommunityFeedback.objects.filter(project=project).order_by("-submitted_at")
     sentiment_map = {"positive": 0, "neutral": 0, "negative": 0}
-    cat_counts = {}
-    quotes = []
+    detailed_feedback = []
 
-    for f in feedback:
+    for f in feedback_objs:
          if f.sentiment in sentiment_map:
              sentiment_map[f.sentiment] += 1
-         for c in f.categories:
-             cat_counts[c] = cat_counts.get(c, 0) + 1
-         if len(quotes) < 5 and f.raw_text:
-             quotes.append(f.raw_text)
+         detailed_feedback.append({
+              "date": f.submitted_at.strftime("%Y-%m-%d"),
+              "channel": f.channel.upper(),
+              "sentiment": f.sentiment.title(),
+              "text": f.raw_text,
+              "location": f.community_name or "Anonymous"
+         })
 
-    top_concerns = sorted(cat_counts.items(), key=lambda x: x[1], reverse=True)[:3]
-    top_concerns_list = [c[0].title() for c in top_concerns]
+    # 4. Compliance Audit - Detailed verification section
+    engine = ComplianceEngine()
+    audit_results = engine.run_check(project_id)
 
-    # Compliance Mock Data since proper compliance app handles this in other tasks
-    compliance_list = [
-        {"name": "EMCA Act 1999", "status": "Applicable"},
-        {"name": "Water Quality Regulations 2006", "status": "Applicable"},
-        {"name": "Noise and Excessive Vibration Control", "status": "Applicable"}
-    ]
+    # 6. Pre-processed Template Context (Simplifying Django Template Logic)
+    critical_impacts = [p for p in predictions_data if p["severity"] == "CRITICAL"]
+    dominant_sentiment = "Neutral"
+    if sentiment_map:
+         dominant_sentiment = max(sentiment_map, key=sentiment_map.get).title()
+    
+    ndvi_val = baseline_data.get("ndvi", 0)
+    try:
+        ndvi_num = float(ndvi_val)
+        ndvi_desc = "Robust" if ndvi_num > 0.5 else "Moderate"
+    except (ValueError, TypeError):
+        ndvi_desc = "Unknown"
+
+    # Build a static map URL for the cover page
+    static_map_url = f"https://api.mapbox.com/styles/v1/mapbox/satellite-v9/static/{lng},{lat},12,0/600x400?access_token=pk.placeholder"
 
     return {
         "project": {
+            "id": str(project.id),
             "name": project.name,
-            "type": getattr(project, "project_type", "Infrastructure").title(),
-            "scale_ha": getattr(project, "scale_ha", 500.0),
-            "location": f"LAT: {project.location.y if project.location else 'N/A'}, LNG: {project.location.x if project.location else 'N/A'}",
+            "type": getattr(project, "project_type", "Infrastructure").replace("_", " ").title(),
+            "scale_ha": getattr(project, "scale_ha", 0),
+            "location_coords": f"LAT: {lat}, LNG: {lng}",
             "date": timezone.now().strftime("%B %d, %Y"),
-            "lead_consultant": "EcoSense Automation Engine"
+            "lead_consultant": "EcoSense AI Professional Systems",
+            "map_url": static_map_url
         },
         "baseline": {
-            "ndvi": ndv,
-            "air_quality_aqi": air,
-            "biodiversity_summary": f"{bio} Species Logged",
-            "soil_type": soil,
-            "sensitivity_grade": grade
+             **baseline_data,
+             "ndvi_interpretation": ndvi_desc,
+             "sensitivity_desc": "Extremely High" if baseline_data.get("sensitivity_grade") == "A" else "Moderate"
         },
         "predictions": predictions_data,
+        "critical_impact_count": len(critical_impacts),
         "community": {
-            "total_count": feedback.count(),
+            "total_count": feedback_objs.count(),
             "sentiment_breakdown": sentiment_map,
-            "top_concerns": top_concerns_list,
-            "sample_quotes": quotes
+            "dominant_sentiment": dominant_sentiment,
+            "entries": detailed_feedback
         },
-        "compliance": compliance_list,
-        "maps": {
-             "placeholder_img": "https://upload.wikimedia.org/wikipedia/commons/e/e4/Globe.png"
-        }
+        "audit": audit_results,
+        "timestamp": timezone.now().isoformat()
     }
+

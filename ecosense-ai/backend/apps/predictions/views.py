@@ -1,4 +1,5 @@
 import json
+import uuid
 from django.db.models import Count
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
@@ -31,8 +32,9 @@ class RunPredictionView(APIView):
         if not hasattr(project, 'baseline') or project.baseline.status != 'complete':
             return envelope(error={"code": 400, "message": "Baseline must be complete before running predictions.", "details": {}}, status_code=status.HTTP_400_BAD_REQUEST)
 
-        task = run_predictions.delay(str(project_id))
-        return envelope(data={"task_id": task.id, "message": "Predictions started successfully."}, status_code=status.HTTP_202_ACCEPTED)
+        run_predictions.delay(str(project_id))
+        local_task_id = f"local-{uuid.uuid4()}"
+        return envelope(data={"task_id": local_task_id, "message": "Predictions started successfully."}, status_code=status.HTTP_202_ACCEPTED)
 
 class ProjectPredictionsView(APIView):
     permission_classes = [IsAuthenticated, IsSameTenant]
@@ -49,7 +51,7 @@ class ProjectPredictionsView(APIView):
         
         preds = ImpactPrediction.objects.filter(project=project, scenario_name=scenario)
         if not preds.exists():
-            return envelope(data=[], meta={"scenario": scenario}, msg="No predictions found currently.")
+            return envelope(data=[], meta={"scenario": scenario})
 
         data = []
         for p in preds:
@@ -98,10 +100,9 @@ class ProjectScenariosView(APIView):
              return envelope(error={"code": 400, "message": "Must provide mitigations to run scenario.", "details": {}}, status_code=400)
 
         params = {"mitigations": mitigations, "scenario_name": scenario_name}
-        task = run_predictions.delay(str(project_id), params)
-
-
-        return envelope(data={"task_id": task.id, "message": f"Scenario {scenario_name} compilation started."}, status_code=status.HTTP_202_ACCEPTED)
+        run_predictions.delay(str(project_id), params)
+        local_task_id = f"local-{uuid.uuid4()}"
+        return envelope(data={"task_id": local_task_id, "message": f"Scenario {scenario_name} compilation started."}, status_code=status.HTTP_202_ACCEPTED)
 
 class DispersionSimulationView(APIView):
     permission_classes = [IsAuthenticated, IsSameTenant]
@@ -150,3 +151,27 @@ class FloodSimulationView(APIView):
 
         geojson_coll = calculate_flood_zones(lat, lng, radius_km=5)
         return Response(geojson_coll) # Raw GeoJSON
+
+class AIMSuggestedMitigationsView(APIView):
+    permission_classes = [IsAuthenticated, IsSameTenant]
+
+    def get(self, request, project_id):
+        # Dynamically pulls project parameters and runs a mitigation-specific LLM pass
+        try:
+            project = Project.objects.get(id=project_id)
+            self.check_object_permissions(request, project)
+        except Project.DoesNotExist:
+             return envelope(error={"code": 404, "message": "Project not found.", "details": {}}, status_code=status.HTTP_404_NOT_FOUND)
+
+        preds_qs = ImpactPrediction.objects.filter(project=project, scenario_name="baseline")
+        preds = []
+        for p in preds_qs:
+            preds.append({"category": p.category, "severity": p.severity})
+
+        ptype = getattr(project, "project_type", "infrastructure")
+        scale = getattr(project, "scale_ha", 50.0)
+
+        engine = PredictionEngine()
+        suggested = engine.generate_mitigation_strategy(ptype, scale, preds)
+
+        return envelope(data=suggested)

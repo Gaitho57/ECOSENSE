@@ -6,13 +6,28 @@ export default function ProjectOverviewPage() {
   const { projectId } = useParams();
   const navigate = useNavigate();
   const [project, setProject] = useState(null);
-  const [stats, setStats] = useState({ sens_grade: 'A', predictions: 12, feedbacks: 145, compliance: 85 });
+  const [stats, setStats] = useState({ sens_grade: '-', predictions: 0, feedbacks: 0, compliance: 0 });
 
   useEffect(() => {
        const fetchLogic = async () => {
              try {
                  const res = await axiosInstance.get(`/projects/${projectId}/`);
-                 setProject(res.data.data);
+                 const pData = res.data.data;
+                 setProject(pData);
+                 
+                 // Dynamic stats aggregation
+                 const predictionsCount = pData.prediction_count || 0;
+                 const feedbackCount = pData.feedback_count || 0;
+                 const grade = pData.baseline?.scoring_summary?.grade || 'N/A';
+                 const score = pData.baseline?.scoring_summary?.overall_score || 0;
+                 
+                 setStats({
+                     sens_grade: grade,
+                     predictions: predictionsCount,
+                     feedbacks: feedbackCount,
+                     compliance: Math.round(score * 100)
+                 });
+
              } catch (e) {
                  console.error("Mapping bounds failed resolving natively.");
              }
@@ -20,7 +35,7 @@ export default function ProjectOverviewPage() {
        fetchLogic();
   }, [projectId]);
 
-  if (!project) return <div className="p-10 animate-pulse text-gray-400 font-bold tracking-widest uppercase">Executing Orchestration Blocks...</div>;
+  if (!project) return <div className="p-10 animate-pulse text-gray-400 font-bold tracking-widest uppercase text-center">Executing Orchestration Blocks...</div>;
 
   const PIPELINE_STAGES = [
       { id: 'scoping', label: '1. Scoping Matrix', path: `/dashboard/projects/${projectId}/map` },
@@ -28,19 +43,19 @@ export default function ProjectOverviewPage() {
       { id: 'assessment', label: '3. ML Impact Engine', path: `/dashboard/projects/${projectId}/predictions` },
       { id: 'review', label: '4. Public Feedback', path: `/dashboard/projects/${projectId}/community` },
       { id: 'submitted', label: '5. Document Generation', path: `/dashboard/projects/${projectId}/report` },
-      { id: 'approved', label: '6. NEMA Approval', path: `/dashboard/projects/${projectId}` },   // Static anchor natively 
-      { id: 'compliance', label: '7. Legal Check', path: `/dashboard/projects/${projectId}/compliance` }, // Extra structural steps visually
+      { id: 'approved', label: '6. NEMA Approval', path: `/dashboard/projects/${projectId}` }, 
+      { id: 'compliance', label: '7. Legal Check', path: `/dashboard/projects/${projectId}/compliance` },
       { id: 'monitoring', label: '8. ESG Telemetry', path: `/dashboard/projects/${projectId}/monitoring` }
   ];
 
-  // Logic to determine active step
   const getIndex = (s) => {
        const map = { 'scoping':0, 'baseline':1, 'assessment':2, 'review':3, 'submitted':4, 'approved':5, 'monitoring':7 };
        return map[s] !== undefined ? map[s] : 0;
   };
   
   const currentIndex = getIndex(project.status);
-  const nextTarget = PIPELINE_STAGES[currentIndex + 1] || PIPELINE_STAGES[PIPELINE_STAGES.length - 1];
+  // Continue Execution should go to the CURRENT active stage to complete it, not skip it.
+  const nextTarget = PIPELINE_STAGES[currentIndex];
 
   return (
     <div className="p-6 lg:p-10 space-y-8 bg-gray-50 min-h-screen">
@@ -95,18 +110,25 @@ export default function ProjectOverviewPage() {
                             const isActive = i === currentIndex;
                             
                             return (
-                                 <div key={s.id} className="flex flex-col items-center gap-3 shrink-0 px-2 lg:px-0 w-28 lg:w-32 snap-center">
-                                      <div className={`w-8 h-8 rounded-full border-4 flex items-center justify-center bg-white shadow-sm transition-colors duration-500 ${
-                                          isCompleted ? 'border-blue-500 text-blue-500' :
+                                 <Link 
+                                    key={s.id} 
+                                    to={s.path}
+                                    className="flex flex-col items-center gap-3 shrink-0 px-2 lg:px-0 w-28 lg:w-32 snap-center group"
+                                 >
+                                      <div className={`w-8 h-8 rounded-full border-4 flex items-center justify-center bg-white shadow-sm transition-all duration-300 ${
+                                          isCompleted ? 'border-blue-500 text-blue-500 group-hover:bg-blue-50' :
                                           isActive ? 'border-gray-800 text-gray-800 scale-125' :
-                                          'border-gray-200 text-transparent'
+                                          'border-gray-200 text-transparent group-hover:border-gray-400'
                                       }`}>
                                           {isCompleted ? <span className="text-sm font-black">✓</span> : <span className="w-2.5 h-2.5 rounded-full bg-current"></span>}
                                       </div>
-                                      <span className={`text-[10px] uppercase font-black tracking-widest text-center ${isActive ? 'text-gray-900' : 'text-gray-400'}`}>
+                                      <span className={`text-[10px] uppercase font-black tracking-widest text-center transition-colors ${
+                                          isActive ? 'text-gray-900 underline decoration-2 underline-offset-4' : 
+                                          'text-gray-400 group-hover:text-gray-700'
+                                      }`}>
                                           {s.label}
                                       </span>
-                                 </div>
+                                 </Link>
                             );
                        })}
                   </div>
