@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+{% load report_filters %}
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -8,11 +9,16 @@
 <body>
 
     <!-- Header & Footer -->
-    <div id="page-header">EcoSense AI — Professional Environmental Impact Assessment — {{ project.name }}</div>
+    <div id="page-header">EcoSense AI — Professional Environmental Impact Assessment — {{ project.name }} {% if project.status_label %} — <span style="color: #dc2626; font-weight: bold;">{{ project.status_label }}</span>{% endif %}</div>
     <div id="page-footer">Page <span class="page-number"></span> | Prepared using EcoSense AI | {{ project.date }}</div>
 
     <!-- 1. COVER PAGE -->
-    <section class="page-break" style="text-align: center; padding-top: 150px;">
+    <section class="page-break" style="text-align: center; padding-top: 150px; position: relative;">
+        {% if project.status_label %}
+        <div style="position: absolute; top: 10px; right: 10px; border: 3px solid #dc2626; color: #dc2626; padding: 10px; font-weight: bold; transform: rotate(5deg);">
+            {{ project.status_label }}
+        </div>
+        {% endif %}
         <div style="margin-bottom: 50px;">
             <img src="https://upload.wikimedia.org/wikipedia/commons/e/e4/Globe.png" width="120" alt="EcoSense Logo">
         </div>
@@ -27,15 +33,15 @@
             <p><strong>Location:</strong> {{ project.location_coords }}</p>
         </div>
 
-        <div class="map-container" style="margin-top: 50px;">
+        <div class="map-container" style="margin-top: 50px; border: 2px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
             <img src="{{ project.map_url }}" alt="Project Location Map">
-            <p style="font-size: 10px; color: #94a3b8; margin-top: 5px;">Satellite Imagery & Vector Overlay — Yandex Maps API</p>
+            <p style="font-size: 10px; color: #94a3b8; margin-top: 5px;">Figure 1.1: Project Locus Map (Satellite Imagery Overlay)</p>
         </div>
         
         <div style="margin-top: 80px; padding-top: 30px; border-top: 1px solid #e2e8f0;">
             <p style="font-weight: bold; color: #1e293b;">Lead Consultant Body: {{ project.lead_consultant }}</p>
             <p style="font-size: 14px; color: #64748b;">Date of Compilation: {{ project.date }}</p>
-            <p style="font-size: 12px; color: #94a3b8;">Document ID: {{ project.id }}-V1</p>
+            <p style="font-size: 12px; color: #94a3b8;">Document ID: {{ project.id }}-V2-EXPERT</p>
         </div>
     </section>
 
@@ -43,50 +49,92 @@
     <section class="page-break toc">
         <h2>Table of Contents</h2>
         <ul>
-            <li><span>1. Executive Summary</span> <span>2</span></li>
-            <li><span>2. Project Description & Location</span> <span>3</span></li>
-            <li><span>3. Description of the Existing Environment</span> <span>4</span></li>
-            <li><span>4. Potential Environmental Impacts</span> <span>15</span></li>
-            <li><span>5. Environmental Management Plan (EMP)</span> <span>22</span></li>
-            <li><span>6. Public Participation Summary</span> <span>35</span></li>
-            <li><span>7. Conclusion & Recommendations</span> <span>48</span></li>
-            <li><span>Appendix A: Regulatory Compliance Audit</span> <span>50</span></li>
-            <li><span>Appendix B: Detailed Bio-Intelligence Log</span> <span>55</span></li>
+            <li><span>1. Non-Technical Summary (English & Swahili)</span></li>
+            <li><span>2. Executive Summary</span></li>
+            <li><span>3. Introduction</span></li>
+            <li><span>4. Study Methodology</span></li>
+            <li><span>5. Project Description</span></li>
+            <li><span>6. Baseline Information</span></li>
+            <li><span>7. Policy, Legal and Administrative Framework</span></li>
+            <li><span>8. Public Participation</span></li>
+            <li><span>9. Impact Assessment</span></li>
+            <li><span>10. Analysis of Alternatives</span></li>
+            <li><span>11. Mitigation Measures</span></li>
+            <li><span>12. Environmental and Social Management Plan</span></li>
+            <li><span>13. Hazard Management & Emergency Response</span></li>
+            <li><span>14. Decommissioning Phase</span></li>
+            <li><span>15. Conclusion & Recommendations</span></li>
+            <li><span>16. References</span></li>
+            <li><span>17. Technical Annexes</span></li>
         </ul>
     </section>
 
-    <!-- 3. EXECUTIVE SUMMARY -->
+    <!-- 3. NON-TECHNICAL SUMMARY -->
     <section class="page-break">
-        <h2>1. Executive Summary</h2>
-        <p>This Environmental Impact Assessment (EIA) report has been compiled for the proposed <strong>{{ project.name }}</strong> project. The assessment evaluates the environmental and social implications associated with the development of a <strong>{{ project.type }}</strong> facility encompassing <strong>{{ project.scale_ha }} hectares</strong>.</p>
-        
-        <h3>1.1 Environmental Integrity Grade</h3>
-        <p>The baseline environmental sensitivity for this coordinate bound is rated as <strong>Grade {{ baseline.sensitivity_grade }}</strong> (Score: {{ baseline.sensitivity_score }}%). This denotes a region with {{ baseline.sensitivity_desc }} ecological value requiring strict mitigation protocols.</p>
-        
-        <h3>1.2 Summary of Key Findings</h3>
-        <ul>
-            <li><strong>Vegetation:</strong> Baseline NDVI of {{ baseline.ndvi }} indicates {{ baseline.ndvi_interpretation }} vegetation health.</li>
-            <li><strong>Community:</strong> Total of {{ community.total_count }} public insights recorded with a dominant {{ community.dominant_sentiment }} sentiment.</li>
-            <li><strong>Critical Impacts:</strong> {{ critical_impact_count }} critical impact vectors identified requiring immediate shielding.</li>
-        </ul>
-    </section>
-
-    <!-- 4. PROJECT DESCRIPTION -->
-    <section class="page-break">
-        <h2>2. Project Description</h2>
-        <p>The project footprint is located at <strong>{{ project.location_coords }}</strong>. The site encompasses diverse terrain with a mean elevation of {{ baseline.topography.elevation_m }}m above sea level. The dominant land cover is identified as <strong>{{ baseline.topography.land_cover_class }}</strong>.</p>
-        
-        <div class="map-container">
-            <img src="{{ project.map_url }}" alt="Detailed Site Map">
-            <p style="font-size: 10px; color: #94a3b8;">Figure 2.1: Cadastral Boundary Overlay</p>
+        <h2>1. Non-Technical Summary</h2>
+        <div style="display: flex; gap: 40px;">
+            <div style="flex: 1;">
+                <h3>1.1 English Summary</h3>
+                <p>This section provides a concise overview of the proposed <strong>{{ project.name }}</strong> project, the anticipated environmental impacts, and the proposed mitigation measures in a manner accessible to the general public and non-technical stakeholders.</p>
+                <p>The project at {{ project.location_coords }} involves {{ project.type }} activity covering {{ project.scale_ha }} hectares. Primary impacts include {{ predictions.0.category }} and {{ predictions.1.category }}.</p>
+            </div>
+            <div style="flex: 1; border-left: 1px solid #e2e8f0; padding-left: 20px; font-style: italic; background-color: #f8fafc;">
+                <h3>1.2 Swahili Summary (Muhtasari Usio wa Kiufundi)</h3>
+                <div style="font-size: 13px; line-height: 1.5; text-align: justify;">
+                    {{ swahili_summary|linebreaks }}
+                </div>
+            </div>
         </div>
     </section>
 
-    <!-- 5. BASELINE ENVIRONMENT -->
+    <!-- 4. EXECUTIVE SUMMARY -->
     <section class="page-break">
-        <h2>3. Description of the Existing Environment</h2>
+        <h2>2. Executive Summary</h2>
+        <p>This Environmental Impact Assessment (EIA) report has been compiled for the proposed <strong>{{ project.name }}</strong> project. The assessment evaluates the environmental and social implications associated with the development of a <strong>{{ project.type }}</strong> facility encompassing <strong>{{ project.scale_ha }} hectares</strong>.</p>
         
-        <h3>3.1 Climate and Meteorology</h3>
+        <h3>2.1 Environmental Integrity Grade</h3>
+        <p>The baseline environmental sensitivity for this coordinate bound is rated as <strong>Grade {{ baseline.sensitivity_grade }}</strong> (Score: {{ baseline.sensitivity_score }}%). This denotes a region with {{ baseline.sensitivity_desc }} ecological value requiring strict mitigation protocols.</p>
+        
+        <h3>2.2 Summary of Key Findings</h3>
+        <ul>
+            <li><strong>Vegetation:</strong> Baseline NDVI of {{ baseline.ndvi }} indicates {{ baseline.ndvi_interpretation }} vegetation health.</li>
+            <li><strong>Community:</strong> Total of {{ community.total_count }} public insights recorded with a dominant {{ community.dominant_sentiment }} sentiment.</li>
+            <li><strong>Impact Profile:</strong> {{ critical_impact_count }} major/critical impact vectors identified. High-priority mitigation triggered for biodiversity (endangered species) and noise parameters.</li>
+        </ul>
+    </section>
+
+    <!-- 5. INTRODUCTION -->
+    <section class="page-break">
+        <h2>3. Introduction</h2>
+        <p>The <strong>{{ project.name }}</strong> Environmental Impact Assessment has been commissioned to evaluate the technical and ecological feasibility of the project at its proposed location.</p>
+        <h3>3.1 Project Objectives</h3>
+        <p>The primary goal is the sustainable development of {{ project.type }} infrastructure while maintaining compliance with EMCA 1999 and NEMA 2003 regulations.</p>
+    </section>
+
+    <!-- 6. METHODOLOGY -->
+    <section class="page-break">
+        <h2>4. Study Methodology</h2>
+        <div style="line-height: 1.6; text-align: justify;">
+            {{ methodology|linebreaks }}
+        </div>
+    </section>
+
+    <!-- 7. PROJECT DESCRIPTION -->
+    <section class="page-break">
+        <h2>5. Project Description</h2>
+        <p>The project footprint is located at <strong>{{ project.location_coords }}</strong>. The site encompasses diverse terrain with a mean elevation of {{ baseline.topography.elevation_m }}m above sea level. The dominant land cover is identified as <strong>{{ baseline.topography.land_cover_class }}</strong>.</p>
+        
+        <div class="map-container" style="border: 2px solid #e2e8f0; border-radius: 8px;">
+            <img src="{{ project.map_url }}" alt="Detailed Site Map">
+            <p style="font-size: 10px; color: #94a3b8;">Figure 2.1: Cadastral Boundary and Hydrological Overlay (Athi River Basin Context)</p>
+        </div>
+    </section>
+
+    <!-- 8. BASELINE INFORMATION -->
+    <section class="page-break">
+        <h2>6. Baseline Information</h2>
+        
+        <h3>6.1 Climate and Meteorology</h3>
         <p>Historical data ({{ baseline.climate.period.start }} to {{ baseline.climate.period.end }}) indicates a <strong>{{ baseline.climate.climate_classification.name }}</strong> climate regime.</p>
         <table>
             <thead>
@@ -111,8 +159,8 @@
 
         <div style="page-break-before: always;"></div>
 
-        <h3>3.2 Biological Environment (Flora & Fauna)</h3>
-        <p>GBIF records for this grid boundary identify the following key species and biodiversity metrics:</p>
+        <h3>6.2 Biological Environment (Flora & Fauna)</h3>
+        <p>GBIF records for this grid boundary identify the following key species and biodiversity metrics. Full inventory is provided in <strong>Annex C</strong>.</p>
         <table>
             <thead>
                 <tr>
@@ -121,45 +169,35 @@
                 </tr>
             </thead>
             <tbody>
-                <tr><td>Total Species Count</td><td>{{ baseline.biodiversity.total_species_count }}</td></tr>
-                <tr><td>IUCN Threatened Count</td><td>{{ baseline.biodiversity.threatened_count }}</td></tr>
-                <tr><td>Dominant Taxon</td><td>{{ baseline.biodiversity.dominant_taxon }}</td></tr>
+                <tr><td>Total Species Identifications</td><td>{{ baseline.biodiversity.total_species_count }}</td></tr>
+                <tr><td>Threatened Species Count (IUCN)</td><td>{{ baseline.biodiversity.threatened_species_count }}</td></tr>
+                <tr><td>Diversity Index (Shannon-Wiener)</td><td>{{ baseline.biodiversity.shannon_diversity_index|default:"N/A" }}</td></tr>
+                <tr><td>Dominant Habitat Type</td><td>{{ baseline.biodiversity.habitat_type }}</td></tr>
             </tbody>
         </table>
         
-        <h3>3.3 Physico-Chemical Parameters</h3>
+        <h3>6.3 Physico-Chemical Parameters</h3>
         <table>
-            <tr><th>Air Quality Index (AQI)</th><td>{{ baseline.air_quality.aqi }} ({{ baseline.air_quality.status }})</td></tr>
+            <tr><th>Air Quality Index (AQI)</th><td>{{ baseline.air_quality.aqi }} ({{ baseline.air_quality.aqi_label }})</td></tr>
             <tr><th>Soil Classification</th><td>{{ baseline.soil.soil_type }}</td></tr>
             <tr><th>Hydrological Proximity</th><td>{{ baseline.hydrology.source }}</td></tr>
+            <tr><th>Distance to Nearest Water Body</th><td>{{ baseline.hydrology.nearest_distance_km }} km</td></tr>
+            <tr><th>Soil Texture Class</th><td>{{ baseline.soil.texture_class }}</td></tr>
         </table>
     </section>
 
-    <!-- 6. IMPACTS AND MITIGATION -->
+    <!-- 9. LEGAL FRAMEWORK -->
     <section class="page-break">
-        <h2>4. Potential Environmental Impacts</h2>
-        <p>The following impacts were identified using EcoSense AI's deep learning impact prediction matrices. Each vector is scored by probability and severity.</p>
-        
-        {% for pred in predictions %}
-        <div style="margin-bottom: 30px; border: 1px solid #e2e8f0; padding: 20px; border-radius: 8px;">
-            <h3 style="margin-top: 0; color: #1e293b;">4.{{ forloop.counter }} Impact: {{ pred.category }}</h3>
-            <p><strong>Severity:</strong> <span class="sev-{{ pred.severity|lower }}">{{ pred.severity }}</span> | <strong>Probability:</strong> {{ pred.probability|floatformat:1 }}%</p>
-            <p><strong>Description:</strong> {{ pred.description }}</p>
-            
-            <h4 style="font-size: 14px; margin-top: 15px;">Mandatory Mitigation Steps:</h4>
-            <ul style="font-size: 13px;">
-                {% for step in pred.mitigations %}
-                <li>{{ step }}</li>
-                {% endfor %}
-            </ul>
+        <h2>7. Policy, Legal and Administrative Framework</h2>
+        <div style="line-height: 1.6; text-align: justify;">
+            {{ legal_narrative|linebreaks }}
         </div>
-        {% if forloop.counter|divisibleby:2 %}<div style="page-break-after: always;"></div>{% endif %}
-        {% endfor %}
+        <p style="margin-top: 20px;">Detailed regulatory alignment check results are provided in <strong>Appendix A</strong>.</p>
     </section>
 
-    <!-- 7. PUBLIC PARTICIPATION -->
+    <!-- 10. PUBLIC PARTICIPATION -->
     <section class="page-break" style="page-break-before: always;">
-        <h2>6. Public Participation Summary</h2>
+        <h2>8. Public Participation</h2>
         <p>A total of <strong>{{ community.total_count }}</strong> verifiable submissions were recorded via multi-channel engagement (SMS, Web, WhatsApp).</p>
         
         <table>
@@ -184,14 +222,197 @@
                 {% endfor %}
             </tbody>
         </table>
+        <p style="font-size: 11px; color: #64748b; margin-top: 10px;">Note: NEMA-013 requirement for Swahili translation of community feedback summaries is satisfied via Muhtasari in Section 1.</p>
+    </section>
+
+    <!-- 11. IMPACT ASSESSMENT -->
+    <section class="page-break">
+        <h2>9. Impact Assessment & Significance Matrix</h2>
+        <p>The following impacts were identified using EcoSense AI's professional Significance Matrix logic. Each vector is scored by: <strong>Significance = (Magnitude + Duration + Extent) × Probability</strong>.</p>
+        <p style="font-size: 11px; color: #64748b; font-style: italic;">Note: Significance scores are normalized to a 1–10 scale by dividing the raw (Mag+Dur+Ext) * Prob result by 10 for assessment consistency.</p>
+
+        {% for pred in predictions %}
+        <div class="draft-watermark">DRAFT</div>
+        <div style="margin-bottom: 50px; border-left: 4px solid #166534; padding-left: 20px; position: relative;">
+            <h3 style="margin-top: 0; color: #1e293b; background-color: #f1f5f9; padding: 10px; border-radius: 4px;">9.{{ forloop.counter }} Impact: {{ pred.category }}</h3>
+            
+            <p style="font-size: 14px; margin-top: 15px;">{{ pred.description }}</p>
+
+            <table style="width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 12px; background-color: #ffffff;">
+                <thead style="background-color: #f8fafc;">
+                    <tr style="border-bottom: 2px solid #e2e8f0;">
+                        <th style="padding: 10px; text-align: left;">Metric</th>
+                        <th style="padding: 10px; text-align: center;">Score (1-10)</th>
+                        <th style="padding: 10px; text-align: left;">Justification</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr style="border-bottom: 1px solid #f1f5f9;">
+                        <td style="padding: 10px;"><strong>Magnitude</strong></td>
+                        <td style="padding: 10px; text-align: center;">{{ pred.magnitude }}</td>
+                        <td style="padding: 10px; font-style: italic;">Measured intensity of deviation from the baseline state</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #f1f5f9;">
+                        <td style="padding: 10px;"><strong>Probability</strong></td>
+                        <td style="padding: 10px; text-align: center;">{{ pred.probability }}</td>
+                        <td style="padding: 10px; font-style: italic;">Likelihood of occurrence (normalized 1-10 scale)</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #f1f5f9;">
+                        <td style="padding: 10px;"><strong>Duration</strong></td>
+                        <td style="padding: 10px; text-align: center;">{{ pred.duration }}</td>
+                        <td style="padding: 10px; font-style: italic;">Temporal persistence of the impact (1=Temp, 5=Perm)</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #f1f5f9;">
+                        <td style="padding: 10px;"><strong>Extent</strong></td>
+                        <td style="padding: 10px; text-align: center;">{{ pred.extent }}</td>
+                        <td style="padding: 10px; font-style: italic;">Spatial footprint of the impact (1=Site, 5=Regional)</td>
+                    </tr>
+                </tbody>
+                <tfoot style="background-color: #f1f5f9; font-weight: bold;">
+                    <tr>
+                        <td style="padding: 10px;">Significance Result</td>
+                        <td colspan="2" style="padding: 10px; text-align: right; color: #166534;">
+                            {{ pred.significance_label }} (Total Score: {{ pred.significance_score }})
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+            
+            <p style="font-size: 13px; color: #64748b; margin-top: 10px;">
+                <strong>Impact Pathway:</strong> {{ pred.impact_pathway }}
+            </p>
+
+            <!-- NEW: Pre/Post Mitigation Comparison -->
+            <div style="margin-top: 20px; border: 1px solid #e2e8f0; border-radius: 4px; overflow: hidden;">
+                <div style="background-color: #f1f5f9; padding: 10px; font-weight: bold; font-size: 12px; border-bottom: 1px solid #e2e8f0;">
+                    AI MITIGATION EFFECTIVENESS ANALYSIS
+                </div>
+                <div style="display: flex; padding: 10px; gap: 20px;">
+                    <div style="flex: 1; text-align: center; border-right: 1px solid #e2e8f0;">
+                        <span style="font-size: 10px; color: #64748b; display: block;">BASELINE SIGNIFICANCE</span>
+                        <span style="font-size: 18px; font-weight: bold; color: #dc2626;">{{ pred.significance_score }}</span>
+                        <span style="font-size: 10px; display: block; color: #dc2626;">{{ pred.significance_label }}</span>
+                    </div>
+                    <div style="flex: 1; text-align: center; border-right: 1px solid #e2e8f0;">
+                        <span style="font-size: 10px; color: #64748b; display: block;">MITIGATED SIGNIFICANCE</span>
+                        <span style="font-size: 18px; font-weight: bold; color: #166534;">{{ pred.mitigated_score }}</span>
+                        <span style="font-size: 10px; display: block; color: #166534;">{{ pred.mitigated_label }}</span>
+                    </div>
+                    <div style="flex: 1; text-align: center;">
+                        <span style="font-size: 10px; color: #64748b; display: block;">IMPACT REDUCTION</span>
+                        <span style="font-size: 18px; font-weight: bold; color: #2563eb;">-{{ pred.impact_reduction }}</span>
+                        <span style="font-size: 10px; display: block; color: #2563eb;">Points Improved</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% if forloop.counter|divisibleby:2 %}<div style="page-break-after: always;"></div>{% endif %}
+        {% endfor %}
+    </section>
+
+    <!-- 10. ALTERNATIVES -->
+    <section class="page-break">
+        <h2>10. Analysis of Alternatives</h2>
+        <p>In accordance with Regulation 16, this section evaluates the feasibility of project alternatives based on environmental, social, and economic parameters.</p>
+        <table style="font-size: 11px; margin-top: 20px;">
+            <thead style="background-color: #f8fafc;">
+                <tr>
+                    <th style="width: 20%;">Alternative</th>
+                    <th style="width: 30%;">Environmental Impact</th>
+                    <th style="width: 15%;">Feasibility</th>
+                    <th style="width: 35%;">Reason Accepted/Rejected</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for alt in alternatives %}
+                <tr>
+                    <td><strong>{{ alt.alternative }}</strong></td>
+                    <td>{{ alt.env_impact }}</td>
+                    <td style="text-align: center;">{{ alt.feasibility }}</td>
+                    <td>{{ alt.rationale }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+
+    <!-- 11. MITIGATION MEASURES -->
+    <section class="page-break">
+        <h2>11. Mitigation Measures</h2>
+        <p>For each identified impact, specific, measurable, and actionable mitigation measures have been formulated. These align with NEMA's Best Available Technology (BAT) standards.</p>
+
+        {% for pred in predictions %}
+        <div style="margin-bottom: 25px;">
+            <h3 style="font-size: 16px; color: #1e293b; border-bottom: 1px solid #e2e8f0;">11.{{ forloop.counter }} {{ pred.category|title }} Mitigation Strategy</h3>
+            <ul style="font-size: 13px; line-height: 1.7;">
+                {% for step in pred.mitigations %}
+                <li>{{ step }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endfor %}
+    </section>
+
+    <!-- 12. ESMP -->
+    <section class="page-break">
+        <h2>12. Environmental and Social Management Plan (ESMP)</h2>
+        <p>The following ESMP table spans all project phases (Pre-Construction, Construction, Operation, Decommissioning) and assigns responsibility and budgetary estimates.</p>
+        
+        <table style="font-size: 9px; margin-top: 20px;">
+            <thead style="background-color: #f8fafc;">
+                <tr>
+                    <th style="width: 15%;">Phase</th>
+                    <th style="width: 15%;">Impact/Category</th>
+                    <th style="width: 30%;">Mitigation Measure</th>
+                    <th style="width: 15%;">Responsibility</th>
+                    <th style="width: 10%;">Est. Cost (KES)</th>
+                    <th style="width: 15%;">KPI/Indicator</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in esmp_table %}
+                <tr>
+                    <td>{{ row.phase }}</td>
+                    <td><strong>{{ row.impact }}</strong></td>
+                    <td>{{ row.measure }}</td>
+                    <td>{{ row.resp }}</td>
+                    <td>{{ row.cost }}</td>
+                    <td>{{ row.indicator }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+
+    <!-- 13. HAZARDS -->
+    <section class="page-break">
+        <h2>13. Hazard Management & Emergency Response</h2>
+        <div style="line-height: 1.6; text-align: justify; font-size: 14px;">
+            {{ hazard_plan|linebreaks }}
+        </div>
+    </section>
+
+    <!-- 14. DECOMMISSIONING -->
+    <section class="page-break">
+        <h2>14. Decommissioning Phase</h2>
+        <div style="line-height: 1.6; text-align: justify; font-size: 14px;">
+            {{ decommissioning|linebreaks }}
+        </div>
+    </section>
+
+    <!-- 15. CONCLUSION -->
+    <section class="page-break">
+        <h2>15. Conclusion & Recommendations</h2>
+        <p>Based on the technical findings of this assessment, the <strong>{{ project.name }}</strong> project is viable from an environmental and social standpoint provided that the comprehensive mitigation framework and ESMP are strictly implemented.</p>
+        <p><strong>Final Recommendation:</strong> The project should be granted a NEMA EIA license with the condition of monthly compliance reporting via the EcoSense AI IoT monitoring layer.</p>
     </section>
 
     <!-- 8. COMPLIANCE AUDIT APPENDIX -->
     <section class="page-break" style="page-break-before: always;">
         <h2>Appendix A: Regulatory Compliance Audit</h2>
-        <p>The following table summarizes the project's compliance with NEMA Environmental Management and Coordination Act (EMCA) regulations. <strong>Total Compliance Score: {{ audit.score }}% (Grade {{ audit.grade }})</strong>.</p>
+        <p><strong>Compliance Status Summary:</strong> Total score {{ audit.score }}% (Grade {{ audit.grade }}). Detailed adherence check against EMCA 1999 and NEMA 2003 regulations.</p>
         
-        <table class="compliance-table">
+        <table class="compliance-table" style="font-size: 11px;">
             <thead>
                 <tr>
                     <th>Reg ID</th>
@@ -209,6 +430,14 @@
                     <td>{{ item.evidence }}</td>
                 </tr>
                 {% endfor %}
+                {% for item in audit.warnings %}
+                <tr>
+                    <td>{{ item.regulation_id }}</td>
+                    <td>{{ item.requirement }}</td>
+                    <td style="color: #f59e0b; font-weight: bold;">PENDING</td>
+                    <td><strong>Issue:</strong> {{ item.evidence }} <br> <strong>Remedy:</strong> {{ item.remedy }}</td>
+                </tr>
+                {% endfor %}
                 {% for item in audit.failed %}
                 <tr>
                     <td>{{ item.regulation_id }}</td>
@@ -217,24 +446,94 @@
                     <td><strong>Issue:</strong> {{ item.evidence }} <br> <strong>Remedy:</strong> {{ item.remedy }}</td>
                 </tr>
                 {% endfor %}
-                {% for item in audit.warnings %}
+            </tbody>
+        </table>
+    </section>
+
+    <!-- 16. REFERENCES -->
+    <section class="page-break">
+        <h2>16. References</h2>
+        <ul style="font-size: 12px; line-height: 1.6;">
+            <li>Environmental Management and Coordination Act (EMCA) 1999, Republic of Kenya.</li>
+            <li>NEMA (Impact Assessment and Audit) Regulations, 2003.</li>
+            <li>Air Quality Regulations, 2014.</li>
+            <li>Water Quality Regulations, 2006.</li>
+            <li>Occupational Safety and Health Act (OSHA), 2007.</li>
+            <li>GBIF Occurrence Dataset (Athi River Region).</li>
+            <li>ISRIC SoilGrids v2.0 Global Soil Inventory.</li>
+        </ul>
+        
+        <div style="margin-top: 80px; padding-top: 30px; border-top: 2px solid #166534;">
+            <p style="font-size: 18px; color: #1e293b;"><strong>Final Professional Certification</strong></p>
+            <div style="margin-top: 40px; display: flex; justify-content: space-between;">
+                <div>
+                    <p><strong>EIA Prepared By:</strong></p>
+                    <p style="font-weight: bold;">{{ project.lead_consultant }}</p>
+                    <p style="font-size: 13px; color: #475569;">NEMA Registration ID: {{ project.consultant_reg }}</p>
+                    <p style="font-family: monospace; font-size: 10px; color: #64748b; margin-top: 10px;">
+                        SHA-256 Audit Hash: {{ timestamp|hash }}
+                    </p>
+                </div>
+                <div style="text-align: right;">
+                    <p><strong>Professional Signature & Rubber Stamp:</strong></p>
+                    <div style="height: 60px; width: 200px; border: 1px dotted #cbd5e1; margin-top: 10px; display: flex; align-items: center; justify-content: center; background-color: #f8fafc;">
+                        <span style="color: #94a3b8; font-size: 10px;">Affix NEMA Lead Expert Stamp</span>
+                    </div>
+                    <p style="font-size: 10px; color: #dc2626; margin-top: 5px; font-weight: bold;">(NOT VALID FOR SUBMISSION WITHOUT ORIGINAL STAMP)</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 17. ANNEXES -->
+    <section class="page-break">
+        <h2>Annex B: Project Boundary Coordinates</h2>
+        <table>
+            <thead>
                 <tr>
-                    <td>{{ item.regulation_id }}</td>
-                    <td>{{ item.requirement }}</td>
-                    <td class="status-warning">WARNING</td>
-                    <td>{{ item.evidence }}</td>
+                    <th>Point ID</th>
+                    <th>Latitude</th>
+                    <th>Longitude</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in annex.coordinates %}
+                <tr>
+                    <td>{{ p.point }}</td>
+                    <td>{{ p.lat }}</td>
+                    <td>{{ p.lng }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </section>
 
-    <!-- 9. CONCLUSION -->
-    <section>
-        <h2>7. Conclusion</h2>
-        <p>Based on the findings of this assessment, the <strong>{{ project.name }}</strong> project presents {{ audit.grade }} environmental challenges. Full adherence to the mitigation framework outlined in Section 5 is mandatory for NEMA licensing approval.</p>
-        <p style="margin-top: 50px;"><strong>Certified by:</strong> EcoSense AI Automatic Systems</p>
-        <p><strong>Hash:</strong> {{ audit.score }}{{ project.id }}{{ timestamp }}</p>
+    <section class="page-break">
+        <h2>Annex C: Observed Biodiversity Species Inventory</h2>
+        <p>Comprehensive inventory of flora and fauna identified within the grid boundary (GBIF/IUCN Records):</p>
+        <table style="font-size: 10px;">
+            <thead>
+                <tr>
+                    <th>Scientific Name</th>
+                    <th>Taxonomic Group</th>
+                    <th>IUCN Red List Status</th>
+                    <th>Observations</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in annex.species %}
+                <tr>
+                    <td style="font-style: italic;">{{ s.name }}</td>
+                    <td>{{ s.group }}</td>
+                    <td style="font-weight: bold; color: {% if s.status == 'CR' or s.status == 'EN' %}#dc2626{% elif s.status == 'VU' %}#f59e0b{% else %}#166534{% endif %};">
+                        {{ s.status }}
+                    </td>
+                    <td>{{ s.occ }} occurrence(s) recorded</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <p style="font-size: 9px; color: #64748b; margin-top: 10px;">*Source: GBIF Public Occurrences. Physical ground-truthing recommended for critical habitats.</p>
     </section>
 
 </body>

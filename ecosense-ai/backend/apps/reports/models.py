@@ -35,6 +35,7 @@ class EIAReport(BaseModel):
     version = models.IntegerField(default=1)
     format = models.CharField(max_length=20, choices=FORMAT_CHOICES)
     jurisdiction = models.CharField(max_length=100, default="NEMA_Kenya")
+    language = models.CharField(max_length=10, default="en", choices=[("en", "English"), ("sw", "Swahili")])
     
     s3_key = models.CharField(max_length=500, blank=True)
     s3_url = models.CharField(max_length=1000, blank=True)
@@ -51,7 +52,7 @@ class EIAReport(BaseModel):
         ordering = ["-generated_at", "-version"]
         verbose_name = "EIA Report"
         verbose_name_plural = "EIA Reports"
-        unique_together = ("project", "version", "format")
+        unique_together = ("project", "version", "format", "language")
 
     def __str__(self):
         return f"{self.project.name} - Version {self.version} ({self.format.upper()})"

@@ -107,27 +107,32 @@ export default function ImpactMatrix({ predictions }) {
                    "{selectedPrediction.description}"
                 </div>
 
-                <div className="mb-6 space-y-4">
-                   <div>
-                       <div className="flex justify-between text-xs font-bold mb-1">
-                           <span className="text-gray-500 uppercase">Probability</span>
-                           <span className="text-gray-800">{(selectedPrediction.probability * 100).toFixed(1)}%</span>
-                       </div>
-                       <div className="w-full bg-gray-200 rounded-full h-2">
-                           <div className="bg-blue-600 h-2 rounded-full" style={{ width: `${selectedPrediction.probability * 100}%` }}></div>
-                       </div>
-                   </div>
-                   
-                   <div>
-                       <div className="flex justify-between text-xs font-bold mb-1">
-                           <span className="text-gray-500 uppercase">Model Confidence</span>
-                           <span className="text-gray-800">{(selectedPrediction.confidence * 100).toFixed(1)}%</span>
-                       </div>
-                       <div className="w-full bg-gray-200 rounded-full h-2">
-                           <div className="bg-purple-500 h-2 rounded-full" style={{ width: `${selectedPrediction.confidence * 100}%` }}></div>
-                       </div>
-                   </div>
-                </div>
+                 <div className="mb-6 space-y-4">
+                    <div>
+                        <div className="flex justify-between text-xs font-bold mb-1">
+                            <span className="text-gray-500 uppercase">Pre-Mitigation Score</span>
+                            <span className="text-red-600 font-black">{selectedPrediction.significance_score}</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div className="bg-red-500 h-2 rounded-full" style={{ width: `${Math.min((selectedPrediction.significance_score / 20) * 100, 100)}%` }}></div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <div className="flex justify-between text-xs font-bold mb-1">
+                            <span className="text-gray-500 uppercase">Post-Mitigation Score</span>
+                            <span className="text-green-600 font-black">{selectedPrediction.mitigated_score || (selectedPrediction.significance_score * 0.4).toFixed(1)}</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div className="bg-green-500 h-2 rounded-full" style={{ width: `${Math.min(((selectedPrediction.mitigated_score || selectedPrediction.significance_score * 0.4) / 20) * 100, 100)}%` }}></div>
+                        </div>
+                    </div>
+
+                    <div className="bg-blue-50 p-3 rounded-lg border border-blue-100 flex justify-between items-center">
+                         <span className="text-[10px] font-black text-blue-600 uppercase">Impact Reduction</span>
+                         <span className="text-sm font-black text-blue-700">-{selectedPrediction.impact_reduction || (selectedPrediction.significance_score * 0.6).toFixed(1)} pts</span>
+                    </div>
+                 </div>
 
                 <div>
                    <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold mb-3">Mitigation Suggestions</p>

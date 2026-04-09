@@ -36,26 +36,33 @@ class HydrologyClient:
         """
         radius_m = radius_km * 1000
 
-        # Overpass QL query for water features
+        # Overpass QL query for water features - Expanded for major rivers and riparian zones
         query = f"""
-        [out:json][timeout:30];
+        [out:json][timeout:60];
         (
-          // Rivers and streams
+          // Rivers, streams, and major waterways
           way["waterway"~"river|stream|canal|drain|ditch"](around:{radius_m},{lat},{lng});
-          relation["waterway"~"river|stream"](around:{radius_m},{lat},{lng});
-          // Lakes and reservoirs
+          relation["waterway"~"river|stream|canal"](around:{radius_m},{lat},{lng});
+          node["waterway"~"river|stream|waterfall"](around:{radius_m},{lat},{lng});
+          
+          // Lakes, reservoirs, and open water
           way["natural"="water"](around:{radius_m},{lat},{lng});
           relation["natural"="water"](around:{radius_m},{lat},{lng});
-          way["water"~"lake|reservoir|pond|basin"](around:{radius_m},{lat},{lng});
-          // Wetlands
+          way["water"~"lake|reservoir|pond|basin|river"](around:{radius_m},{lat},{lng});
+          relation["water"~"lake|reservoir|river"](around:{radius_m},{lat},{lng});
+          
+          // Wetlands and riparian areas
           way["natural"="wetland"](around:{radius_m},{lat},{lng});
           relation["natural"="wetland"](around:{radius_m},{lat},{lng});
-          // Dams
-          way["waterway"="dam"](around:{radius_m},{lat},{lng});
-          node["waterway"="dam"](around:{radius_m},{lat},{lng});
-          // Springs / boreholes
+          way["landuse"="basin"](around:{radius_m},{lat},{lng});
+          
+          // Hydrological infrastructure
+          way["waterway"~"dam|weir|lock_gate"](around:{radius_m},{lat},{lng});
+          node["waterway"~"dam|weir"](around:{radius_m},{lat},{lng});
+          
+          // Springs, wells, and boreholes
           node["natural"="spring"](around:{radius_m},{lat},{lng});
-          node["man_made"="water_well"](around:{radius_m},{lat},{lng});
+          node["man_made"~"water_well|borehole|pumping_station"](around:{radius_m},{lat},{lng});
         );
         out body geom;
         """

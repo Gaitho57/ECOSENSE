@@ -57,3 +57,73 @@ class CommunityFeedback(BaseModel):
 
     def __str__(self):
         return f"{self.project.name} - {self.channel} - {self.sentiment}"
+
+
+class ParticipationWorkflow(BaseModel):
+    """
+    Status tracker for mandatory physical participation steps (NEMA Section 17).
+    """
+    project = models.OneToOneField(
+        "projects.Project", 
+        on_delete=models.CASCADE, 
+        related_name="participation_workflow"
+    )
+
+    # Physical Baraza Status
+    baraza_required = models.BooleanField(default=True)
+    baraza_status = models.CharField(
+        max_length=50, 
+        default='pending',
+        choices=[('pending', 'Pending'), ('scheduled', 'Scheduled'), ('completed', 'Completed')]
+    )
+
+    # Media Notices
+    newspaper_notice_status = models.CharField(
+        max_length=50, 
+        default='pending',
+        choices=[('pending', 'Pending'), ('published', 'Published'), ('verified', 'Verified')]
+    )
+    radio_announcement_status = models.CharField(
+        max_length=50, 
+        default='pending',
+        choices=[('pending', 'Pending'), ('aired', 'Aired')]
+    )
+
+    # Evidence Uploads (Links to documentation)
+    newspaper_clipping_url = models.URLField(blank=True)
+    attendance_register_url = models.URLField(blank=True)
+    photos_url = models.URLField(blank=True)
+
+    def is_compliant(self):
+        """Checks if all mandatory physical steps are verified."""
+        return (
+            self.baraza_status == 'completed' and 
+            self.newspaper_notice_status in ('published', 'verified')
+        )
+
+    class Meta:
+        verbose_name = "Participation Workflow"
+
+
+class BarazaEvent(BaseModel):
+    """
+    Specific physical town hall / baraza event details.
+    """
+    workflow = models.ForeignKey(
+        ParticipationWorkflow, 
+        on_delete=models.CASCADE, 
+        related_name="events"
+    )
+    
+    date_scheduled = models.DateTimeField()
+    location_name = models.CharField(max_length=300)
+    expected_attendance = models.PositiveIntegerField(default=50)
+    actual_attendance = models.PositiveIntegerField(null=True, blank=True)
+    
+    chief_name = models.CharField(max_length=200, blank=True, help_text="Local administration contact.")
+    minutes_summary = models.TextField(blank=True)
+    
+    attendance_register_scan = models.FileField(upload_to='participation/registers/', null=True, blank=True)
+
+    def __str__(self):
+        return f"Baraza at {self.location_name} on {self.date_scheduled.strftime('%Y-%m-%d')}"

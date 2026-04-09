@@ -37,7 +37,7 @@ from apps.esg.tasks import record_audit_event
 import logging
 logger = logging.getLogger(__name__)
 
-def perform_report_generation(project_id: str, format: str = 'pdf', jurisdiction: str = 'NEMA_Kenya'):
+def perform_report_generation(project_id: str, format: str = 'pdf', jurisdiction: str = 'NEMA_Kenya', language: str = 'en'):
     """
     Core generation logic decoupled from task binding for synchronous execution support.
     """
@@ -65,13 +65,14 @@ def perform_report_generation(project_id: str, format: str = 'pdf', jurisdiction
              version=new_v,
              format=format,
              jurisdiction=jurisdiction,
+             language=language,
              status='generating'
          )
 
     # Generators
     try:
         if format == 'pdf':
-             key, size, url = generate_pdf_report(project_id, str(project.tenant_id), new_v, report_data)
+             key, size, url = generate_pdf_report(project_id, str(project.tenant_id), new_v, report_data, language=language)
         elif format == 'docx':
              key, size, url = generate_docx_report(project_id, str(project.tenant_id), new_v, report_data)
         else:
@@ -94,7 +95,7 @@ def perform_report_generation(project_id: str, format: str = 'pdf', jurisdiction
         record_audit_event.delay(
             project_id,
             "REPORT_GENERATED",
-            {"version": new_v, "format": format, "jurisdiction": jurisdiction}
+            {"version": new_v, "format": format, "jurisdiction": jurisdiction, "language": language}
         )
         
         return str(report.id)
@@ -113,5 +114,5 @@ def perform_report_generation(project_id: str, format: str = 'pdf', jurisdiction
         return None
 
 @shared_task(bind=True)
-def generate_report(self, project_id: str, format: str = 'pdf', jurisdiction: str = 'NEMA_Kenya'):
-    return perform_report_generation(project_id, format, jurisdiction)
+def generate_report(self, project_id: str, format: str = 'pdf', jurisdiction: str = 'NEMA_Kenya', language: str = 'en'):
+    return perform_report_generation(project_id, format, jurisdiction, language)

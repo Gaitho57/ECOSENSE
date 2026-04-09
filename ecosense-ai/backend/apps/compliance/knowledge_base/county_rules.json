@@ -1,0 +1,38 @@
+[
+  {
+    "id": "COUNTY-MACHA-001",
+    "act": "Machakos County Physical and Land Use Planning",
+    "requirement": "Zoning compliance check for industrial projects in Mavoko/Mlolongo corridor.",
+    "counties": ["Machakos"],
+    "applies_to": ["manufacturing", "mining", "infrastructure"],
+    "remedy": "Obtain Machakos County Development Permit from Mavoko Sub-County office.",
+    "is_critical": true
+  },
+  {
+    "id": "COUNTY-NAIRO-001",
+    "act": "Nairobi City County Bylaws",
+    "requirement": "Noise and vibration limits for construction in residential high-density zones.",
+    "counties": ["Nairobi"],
+    "applies_to": ["construction", "infrastructure"],
+    "remedy": "Restrict construction hours to 0800h-1700h and monitor decibel levels at site boundary.",
+    "is_critical": false
+  },
+  {
+    "id": "COUNTY-KISUM-001",
+    "act": "Kisumu County Environment Act",
+    "requirement": "Lake Basin protection: Mandatory silt traps for Lake Victoria shoreline development.",
+    "counties": ["Kisumu"],
+    "applies_to": ["construction", "manufacturing", "energy"],
+    "remedy": "Install 3-stage filtration/siltation network before any shoreline ground disturbance.",
+    "is_critical": true
+  },
+  {
+    "id": "COUNTY-MOMBA-001",
+    "act": "Mombasa County Coastal Zone Management",
+    "requirement": "Setback requirements for 60m from the high-water mark.",
+    "counties": ["Mombasa"],
+    "applies_to": ["construction", "tourism", "infrastructure"],
+    "remedy": "Adjust project footprint to maintain 60m mandatory setback from Indian Ocean mean high water mark.",
+    "is_critical": true
+  }
+]

@@ -47,6 +47,12 @@ class ImpactPrediction(BaseModel):
     confidence = models.DecimalField(max_digits=4, decimal_places=3)
     
     description = models.TextField(help_text="Human-readable explanation of the calculated impact.")
+    
+    # AI Significance Metrics
+    significance_score = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    significance_label = models.CharField(max_length=100, null=True, blank=True)
+    impact_pathway = models.TextField(null=True, blank=True)
+    
     mitigation_suggestions = JSONField(default=list, help_text="List of recommended action strings.")
     
     model_version = models.CharField(max_length=50, help_text="Tracking provenance of ML models.")

@@ -104,3 +104,32 @@ th {
 .toc ul { list-style-type: none; padding-left: 0; }
 .toc li { margin-bottom: 10px; border-bottom: 1px dotted #cbd5e1; display: flex; justify-content: space-between; }
 .toc a { text-decoration: none; color: #334155; font-weight: bold; }
+
+/* Expert Enhancements */
+.draft-watermark {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-45deg);
+    font-size: 150px;
+    color: rgba(220, 38, 38, 0.05); /* Very light red */
+    z-index: -1;
+    pointer-events: none;
+    white-space: nowrap;
+    text-transform: uppercase;
+}
+
+.significance-major { color: #dc2626; font-weight: bold; }
+.significance-moderate { color: #d97706; }
+.significance-minor { color: #166534; }
+
+.expert-narrative {
+    text-align: justify;
+    line-height: 1.8;
+    color: #1e293b;
+}
+
+.table-header-dark {
+    background-color: #1e293b;
+    color: #ffffff !important;
+}

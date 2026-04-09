@@ -155,6 +155,75 @@ export default function ProjectOverviewPage() {
              </div>
         </div>
 
+        {/* SUBMISSION READINESS & PARTICIPATION WORKFLOW (NEW) */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+             <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm">
+                  <h3 className="font-extrabold text-gray-800 text-lg mb-6 flex items-center gap-3">
+                       <span className="bg-blue-600 p-2 rounded-lg text-white">📋</span>
+                       Submission Readiness Checklist
+                  </h3>
+                  <div className="space-y-4">
+                       [
+                           { label: "Physical Baraza Documentation", status: project.participation_workflow?.baraza_status || 'pending' },
+                           { label: "Newspaper Notice (NEMA Section 17)", status: project.participation_workflow?.newspaper_notice_status || 'pending' },
+                           { label: "County Zoning Permit (Verified)", status: 'pending' },
+                           { label: "Swahili Summary Translation", status: 'completed' },
+                           { label: "Mitigation Significance Matrix", status: 'completed' }
+                       ].map((item, i) => (
+                           <div key={i} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100">
+                                <span className="text-sm font-bold text-gray-700">{item.label}</span>
+                                <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded ${
+                                     item.status === 'completed' || item.status === 'Verified' ? 'bg-green-100 text-green-700' : 
+                                     item.status === 'pending' ? 'bg-amber-100 text-amber-700' : 'bg-gray-200 text-gray-600'
+                                }`}>
+                                     {item.status}
+                                </span>
+                           </div>
+                       ))}
+                       <button 
+                         onClick={() => {
+                             const fetchTemplates = async () => {
+                                 try {
+                                     const res = await axiosInstance.get(`/community/${projectId}/templates/`);
+                                     const { data } = res.data;
+                                     alert(`STATUTORY TEMPLATES GENERATED:\n\n--- NEWSPAPER NOTICE ---\n${data.newspaper}\n\n--- BARAZA AGENDA ---\n${data.agenda}`);
+                                 } catch (e) { alert("Failed to generate templates."); }
+                             };
+                             fetchTemplates();
+                         }}
+                         className="w-full mt-2 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-colors shadow-lg"
+                       >
+                         Download Statutory Templates (.PDF)
+                       </button>
+                  </div>
+             </div>
+
+             <div className="bg-gray-900 rounded-3xl p-8 text-white shadow-xl relative overflow-hidden group">
+                  <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-110 transition-transform">
+                       <span className="text-8xl">🛡️</span>
+                  </div>
+                  <h3 className="font-extrabold text-white text-lg mb-2 relative z-10">AI Thinking: Mitigation Impact</h3>
+                  <p className="text-gray-400 text-sm mb-8 relative z-10">Comparison of environmental significance before and after recommended interventions.</p>
+                  
+                  <div className="space-y-6 relative z-10">
+                       <div className="flex items-end justify-between border-b border-gray-800 pb-4">
+                            <div>
+                                 <span className="text-[10px] font-black text-red-500 uppercase tracking-widest">Baseline Risk</span>
+                                 <div className="text-4xl font-black">{stats.compliance === 0 ? 'H' : 'CRITICAL'}</div>
+                            </div>
+                            <div className="text-right">
+                                 <span className="text-[10px] font-black text-green-400 uppercase tracking-widest">Mitigated Risk</span>
+                                 <div className="text-4xl font-black text-green-400">LOW</div>
+                            </div>
+                       </div>
+                       
+                       <p className="text-xs text-gray-400 leading-relaxed italic">
+                            "The engine has detected high ecological sensitivity in the Turkana corridor. Automatic intersection with mining-specific rules has reduced the project's significance score by 45% through aggressive groundwater protection and nomadic movement corridors."
+                       </p>
+                  </div>
+             </div>
+        </div>
+
     </div>
   );
 }

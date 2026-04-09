@@ -18,6 +18,7 @@ from apps.projects.models import Project
 from apps.community.models import CommunityFeedback
 from apps.community.sms import handle_incoming_sms
 from apps.community.nlp import process_feedback_nlp
+from apps.predictions.ml.engine import PredictionEngine
 
 def envelope(data=None, meta=None, error=None, status_code=status.HTTP_200_OK):
     return Response({"data": data, "meta": meta or {}, "error": error}, status=status_code)
@@ -128,3 +129,19 @@ class CommunityDashboardView(APIView):
               })
               
          return envelope(data=data, meta={"total": len(data)})
+
+class CommunityTemplatesView(APIView):
+    permission_classes = [IsAuthenticated, IsSameTenant]
+    
+    def get(self, request, project_id):
+        try:
+             project = Project.objects.get(id=project_id)
+             self.check_object_permissions(request, project)
+        except Project.DoesNotExist:
+             return envelope(error={"code": 404, "message": "Project not found."}, status_code=404)
+        
+        engine = PredictionEngine()
+        loc = f"LAT: {project.location.y}, LNG: {project.location.x}"
+        templates = engine.generate_participation_templates(project.name, loc)
+        
+        return envelope(data=templates)

@@ -14,13 +14,14 @@ from weasyprint import HTML, CSS
 from pathlib import Path
 from apps.compliance.engine import ComplianceEngine, ComplianceBlockedError
 
-def generate_pdf_report(project_id: str, tenant_id: str, version: int, report_data: dict) -> tuple:
+def generate_pdf_report(project_id: str, tenant_id: str, version: int, report_data: dict, language: str = "en") -> tuple:
     """
     Renders Jinja contexts explicitly creating PDF files deploying seamlessly mimicking S3 buckets logically.
     Compliance auditing is now handled by the compiler and rendered as an appendix.
     Returns (s3_key, file_size, s3_url)
     """
-    html_string = render_to_string("reports/nema_report.html", report_data)
+    template_name = "reports/nema_report_sw.html" if language == "sw" else "reports/nema_report.html"
+    html_string = render_to_string(template_name, report_data)
     
     # Extract absolute paths enabling WeasyPrint finding CSS natively inside directories 
     templates_dir = Path(__file__).resolve().parent.parent / "templates" / "reports"
@@ -48,7 +49,8 @@ def generate_pdf_report(project_id: str, tenant_id: str, version: int, report_da
             raise fallback_err
     
     file_size = len(pdf_file)
-    s3_key = f"reports/{tenant_id}/{project_id}/v{version}/report.pdf"
+    lang_suffix = "_sw" if language == "sw" else ""
+    s3_key = f"reports/{tenant_id}/{project_id}/v{version}/report{lang_suffix}.pdf"
     
     bucket_name = getattr(settings, "AWS_STORAGE_BUCKET_NAME", "ecosense-dummy-bucket")
     storage_success = False

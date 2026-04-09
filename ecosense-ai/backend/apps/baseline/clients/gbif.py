@@ -64,7 +64,7 @@ class GBIFClient:
         params = {
             "decimalLatitude": f"{decimal_lat_min},{decimal_lat_max}",
             "decimalLongitude": f"{decimal_lng_min},{decimal_lng_max}",
-            "limit": 300,
+            "limit": 1000,
             "hasCoordinate": "true",
             "hasGeospatialIssue": "false",
         }
@@ -116,8 +116,8 @@ class GBIFClient:
         near_threatened_count = 0
         species_list = list(species_dict.values())
 
-        # Query IUCN status for up to 50 species (to avoid excessive API calls)
-        for sp in species_list[:50]:
+        # Query IUCN status for up to 150 species (to avoid excessive API calls while ensuring depth)
+        for sp in species_list[:150]:
             if sp["species_key"]:
                 iucn_status = self._get_iucn_status(sp["species_key"])
                 sp["iucn_status"] = iucn_status
@@ -155,7 +155,7 @@ class GBIFClient:
             "total_occurrence_records": total_records,
             "threatened_species_count": threatened_count,
             "near_threatened_count": near_threatened_count,
-            "species_list": species_list[:30],
+            "species_list": species_list[:150],
             "taxonomy_summary": taxonomy_summary,
             "shannon_diversity_index": shannon_index,
             "habitat_type": habitat_type,
