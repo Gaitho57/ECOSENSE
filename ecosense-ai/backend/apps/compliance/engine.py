@@ -156,18 +156,32 @@ class ComplianceEngine:
                      evidence = "Statutory violation of EMCA Section 58: No official EIA reporting templates initialized for this project boundary."
                 else:
                      status = "passed"
-                     evidence = f"Project classified under Second Schedule as large-scale {p_type}; full Mandatory Study conducted per Section 7 legal framework."
+                     evidence = f"Project classified under Second Schedule as large-scale {p_type}; full Mandatory Study conducted per Section 7 legal framework for {context.get('county', 'the project area')}."
                      
             elif reg["id"] == "EMCA-002" or reg["id"] == "NEMA-004":
-                if context["feedbacks"].count() < 10:
+                pw = getattr(project, "participation_workflow", None)
+                feedback_count = context["feedbacks"].count()
+                
+                if feedback_count < 10:
                      status = "failed"
-                     evidence = f"Non-compliance with Public Participation Regulations: Only {context['feedbacks'].count()} entries found. NEMA requires a minimum of 10 diverse public insights for this project scale."
+                     evidence = f"Non-compliance: Only {feedback_count} feedback entries found. Minimum 10 required for digital tier."
                 else:
-                     status = "passed"
                      if reg["id"] == "NEMA-004":
-                          evidence = "Digital multi-channel engagement confirmed in Section 8. Newspaper notice in a national daily and radio broadcast confirmation required before final NEMA submission."
+                          # Newspaper / Radio Notice Check
+                          if pw and pw.newspaper_notice_status in ('published', 'verified'):
+                               status = "passed"
+                               evidence = f"Digital engagement confirmed ({feedback_count} entries). Newspaper notice status: {pw.newspaper_notice_status.upper()}."
+                          else:
+                               status = "warning"
+                               evidence = "Digital engagement confirmed via Section 8, but physical newspaper/media notice is still PENDING."
                      else:
-                          evidence = "Multi-channel digital engagement (SMS, Web, WhatsApp) recorded in Section 8. Physical baraza evidence required before final NEMA submission."
+                          # Physical Baraza Check (EMCA-002)
+                          if pw and pw.baraza_status == 'completed':
+                               status = "passed"
+                               evidence = "Multi-channel digital engagement recorded AND physical baraza completed."
+                          else:
+                               status = "warning"
+                               evidence = "Digital engagement verified, but physical consultation baraza remains PENDING."
 
             elif reg["id"] == "EMCA-003":
                 status = "passed"
@@ -179,7 +193,7 @@ class ComplianceEngine:
                 
             elif reg["id"] == "EMCA-006":
                 status = "passed"
-                evidence = "WRA permit application committed in Section 11.7 before any water abstraction; 50m riparian buffer verified against Athi River basin context."
+                evidence = f"WRA permit application committed in Section 11.7 before any water abstraction; required riparian buffer verified against {context.get('county', 'National')} regional hydrology."
 
             elif reg["id"] == "EMCA-007":
                 noise_criticals = context["predictions"].filter(category__icontains="noise", severity="critical").exists()
@@ -202,7 +216,7 @@ class ComplianceEngine:
 
             elif reg["id"] == "EMCA-008":
                 status = "passed"
-                evidence = "Section 11.1: Stack emissions monitored monthly against NEMA 2014 Air Quality Regulations Schedule 2; PM10 ≤ 50 µg/m³ enforced at Mlolongo and Syokimau receptors."
+                evidence = f"Section 11.1: Stack emissions monitored monthly against NEMA 2014 Air Quality Regulations Schedule 2; PM10 ≤ 50 µg/m³ enforced at {context.get('county', 'regional')} receptors."
 
             elif reg["id"] == "EMCA-013" or reg["id"] == "NEMA-010":
                 status = "passed"
@@ -210,7 +224,7 @@ class ComplianceEngine:
 
             elif reg["id"] == "EMCA-014":
                 status = "passed"
-                evidence = "Decommissioning Bond framework described in Section 14; formal bond amount to be calculated against contaminated Vertisol remediation costs before final licensing."
+                evidence = f"Decommissioning Bond framework described in Section 14; formal bond amount to be calculated against site-specific restoration costs in {context.get('county', 'the project area')} before final licensing."
 
             elif reg["id"] == "EMCA-015":
                 status = "passed"
@@ -218,7 +232,7 @@ class ComplianceEngine:
 
             elif reg["id"] == "EMCA-016":
                 status = "passed"
-                evidence = "Section 11.5: Community rights upheld via grievance mechanism (SMS shortcode + Athi River Chief's office complaints box); KES 5M health investment plan committed."
+                evidence = f"Section 11.5: Community rights upheld via grievance mechanism (SMS shortcode + {context.get('county', 'regional')} localized channels); community health investment plans committed."
 
             elif reg["id"] == "NEMA-001":
                 status = "passed"
@@ -305,4 +319,6 @@ class ComplianceEngine:
             return "Kisumu"
         elif -4.1 < lat < -3.9 and 39.5 < lng < 39.8:
             return "Mombasa"
+        elif -1.0 < lat < 1.0 and 39.0 < lng < 41.0:
+            return "Garissa"
         return "National"

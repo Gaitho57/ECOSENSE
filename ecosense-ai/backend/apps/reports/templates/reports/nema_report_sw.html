@@ -118,9 +118,50 @@
         </div>
     </div>
 
+    <!-- Taarifa za Awali za Mazingira (Baseline) -->
+    <div class="section">
+        <h2>2. Hali ya Mazingira ya Sasa (Baseline)</h2>
+        <p>Hali ya mazingira katika eneo la mradi imebainishwa kupitia teknolojia ya GIS na Satellite:</p>
+        <table>
+            <tr>
+                <th>Kigezo (Metric)</th>
+                <th>Kiwango (Value)</th>
+                <th>Maelezo</th>
+            </tr>
+            <tr>
+                <td>Afya ya Uoto wa Asili (NDVI)</td>
+                <td>{{ baseline.ndvi }}</td>
+                <td>Hali ya kijani na ukuaji wa mimea.</td>
+            </tr>
+            <tr>
+                <td>Idadi ya Majengo (Open Buildings)</td>
+                <td>{{ baseline.building_count }}</td>
+                <td>Miundo ya majengo yaliyobainika karibu na mradi.</td>
+            </tr>
+            <tr>
+                <td>Bonde la Maji (Catchment Basin)</td>
+                <td>{{ baseline.basin }}</td>
+                <td>Mfumo mkuu wa usimamizi wa maji eneo hili.</td>
+            </tr>
+            <tr>
+                <td>Ubora wa Udongo (Nitrogen)</td>
+                <td>{{ baseline.soil.nitrogen_g_per_kg }} g/kg</td>
+                <td>Kiwango cha virutubisho vya udongo.</td>
+            </tr>
+        </table>
+
+        {% if baseline.water_tower.is_sensitive %}
+        <div style="border: 2px solid #be123c; background-color: #fff1f2; padding: 15px; border-radius: 8px; margin-top: 15px;">
+            <strong style="color: #be123c;">⚠️ ONYO LA HIFADHI YA MAJI: {{ baseline.water_tower.nearest_tower }}</strong><br>
+            Mradi huu upo umbali wa kilomita {{ baseline.water_tower.distance_km }} kutoka hifadhi ya maji ({% if baseline.water_tower.nearest_tower == 'Mau Complex' %}Misitu ya Mau{% else %}{{ baseline.water_tower.nearest_tower }}{% endif %}). 
+            Hifadhi hizi ni muhimu kwa usambazaji wa maji kitaifa.
+        </div>
+        {% endif %}
+    </div>
+
     <!-- Habari za Mradi -->
     <div class="section">
-        <h2>2. Maelezo ya Mradi</h2>
+        <h2>3. Maelezo ya Mradi</h2>
         <p>Mradi huu wa {{ project.type }} unatarajiwa kutekelezwa katika Kaunti ya {{ county }}. Muundo wa mradi unazingatia kanuni za EMCA (1999) na kanuni za NEMA za mwaka 2003.</p>
         <div style="text-align: center; margin: 20px 0;">
             <img src="{{ project.map_url }}" style="width: 100%; max-height: 400px; border-radius: 8px; border: 1px solid #e2e8f0;">

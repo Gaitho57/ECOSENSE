@@ -54,6 +54,10 @@ class BaselineReport(BaseModel):
     error_log = models.TextField(blank=True)
     generated_at = models.DateTimeField(null=True, blank=True)
 
+    @property
+    def scoring_summary(self):
+        return self.sensitivity_scores
+
     class Meta:
         ordering = ["-created_at"]
         verbose_name = "Baseline Report"

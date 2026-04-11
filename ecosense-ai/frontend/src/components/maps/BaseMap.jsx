@@ -17,10 +17,11 @@ const BaseMap = forwardRef(({
   const STYLES = {
     satellite: {
         version: 8,
+        glyphs: "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf",
         sources: {
             "esri-satellite": {
                 type: "raster",
-                tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"],
+                tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}.jpg"],
                 tileSize: 256,
                 attribution: "Esri | EcoSense AI"
             }
@@ -35,6 +36,7 @@ const BaseMap = forwardRef(({
     },
     light: {
         version: 8,
+        glyphs: "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf",
         sources: {
             "osm": {
                 type: "raster",
@@ -53,6 +55,7 @@ const BaseMap = forwardRef(({
     },
     dark: {
         version: 8,
+        glyphs: "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf",
         sources: {
             "carto-dark": {
                 type: "raster",
@@ -87,6 +90,9 @@ const BaseMap = forwardRef(({
 
     mapInstance.on('load', () => {
       setMap(mapInstance);
+      // Add standard navigation controls natively for precise GIS scaling
+      const nav = new maplibregl.NavigationControl();
+      mapInstance.addControl(nav, 'top-left');
     });
 
     return () => {

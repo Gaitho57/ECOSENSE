@@ -39,7 +39,7 @@ KENYAN_LEGAL_DB = {
         "NEMA_REGS": "Environmental (Impact Assessment and Audit) Regulations 2003",
         "WILDLIFE": "Wildlife Conservation and Management Act 2013",
         "PLANNING": "Physical and Land Use Planning Act 2019",
-        "COUNTY": "County Government Act 2012 (Machakos County)",
+        "COUNTY": "Relevant County Government Act",
         "OCCUPATIONAL": "Occupational Safety and Health Act (OSHA) 2007",
         "PUBLIC_HEALTH": "Public Health Act Cap 242"
     },
@@ -57,7 +57,28 @@ EXPERT_MITIGATIONS = {
             "Apply calcium chloride or water suppression on unpaved haul roads minimum twice daily during dry season months (June–September, January).",
             "All concrete batching and crushing operations enclosed or fitted with dust extraction units achieving >95% capture efficiency.",
             "Stack emissions from any industrial furnaces/generators monitored monthly against NEMA 2014 Air Quality Regulations Schedule 2 limits.",
-            "Planting of a 15m wide dust-intercepting tree belt (indigenous species: Acacia xanthophloea, Terminalia brownii) along northern and eastern perimeters."
+            "Planting of a 15m wide dust-intercepting tree belt (indigenous species: e.g. Acacia xanthophloea) along project perimeters."
+        ],
+        "borehole": [
+            "Dust suppression using water during drilling and flushing operations.",
+            "Installation of high-efficiency silencers on drill rigs to minimize localized air disturbance.",
+            "Regular maintenance of support vehicles and generators to NEMA emissions standards."
+        ],
+        "mining": [
+            "Dust suppression using non-potable water on all active excavation faces and haul roads minimum 4 times daily.",
+            "Speed limits of 20km/h on all unpaved roads strictly enforced via GPS tracking.",
+            "Enclosed conveyance systems for all ore transport within 500m of community settlements.",
+            "PM10 and PM2.5 real-time monitoring stations with automated alerts to site manager."
+        ],
+        "construction": [
+            "Water spraying on stockpiles and exposed surfaces during high-wind events (>5m/s).",
+            "All fine-material trucks covered with impervious tarpaulins during transit.",
+            "Construction hoarding minimum 3m height around the entire project perimeter."
+        ],
+        "infrastructure": [
+            "Dust suppression using water bowsers on all loose gravel sections minimum twice daily during construction.",
+            "All fine aggregate transport trucks must be covered with tarpaulins to prevent wind-blown dust along public roads.",
+            "Machinery and equipment must undergo regular maintenance to ensure exhaust emissions meet NEMA 2014 standards."
         ]
     },
     "biodiversity": {
@@ -67,6 +88,26 @@ EXPERT_MITIGATIONS = {
             "Establish a 50m minimum undisturbed buffer zone along the riparian corridor (Athi River tributary).",
             "KWS Nairobi Regional Office notified in writing before site clearing to coordinate wildlife movement corridors.",
             "Monthly carcass patrol log submitted to KWS; any mortality triggers 48-hour investigation."
+        ],
+        "borehole": [
+            "Site clearing limited to the immediate borehole footprint to minimize habitat loss.",
+            "Avoidance of heavy machinery movement near established wildlife corridors or sensitive riparian zones.",
+            "Native tree planting around the borehole site to restore localized micro-habitats."
+        ],
+        "mining": [
+            "Pre-clearance flora/fauna rescue and relocation following KWS protocols.",
+            "Protection of migratory corridors for local livestock and wildlife in the project area.",
+            "Fencing of tailings ponds to prevent wildlife access and accidental drowning."
+        ],
+        "energy": [
+            "Reforestation of 5 hectares of riparian forest for every 1 hectare disturbed.",
+            "Creation of artificial nesting sites for local aquatic species (e.g. hippopotamus and crocodile populations) upstream.",
+            "Biodiversity offsets: Investment in local protected area conservation."
+        ],
+        "infrastructure": [
+            "Restoration of roadside verges using indigenous grass and shrub species after construction completion.",
+            "Surveys for nesting birds in the road reserve before any major tree clearing or habitat disturbance.",
+            "Installation of wildlife crossing signage in areas identified as active movement corridors."
         ]
     },
     "water": {
@@ -75,6 +116,37 @@ EXPERT_MITIGATIONS = {
             "WRA permit application submitted before groundwater/surface water abstraction as per Water Act 2016.",
             "Oil/water separators on all vehicle wash bays/fuelling areas; effluent tested quarterly against 2006 Regulations.",
             "Chemical mixing and storage minimum 100m from any drainage channel or natural depression."
+        ],
+        "borehole": [
+            "WRA (Water Resources Authority) authorization and drilling permit obtained before site mobilization.",
+            "Professional hydrogeological survey conducted to determine sustainable yields and prevent aquifer depletion.",
+            "Grouting of the borehole casing to prevent infiltration of contaminated surface water into the aquifer.",
+            "Installation of a master water meter to track abstraction rates against WRA-permitted limits.",
+            "Water quality analysis conducted for physical, chemical, and bacteriological parameters before commissioning."
+        ],
+        "energy": [
+            "Installation of fish-friendly turbines and screens to prevent entrainment of local aquatic species.",
+            "Strict adherence to WRA-mandated environmental flow (minimum 15% of mean annual flow).",
+            "Real-time turbidity and flow monitoring downstream of the tailrace.",
+            "Oil-water separators on all powerhouse drainage systems.",
+            "Reforestation of 5 hectares of riparian forest for every 1 hectare disturbed."
+        ],
+        "mining": [
+            "Zero discharge policy: All process water recycled via a closed-loop tailings management system.",
+            "Lined evaporation ponds for any hypersaline groundwater extraction in arid/semi-arid environments.",
+            "Borehole monitoring network to track regional drawdown in local aquifers.",
+            "Dust suppression using brackish water minimum 4 times daily on all active excavation faces.",
+            "MANDATORY: Local movement corridor (minimum 200m width) maintained across the site for livestock migration."
+        ],
+        "construction": [
+            "Installation of 3-stage silt traps for projects near major water bodies to prevent sediment loading.",
+            "Mandatory 60m riparian buffer from the mean high-water mark.",
+            "Sustainable drainage system (SuDS) integrating swales and permeable paving to manage urban runoff."
+        ],
+        "infrastructure": [
+            "Installation of culverts and storm-water drains designed to handle 50-year flood events to prevent roadside erosion.",
+            "Silt traps and energy dissipators at all outfall points to prevent sediment loading into local streams.",
+            "Strict prohibition of construction debris or excavated soil dumping into drainage channels or wetlands."
         ]
     },
     "noise": {
@@ -83,6 +155,11 @@ EXPERT_MITIGATIONS = {
             "All plant/machinery fitted with certified noise suppression; reversing alarms replaced with 'white noise' type.",
             "Strict prohibition of piling, rock breaking, or concrete crushing between 18:00 and 07:00 or on Sundays.",
             "Noise monitoring stations at Sabaki village, Mlolongo, and Syokimau; weekly readings to County Environment Officer."
+        ],
+        "infrastructure": [
+            "Restricting heavy machinery operations to daytime hours (07:00 to 18:00) when working near residential zones.",
+            "Regular maintenance of equipment silencers and mufflers to ensure compliance with NEMA Noise Regs (2009).",
+            "Community notification 48 hours prior to any high-noise events (e.g., occasional blasting or heavy piling)."
         ]
     },
     "climate": {
@@ -100,6 +177,11 @@ EXPERT_MITIGATIONS = {
             "Community Health Investment Plan: Proponent commits minimum KES 5M over 5 years to Athi River Medical Centre upgrades.",
             "Local Employment Register: Minimum 40% of unskilled/semi-skilled positions offered to Athi River and Mavoko residents.",
             "Grievance Mechanism: Dedicated SMS short code and complaints box at Athi River Chief's office."
+        ],
+        "infrastructure": [
+            "Traffic Management Plan (TMP) including signage and flagmen to ensure safety of road users during construction.",
+            "Mandatory safety inductions for all site workers and provision of high-visibility PPE.",
+            "Priority hiring for manual labor from local sub-locations along the road corridor."
         ]
     },
     "soil": {
@@ -108,52 +190,11 @@ EXPERT_MITIGATIONS = {
             "All fuel storage on double-walled tanks within impermeable bunded areas (110% capacity).",
             "Topsoil (min 150mm) stripped and stockpiled separately for reuse; covered and signed.",
             "Sediment control barriers installed along downslope boundaries; erosion monitoring after rainfall >50mm."
-        ]
-    },
-    "air": {
-        "mining": [
-            "Dust suppression using non-potable water on all active excavation faces and haul roads minimum 4 times daily (Turkana context).",
-            "Speed limits of 20km/h on all unpaved roads strictly enforced via GPS tracking.",
-            "Enclosed conveyance systems for all ore transport within 500m of community settlements.",
-            "PM10 and PM2.5 real-time monitoring stations with automated alerts to site manager."
         ],
-        "construction": [
-            "Water spraying on stockpiles and exposed surfaces during high-wind events (>5m/s).",
-            "All fine-material trucks covered with impervious tarpaulins during transit.",
-            "Construction hoarding minimum 3m height around the entire project perimeter."
-        ]
-    },
-    "energy": [
-            "Installation of fish-friendly turbines and screens to prevent entrainment of Tana River aquatic species (e.g. Labeo gregorii).",
-            "Strict adherence to WRA-mandated environmental flow (minimum 15% of mean annual flow).",
-            "Real-time turbidity and flow monitoring downstream of the tailrace.",
-            "Oil-water separators on all powerhouse drainage systems.",
-            "Reforestation of 5 hectares of riparian forest for every 1 hectare disturbed (Tana River basin context)."
-        ],
-        "mining": [
-            "Zero discharge policy: All process water recycled via a closed-loop tailings management system.",
-            "Lined evaporation ponds for any hypersaline groundwater extraction in Turkana's arid environment.",
-            "Borehole monitoring network to track regional drawdown in Turkana aquifers.",
-            "Dust suppression using brackish water minimum 4 times daily on all active excavation faces.",
-            "MANDATORY: Pastoralist movement corridor (minimum 200m width) maintained across the site for local Turkana livestock migration."
-        ],
-        "construction": [
-            "Installation of 3-stage silt traps for projects near Lake Victoria to prevent sediment loading (Kisumu context).",
-            "Mandatory 60m riparian buffer from the mean high-water mark of the lake.",
-            "Sustainable drainage system (SuDS) integrating swales and permeable paving to manage urban runoff.",
-            "Acoustic screening of all heavy plant during building phase to protect adjacent high-density residential areas."
-        ]
-    },
-    "biodiversity": {
-        "energy": [
-            "Reforestation of 5 hectares of riparian forest for every 1 hectare disturbed (Tana River basin).",
-            "Creation of artificial nesting sites for hippopotamus and crocodile populations upstream.",
-            "Biodiversity offsets: Investment in Tana River Primate National Reserve protection."
-        ],
-        "mining": [
-            "Pre-clearance flora/fauna rescue and relocation following KWS protocols.",
-            "Protection of migratory corridors for pastoralist livestock and wildlife in Turkana.",
-            "Fencing of tailings ponds to prevent wildlife access and accidental drowning."
+        "infrastructure": [
+            "Topsoil preservation: Stripped topsoil (top 200mm) must be stockpiled and used for roadside landscaping.",
+            "Erosion control: Slopes and embankments stabilized using gabions or grassing immediately after earthworks.",
+            "Safe disposal of excess spoil at NEMA-approved sites; strict prohibition of illegal dumping."
         ]
     }
 }
@@ -171,13 +212,13 @@ EXPERT_KPIS = {
 
 
 TECHNICAL_PATHWAYS = {
-    "air": "Fugitive dust/emissions (PM10/PM2.5) from ground disturbance and transport → Atmospheric dispersion → Inhalation risk and reduced visibility for downwind residential receptors (Sabaki, Mlolongo, Syokimau).",
-    "water": "Uncontrolled surface runoff/industrial effluent → Drainage into Athi River basin tributaries → Contamination of downstream water resources and siltation of aquatic habitats in sensitive riparian zones.",
+    "air": "Fugitive dust/emissions (PM10/PM2.5) from ground disturbance and transport → Atmospheric dispersion → Inhalation risk and reduced visibility for downwind residential receptors in neighbouring communities.",
+    "water": "Uncontrolled surface runoff/industrial effluent → Drainage into local hydrological basins and tributaries → Contamination of downstream water resources and siltation of aquatic habitats in sensitive riparian zones.",
     "noise": "Heavy construction plant and operational machinery acoustic energy → Atmospheric propagation → Sleep disturbance and chronic annoyance for local communities during night and daytime hours.",
     "biodiversity": "Habitat fragmentation and direct mortality risk (e.g., vultures/raptors) → Loss of critical nesting and movement corridors → Irreversible decline in ecosystem services and local species populations.",
-    "soil": "Land clearance and heavy machinery compaction → Accelerated topsoil erosion and loss of structure (esp. in expansive Vertisols) → Cumulative sediment loading in local drainage networks.",
-    "social": "Project-induced influx of labor and increased heavy vehicle traffic → Pressure on local social infrastructure and health services → Potential for community grievances and disruption of informal trading livelihood.",
-    "climate": "Construction and operational phase GHG emissions (CO2, NOx) from heavy equipment and logistics fleet → Cumulative contribution to regional carbon budget → Long-term climate forcing exacerbated by reduction of 450ha carbon sequestration sink capacity."
+    "soil": "Land clearance and heavy machinery compaction → Accelerated topsoil erosion and loss of structure (esp. in expansive soil types) → Cumulative sediment loading in local drainage networks.",
+    "social": "Project-induced influx of labor and increased heavy vehicle traffic → Pressure on local social infrastructure and health services → Potential for community grievances and disruption of localized livelihoods.",
+    "climate": "Construction and operational phase GHG emissions (CO2, NOx) from heavy equipment and logistics fleet → Cumulative contribution to regional carbon budget → Long-term climate forcing exacerbated by reduction of localized carbon sequestration sink capacity."
 }
 
 MODELS_DIR = Path(__file__).resolve().parent / "models"
@@ -264,7 +305,7 @@ class PredictionEngine:
             "rainfall_mm": rainfall
         }
 
-    def predict(self, project_type: str, scale_ha: float, baseline_data: dict, scenario_name: str = "baseline") -> list:
+    def predict(self, project_type: str, scale_ha: float, baseline_data: dict, scenario_name: str = "baseline", project_name: str = "Project", location_name: str = "Project Site") -> list:
         """
         Executes ML arrays mapping outputs towards AI explanations securely.
         Enriched with Significance Matrix logic (Pre/Post Mitigation).
@@ -272,8 +313,13 @@ class PredictionEngine:
         features = self.extract_features(baseline_data)
         features["scale_ha"] = scale_ha
         
+        # Determine active project types for ML mapping (borehole uses infrastructure/manufacturing logic if model missing)
+        effective_type = project_type
+        if project_type == "borehole":
+            effective_type = "infrastructure"
+
         for ptype in PROJECT_TYPES:
-            features[f"ptype_{ptype}"] = 1 if ptype == project_type else 0
+            features[f"ptype_{ptype}"] = 1 if ptype == effective_type else 0
 
         cols = [
             "scale_ha", "ndvi_score", "distance_to_water_km", 
@@ -294,7 +340,7 @@ class PredictionEngine:
                  base_prob = float(self.models[cat]["reg"].predict(X_array)[0])
             else:
                  # Local expert system fallback for non-ML mapped categories
-                 base_severity, base_prob = self._get_heuristic_prediction(cat, features, scale_ha, project_type)
+                 base_severity, base_prob = self._get_heuristic_prediction(cat, features, scale_ha, effective_type)
             
             # 2. Expert Significance Matrix calculation (Baseline)
             significance = self._calculate_significance(base_severity, base_prob, scale_ha, cat, baseline_data)
@@ -306,12 +352,13 @@ class PredictionEngine:
             mitigated_sig = self._calculate_significance(mitigated_severity, mitigated_prob, scale_ha, cat, baseline_data)
 
             # 4. LLM Content Generation (Now more expert-focused)
-            desc, mitigations = self._generate_expert_content(project_type, cat, base_severity, base_prob, significance, baseline_data)
+            desc, mitigations = self._generate_expert_content(project_type, cat, base_severity, base_prob, significance, baseline_data, project_name, location_name)
 
             predictions.append({
                 "category": cat,
-                "severity": base_severity.upper(),
+                "severity": base_severity.lower(),
                 "probability": round(base_prob, 3),
+                "confidence": 0.85, # Default confidence bound
                 "significance_score": significance["score"],
                 "significance_label": significance["label"],
                 "impact_pathway": significance["pathway"],
@@ -326,6 +373,24 @@ class PredictionEngine:
 
         return predictions
 
+    def simulate(self, base_predictions: list, selected_mitigations: list) -> list:
+        """
+        Adjusts predictions based on implemented mitigations. 
+        Used for Scenario Modeling (Stage 4).
+        """
+        # In the context-aware engine, simulation uses the pre-calculated mitigated 
+        # significance logic to show the delta in the report.
+        simulated = []
+        for p in base_predictions:
+            p_sim = p.copy()
+            # Transition significance to the mitigated state
+            p_sim["severity"] = "low" if p["severity"] in ("low", "medium") else "medium"
+            p_sim["significance_score"] = p["mitigated_score"]
+            p_sim["significance_label"] = p["mitigated_label"]
+            p_sim["probability"] = round(float(p["probability"]) * 0.6, 3) # 40% reduction
+            simulated.append(p_sim)
+        return simulated
+
     def _calculate_significance(self, severity: str, probability: float, scale_ha: float, category: str, baseline: dict = None) -> dict:
         """
         Calculates NEMA-standard significance score: S = (Magnitude + Duration + Extent) × Probability.
@@ -338,10 +403,12 @@ class PredictionEngine:
         
         # V8 FIX: Biodiversity Calibration (IFC PS6 / NEMA alignment)
         # Presence of Endangered species elevations pre-mitigation magnitude to credible baseline.
-        if category == "biodiversity" and mag >= 1 and baseline:
-            threats = baseline.get("biodiversity", {}).get("threatened_species_count", 0)
-            if threats > 0:
-                mag = 4 # Credible baseline per V8 review
+        if category == "biodiversity" and baseline:
+            species_list = baseline.get("biodiversity", {}).get("species_list", [])
+            has_critical = any(str(s.get("iucn_status", "")).upper() in ["ENDANGERED", "CRITICALLY ENDANGERED", "EN", "CR"] for s in species_list)
+            if has_critical:
+                mag = max(mag, 4) # Elevate due to IUCN Red List species
+
 
         # V8 FIX: Noise Calibration (Community Complaints)
         if category == "noise" and mag < 4 and baseline:
@@ -353,7 +420,7 @@ class PredictionEngine:
         dur = 5 if category in ("soil", "biodiversity", "social") else 3
         
         # Extent (1-5): 1=Site-specific, 5=Regional
-        ext = 5 if scale_ha > 400 or category in ("air", "climate") else 2
+        ext = 5 if (scale_ha or 0) > 400 or category in ("air", "climate") else 2
 
         # Significance Formula: S = (Magnitude + Duration + Extent) × Probability
         # V8 NOTE: Scores are normalized to a 1–10 scale by dividing by 10 for assessment consistency.
@@ -378,7 +445,7 @@ class PredictionEngine:
             "probability": round(normalized_prob * 10, 1) # Displaying on 1-10 scale in report
         }
 
-    def _generate_expert_content(self, project_type: str, category: str, severity: str, prob: float, significance: dict, baseline: dict) -> tuple:
+    def _generate_expert_content(self, project_type: str, category: str, severity: str, prob: float, significance: dict, baseline: dict, project_name: str = "the project", location_name: str = "the project area") -> tuple:
         """Deeply technical Internal AI content with specific Kenyan mitigations."""
         
         # 1. Internal AI Base Narrative Logic
@@ -389,7 +456,7 @@ class PredictionEngine:
         nature_score = "CRITICAL" if sev_clean == "critical" else "SIGNIFICANT"
         
         desc = (
-            f"The proposed {project_type} activities present a {nature_score} impact on {category} parameters. "
+            f"The proposed {project_name} activities ({project_type}) present a {nature_score} impact on {category} parameters in {location_name}. "
             f"Guided by {laws.get('EMCA')}, the mechanism of impact involves {significance['pathway']} "
             f"Assessment indicates that under Kenyan standard {laws.get('NEMA_REGS')}, this constitutes a regulated disturbance "
             f"to the baseline environmental state. {sections.get('EMCA_58') if sev_clean != 'low' else ''}"

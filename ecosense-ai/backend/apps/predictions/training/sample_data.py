@@ -7,7 +7,7 @@ Used to train XGBoost arrays.
 import random
 
 # Core variables and constraints
-PROJECT_TYPES = ["mining", "construction", "manufacturing", "agriculture", "infrastructure"]
+PROJECT_TYPES = ["mining", "construction", "manufacturing", "agriculture", "infrastructure", "borehole"]
 SEVERITY_LEVELS = ["low", "medium", "high", "critical"]
 
 # Deterministic seed for reproducible data

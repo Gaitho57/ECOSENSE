@@ -5,6 +5,7 @@ Tracking immutable report generation footprints securely mapped locally.
 """
 
 from django.db import models
+from django.conf import settings
 from core.models import BaseModel
 
 class EIAReport(BaseModel):
@@ -21,6 +22,8 @@ class EIAReport(BaseModel):
         ("draft", "Draft"),
         ("generating", "Generating"),
         ("ready", "Ready"),
+        ("pending_expert_review", "Pending Expert Review"),
+        ("ready_for_submission", "Ready For Submission"),
         ("submitted", "Submitted"),
         ("failed", "Failed"),
         ("compliance_blocked", "Compliance Blocked")
@@ -47,6 +50,10 @@ class EIAReport(BaseModel):
     status = models.CharField(max_length=50, default="draft", choices=STATUS_CHOICES)
     error_message = models.TextField(blank=True, null=True)
     generated_at = models.DateTimeField(null=True, blank=True)
+    
+    expert_signature = models.BooleanField(default=False)
+    expert_notes = models.TextField(blank=True, null=True)
+    expert_approved_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ["-generated_at", "-version"]
@@ -56,3 +63,40 @@ class EIAReport(BaseModel):
 
     def __str__(self):
         return f"{self.project.name} - Version {self.version} ({self.format.upper()})"
+
+
+class ReportSection(BaseModel):
+    """
+    Stores independent chapter/section content allowing manual overrides in the field.
+    """
+    SECTION_STATUS = [
+        ("ai_suggested", "AI Suggested"),
+        ("expert_manual", "Expert Manual Override"),
+        ("review_required", "Review Required"),
+    ]
+
+    project = models.ForeignKey(
+        "projects.Project", 
+        on_delete=models.CASCADE, 
+        related_name="sections"
+    )
+
+    section_id = models.CharField(max_length=100, help_text="Slug for the section (e.g. methodology, legal).")
+    title = models.CharField(max_length=500)
+    content = models.TextField(blank=True)
+    
+    status = models.CharField(max_length=50, choices=SECTION_STATUS, default="ai_suggested")
+    last_modified_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, 
+        null=True, 
+        blank=True, 
+        on_delete=models.SET_NULL
+    )
+
+    class Meta:
+        unique_together = ("project", "section_id")
+        verbose_name = "Report Section"
+        verbose_name_plural = "Report Sections"
+
+    def __str__(self):
+        return f"{self.project.name} - {self.title}"

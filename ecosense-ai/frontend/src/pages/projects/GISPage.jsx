@@ -16,7 +16,10 @@ import HydrologyLayer from '../../components/maps/layers/HydrologyLayer';
 import BiodiversityLayer from '../../components/maps/layers/BiodiversityLayer';
 import AirQualityLayer from '../../components/maps/layers/AirQualityLayer';
 import ProjectBoundaryLayer from '../../components/maps/layers/ProjectBoundaryLayer';
-import * as turf from '@turf/turf'; // We use turf to draw strict geographic boundary circles natively.
+import ProtectedAreaLayer from '../../components/maps/layers/ProtectedAreaLayer';
+import WaterTowerLayer from '../../components/maps/layers/WaterTowerLayer';
+import SettlementLayer from '../../components/maps/layers/SettlementLayer';
+import * as turf from '@turf/turf'; 
 
 function BufferRingsLayer({ center }) {
   const { map } = useMap();
@@ -56,8 +59,10 @@ function BufferRingsLayer({ center }) {
     
     return () => {
         map.off('style.load', addLayer);
-        if (map.getLayer('buffer-rings-line')) map.removeLayer('buffer-rings-line');
-        if (map.getSource(sourceId)) map.removeSource(sourceId);
+        if (map && map.getStyle()) {
+            if (map.getLayer('buffer-rings-line')) map.removeLayer('buffer-rings-line');
+            if (map.getSource(sourceId)) map.removeSource(sourceId);
+        }
     };
 
   }, [map, center]);
@@ -98,7 +103,10 @@ export default function GISPage() {
       hydrology: true,
       biodiversity: true,
       air_quality: true,
-      boundary: true
+      boundary: true,
+      protected_areas: true,
+      water_towers: true,
+      settlements: true
   });
 
   // Fetch Project Coordinates to center map generically 
@@ -189,12 +197,13 @@ export default function GISPage() {
                       
                       <NDVILayer 
                         ndvi_score={baseline?.satellite_data?.ndvi} 
+                        ndvi_tile_url={baseline?.satellite_data?.ndvi_tile_url}
                         center={mapCenter}
                         isVisible={layers.ndvi} 
                       />
                       
                       <HydrologyLayer 
-                        hydrology_data={hydrologyGeoJSON} 
+                        hydrology_data={baseline?.hydrology_data} 
                         isVisible={layers.hydrology} 
                       />
                       
@@ -208,6 +217,21 @@ export default function GISPage() {
                         air_quality_baseline={baseline?.air_quality_baseline} 
                         center={mapCenter}
                         isVisible={layers.air_quality} 
+                      />
+
+                      <ProtectedAreaLayer 
+                        protected_areas={baseline?.satellite_data?.protected_area_status?.areas}
+                        isVisible={layers.protected_areas}
+                      />
+
+                      <WaterTowerLayer 
+                        proximity_data={baseline?.satellite_data?.water_tower_proximity}
+                        isVisible={layers.water_towers}
+                      />
+
+                      <SettlementLayer 
+                        settlement_data={baseline?.satellite_data?.settlement_geometries}
+                        isVisible={layers.settlements}
                       />
 
                       {/* Dynamic Simulation Outputs */}

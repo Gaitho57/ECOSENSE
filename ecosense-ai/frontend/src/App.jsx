@@ -21,6 +21,7 @@ import PredictionsPage from './pages/projects/PredictionsPage';
 import GISPage from './pages/projects/GISPage';
 import CommunityPage from './pages/projects/CommunityPage';
 import ReportPage from './pages/projects/ReportPage';
+import ReportEditorPage from './pages/projects/ReportEditorPage';
 import CompliancePage from './pages/projects/CompliancePage';
 
 import SettingsPage from './pages/settings/SettingsPage';
@@ -56,6 +57,7 @@ function App() {
              <Route path="projects/:projectId/map" element={<GISPage />} />
              <Route path="projects/:projectId/community" element={<CommunityPage />} />
              <Route path="projects/:projectId/report" element={<ReportPage />} />
+             <Route path="projects/:projectId/report-editor" element={<ReportEditorPage />} />
              <Route path="projects/:projectId/compliance" element={<CompliancePage />} />
              
              <Route path="settings" element={<SettingsPage />} />

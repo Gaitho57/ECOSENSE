@@ -128,6 +128,7 @@ class USGSClient:
             "nitrogen_g_per_kg": surface.get("nitrogen", 0),
             "cec_cmol_per_kg": surface.get("cec", 0),
             "bulk_density_kg_m3": surface.get("bdod", 0),
+            "ocd_hg_m3": surface.get("ocd", 0),
             "erosion_risk": erosion_risk["level"],
             "erosion_risk_factors": erosion_risk["factors"],
             "fertility_rating": fertility["rating"],
@@ -179,7 +180,7 @@ class USGSClient:
                     elif name == "bdod":
                         extracted["bdod"] = round(val / 100.0, 2)  # cg/cm³ → kg/dm³
                     elif name == "ocd":
-                        extracted["ocd"] = round(val / 10.0, 2)  # dg/kg → g/kg
+                        extracted["ocd"] = round(val / 10.0, 2)  # hg/dm³ → kg/m³
                 except (IndexError, TypeError, ValueError):
                     pass
 
@@ -214,10 +215,8 @@ class USGSClient:
 
             # Fallback 2: Regional Heuristic for Kenyan Highland/Rift areas if coordinates match
             if -5.0 <= lat <= 5.0 and 33.0 <= lng <= 42.0:
-                # Common soil types in Kenya: Vertisols (black cotton), Nitisols, Ferralsols
-                if -1.6 <= lat <= -1.2 and 36.8 <= lng <= 37.2: # Nairobi/Athi River area
-                    return "Vertisols (Pellic Vertisols / Black Cotton Soil)"
-                return "Ferralsols / Nitisols (Regional Proxy)"
+                # Common soil types in Kenya: Nitisols, Ferralsols, Vertisols
+                return "Ferralsols / Nitisols (Regional Kenyan Proxy)"
 
             return "Inland Sedimentary (General)"
         except Exception as e:

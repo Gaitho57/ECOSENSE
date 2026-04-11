@@ -32,6 +32,12 @@ ROLE_CHOICES = [
     ("nema_regulator", "NEMA Regulator"),
 ]
 
+RANK_CHOICES = [
+    ("lead", "Lead EIA/EA Expert"),
+    ("associate", "Associate EIA/EA Expert"),
+    ("support", "Support/Researcher"),
+]
+
 
 # ===========================================
 # Tenant Model
@@ -204,6 +210,12 @@ class User(AbstractBaseUser, PermissionsMixin):
         choices=ROLE_CHOICES,
         default="consultant",
         help_text="User role for access control.",
+    )
+    expert_rank = models.CharField(
+        max_length=50,
+        choices=RANK_CHOICES,
+        default="associate",
+        help_text="NEMA registration rank for signing authority.",
     )
     phone = models.CharField(
         max_length=20,

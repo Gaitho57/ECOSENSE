@@ -150,12 +150,27 @@ class GBIFClient:
         # Sort species list by occurrence count descending, limit to 30
         species_list.sort(key=lambda x: -x["occurrence_count"])
 
+        # ---- Build occurrence points for mapping ----
+        occurrence_points = []
+        for occ in occurrences:
+            lat_occ = occ.get("decimalLatitude")
+            lng_occ = occ.get("decimalLongitude")
+            if lat_occ and lng_occ:
+                occurrence_points.append({
+                    "species": occ.get("species", "Unknown"),
+                    "lat": lat_occ,
+                    "lng": lng_occ,
+                    "class": occ.get("class"),
+                    "key": occ.get("speciesKey")
+                })
+
         return {
             "total_species_count": len(species_dict),
             "total_occurrence_records": total_records,
             "threatened_species_count": threatened_count,
             "near_threatened_count": near_threatened_count,
             "species_list": species_list[:150],
+            "occurrence_points": occurrence_points[:300], # Top 300 for map efficiency
             "taxonomy_summary": taxonomy_summary,
             "shannon_diversity_index": shannon_index,
             "habitat_type": habitat_type,

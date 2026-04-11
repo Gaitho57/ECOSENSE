@@ -39,8 +39,10 @@ export default function ProjectBoundaryLayer({ boundaryGeoJSON, isVisible = true
 
     return () => {
       map.off('style.load', addLayer);
-      if (map.getLayer(lineLayerId)) map.removeLayer(lineLayerId);
-      if (map.getSource(sourceId)) map.removeSource(sourceId);
+      if (map && map.getStyle()) {
+          if (map.getLayer(lineLayerId)) map.removeLayer(lineLayerId);
+          if (map.getSource(sourceId)) map.removeSource(sourceId);
+      }
     };
   }, [map, boundaryGeoJSON, isVisible]);
 

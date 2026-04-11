@@ -1,62 +1,66 @@
 import React, { useEffect } from 'react';
 import { useMap } from '../MapContext';
 
-export default function NDVILayer({ ndvi_score, center, isVisible = true }) {
+export default function NDVILayer({ ndvi_score, ndvi_tile_url, center, isVisible = true }) {
   const { map } = useMap();
 
   useEffect(() => {
-    if (!map || !map.isStyleLoaded() || typeof ndvi_score !== 'number') return;
+    if (!map || !map.isStyleLoaded()) return;
 
-    const sourceId = 'ndvi-source';
-    const layerId = 'ndvi-layer';
+    const sourceId = 'ndvi-raster-source';
+    const layerId = 'ndvi-raster-layer';
 
-    // Ensure map 'style.load' triggers re-adds for resilient context passing
     const addLayer = () => {
-      const source = map.getSource(sourceId);
-      const data = {
-        type: 'Feature',
-        geometry: {
-          type: 'Point',
-          coordinates: center
-        },
-        properties: {
-          ndvi: ndvi_score
+      // Prioritize High-Fidelity Raster Tiles from GEE
+      if (ndvi_tile_url) {
+        if (!map.getSource(sourceId)) {
+          map.addSource(sourceId, {
+            type: 'raster',
+            tiles: [ndvi_tile_url],
+            tileSize: 256,
+            attribution: 'ESA WorldCover / Sentinel-2 GEE'
+          });
         }
-      };
 
-      if (!source) {
-        map.addSource(sourceId, {
-          type: 'geojson',
-          data: data
-        });
-      } else {
-        source.setData(data);
-      }
+        if (!map.getLayer(layerId)) {
+          map.addLayer({
+            id: layerId,
+            type: 'raster',
+            source: sourceId,
+            paint: {
+              'raster-opacity': 0.6,
+              'raster-contrast': 0.1,
+              'raster-brightness-min': 0.1
+            }
+          });
+        }
+      } 
+      // Fallback to legacy marker if no tile URL is present
+      else if (typeof ndvi_score === 'number') {
+        const fallbackSourceId = 'ndvi-source-fallback';
+        const fallbackLayerId = 'ndvi-layer-fallback';
+        
+        if (!map.getSource(fallbackSourceId)) {
+          map.addSource(fallbackSourceId, {
+            type: 'geojson',
+            data: {
+              type: 'Feature',
+              geometry: { type: 'Point', coordinates: center },
+              properties: { ndvi: ndvi_score }
+            }
+          });
 
-      if (!map.getLayer(layerId)) {
-        map.addLayer({
-          id: layerId,
-          type: 'circle',
-          source: sourceId,
-          paint: {
-            'circle-radius': [
-              'interpolate', ['linear'], ['zoom'],
-              10, 50,
-              15, 150
-            ],
-            'circle-color': [
-              'interpolate',
-              ['linear'],
-              ['get', 'ndvi'],
-              0.1, '#dc2626', // Bright Red (Vulnerable)
-              0.4, '#fbbf24', // Amber (Moderate)
-              0.8, '#16a34a'  // Forest Green (Healthy)
-            ],
-            'circle-opacity': 0.7,
-            'circle-stroke-width': 2,
-            'circle-stroke-color': '#ffffff'
-          }
-        });
+          map.addLayer({
+            id: fallbackLayerId,
+            type: 'circle',
+            source: fallbackSourceId,
+            paint: {
+              'circle-radius': 50,
+              'circle-color': ndvi_score > 0.6 ? '#16a34a' : '#fbbf24',
+              'circle-opacity': 0.5
+            }
+          });
+        }
       }
     };
 
@@ -67,10 +71,14 @@ export default function NDVILayer({ ndvi_score, center, isVisible = true }) {
 
     return () => {
       map.off('style.load', addLayer);
-      if (map.getLayer(layerId)) map.removeLayer(layerId);
-      if (map.getSource(sourceId)) map.removeSource(sourceId);
+      if (map && map.getStyle()) {
+          if (map.getLayer(layerId)) map.removeLayer(layerId);
+          if (map.getSource(sourceId)) map.removeSource(sourceId);
+          if (map.getLayer('ndvi-layer-fallback')) map.removeLayer('ndvi-layer-fallback');
+          if (map.getSource('ndvi-source-fallback')) map.removeSource('ndvi-source-fallback');
+      }
     };
-  }, [map, ndvi_score, center, isVisible]);
+  }, [map, ndvi_score, ndvi_tile_url, center, isVisible]);
 
-  return null; // Logic-only component handling Mapbox GL JS context interactions
+  return null;
 }

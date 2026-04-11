@@ -60,7 +60,11 @@ export default function LandingPage() {
                                 <div className="h-6 w-1/3 bg-gray-800 rounded animate-pulse"></div>
                                 <div className="h-4 w-full bg-gray-800 rounded animate-pulse"></div>
                                 <div className="h-4 w-5/6 bg-gray-800 rounded animate-pulse opacity-50"></div>
-                                <div className="h-32 w-full border border-gray-700 rounded-xl mt-6 relative overflow-hidden bg-[url('https://api.mapbox.com/styles/v1/mapbox/dark-v11/static/36.82,-1.29,11,0/600x200?access_token=pk.mock')] bg-cover opacity-80">
+                                <div className="h-40 w-full border border-gray-700 rounded-xl mt-6 relative overflow-hidden bg-gradient-to-br from-blue-900/40 via-gray-900 to-green-900/20 backdrop-blur-sm group-hover:border-blue-500/50 transition-colors">
+                                     <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
+                                     <div className="absolute inset-0 flex items-center justify-center">
+                                          <div className="text-blue-500/20 text-6xl font-black rotate-12">GIS MAPPING</div>
+                                     </div>
                                 </div>
                             </div>
                             <div className="space-y-4">

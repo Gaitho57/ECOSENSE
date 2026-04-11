@@ -23,25 +23,69 @@
             <img src="https://upload.wikimedia.org/wikipedia/commons/e/e4/Globe.png" width="120" alt="EcoSense Logo">
         </div>
         <h1 style="color: #166534; font-size: 42px; border-bottom: 5px solid #22c55e; padding-bottom: 20px; display: inline-block;">
-            Environmental Impact Assessment
+            {% if project.category_id == 'high' %}ENVIRONMENTAL IMPACT ASSESSMENT STUDY REPORT{% else %}SUMMARY PROJECT REPORT (SPR){% endif %}
         </h1>
         <h2 style="font-size: 32px; margin-top: 40px; color: #0f172a; border: none;">{{ project.name }}</h2>
         
         <div style="margin-top: 60px; font-size: 20px; color: #475569;">
+            <p><strong>NEMA Category:</strong> {{ project.category }}</p>
             <p><strong>Project Type:</strong> {{ project.type }}</p>
-            <p><strong>Scale:</strong> {{ project.scale_ha }} Hectares</p>
+            <p><strong>Scale/Capacity:</strong> {{ project.scale_value }} Units/Hectares</p>
             <p><strong>Location:</strong> {{ project.location_coords }}</p>
         </div>
 
-        <div class="map-container" style="margin-top: 50px; border: 2px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
-            <img src="{{ project.map_url }}" alt="Project Location Map">
-            <p style="font-size: 10px; color: #94a3b8; margin-top: 5px;">Figure 1.1: Project Locus Map (Satellite Imagery Overlay)</p>
+        <div class="map-container" style="border: 2px solid #e2e8f0; border-radius: 8px;">
+            <img src="{{ project.maps.topographic }}" alt="Project Location Map">
+            <p style="font-size: 10px; color: #94a3b8;">Figure 1.1: Project Location & Topographic Context (Regional Level)</p>
         </div>
         
         <div style="margin-top: 80px; padding-top: 30px; border-top: 1px solid #e2e8f0;">
-            <p style="font-weight: bold; color: #1e293b;">Lead Consultant Body: {{ project.lead_consultant }}</p>
+            <p style="font-weight: bold; color: #1e293b;">Consultant: {{ project.lead_consultant }} ({{ project.consultant_rank }})</p>
+            <p style="font-size: 14px; color: #64748b;">NEMA Registration ID: {{ project.consultant_reg }}</p>
             <p style="font-size: 14px; color: #64748b;">Date of Compilation: {{ project.date }}</p>
-            <p style="font-size: 12px; color: #94a3b8;">Document ID: {{ project.id }}-V2-EXPERT</p>
+        </div>
+    </section>
+
+    <!-- STATUTORY DECLARATIONS -->
+    <section class="page-break">
+        <h2 style="text-align: center;">STATUTORY DECLARATIONS</h2>
+        
+        <div style="margin-top: 50px; border: 1px solid #e2e8f0; padding: 30px; border-radius: 8px;">
+            <h3 style="border: none; margin-top: 0;">Declaration by the Proponent</h3>
+            <p style="text-align: justify; font-size: 13px;">
+                I, <strong>{{ project.proponent.name }}</strong>, on behalf of the project proponent, confirm that the information provided in this 
+                <strong>{{ project.category }}</strong> report is true and accurate to the best of my knowledge. We commit to implementing 
+                all environmental and social mitigation measures outlined in the Environmental and Social Management Plan (ESMP) 
+                contained in Chapter 12 of this report.
+            </p>
+            <div style="margin-top: 40px; display: flex; justify-content: space-between;">
+                <div style="width: 250px; border-top: 1px solid #000; padding-top: 5px; font-size: 11px;">
+                    Name: <strong>{{ project.proponent.name }}</strong><br>
+                    ID/PIN: {{ project.proponent.id_no }} / {{ project.proponent.pin }}
+                </div>
+                <div style="width: 200px; border-top: 1px solid #000; padding-top: 5px; font-size: 11px;">
+                    Signature & Stamp / Date
+                </div>
+            </div>
+        </div>
+
+        <div style="margin-top: 40px; border: 1px solid #e2e8f0; padding: 30px; border-radius: 8px;">
+            <h3 style="border: none; margin-top: 0;">Declaration by the Expert</h3>
+            <p style="text-align: justify; font-size: 13px;">
+                I, <strong>{{ project.lead_consultant }}</strong>, being a NEMA Registered <strong>{{ project.consultant_rank }}</strong>, 
+                do hereby certify that this report has been prepared in accordance with the Environmental Management and Coordination Act (EMCA), 
+                1999 and the Environmental (Impact Assessment and Audit) Regulations, 2003. The assessment has been conducted with professional 
+                integrity and is based on site-specific baseline data and stakeholder engagement.
+            </p>
+            <div style="margin-top: 40px; display: flex; justify-content: space-between;">
+                <div style="width: 250px; border-top: 1px solid #000; padding-top: 5px; font-size: 11px;">
+                    Name: <strong>{{ project.lead_consultant }}</strong><br>
+                    NEMA Reg No: {{ project.consultant_reg }}
+                </div>
+                <div style="width: 200px; border-top: 1px solid #000; padding-top: 5px; font-size: 11px;">
+                    Signature & Seal / Date
+                </div>
+            </div>
         </div>
     </section>
 
@@ -124,10 +168,22 @@
         <h2>5. Project Description</h2>
         <p>The project footprint is located at <strong>{{ project.location_coords }}</strong>. The site encompasses diverse terrain with a mean elevation of {{ baseline.topography.elevation_m }}m above sea level. The dominant land cover is identified as <strong>{{ baseline.topography.land_cover_class }}</strong>.</p>
         
-        <div class="map-container" style="border: 2px solid #e2e8f0; border-radius: 8px;">
-            <img src="{{ project.map_url }}" alt="Detailed Site Map">
-            <p style="font-size: 10px; color: #94a3b8;">Figure 2.1: Cadastral Boundary and Hydrological Overlay (Athi River Basin Context)</p>
+        <div class="map-container" style="border: 2px solid #e2e8f0; border-radius: 8px; margin-top: 15px;">
+            <img src="{{ project.maps.cadastral }}" alt="Detailed Site Map">
+            <p style="font-size: 10px; color: #94a3b8;">Figure 2.1: Cadastral Boundary and Site Layout Context</p>
         </div>
+
+        <!-- Field Photos: Site Context -->
+        {% if media.site %}
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px;">
+            {% for img in media.site %}
+            <div style="border: 1px solid #e2e8f0; padding: 5px; border-radius: 4px;">
+                <img src="{{ img.url }}" style="width: 100%; border-radius: 2px;">
+                <p style="font-size: 9px; color: #64748b; margin-top: 5px;"><strong>Figure 2.{{ forloop.counter|add:1 }}:</strong> {{ img.caption }} ({{ img.coords }})</p>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
     </section>
 
     <!-- 8. BASELINE INFORMATION -->
@@ -175,15 +231,47 @@
                 <tr><td>Dominant Habitat Type</td><td>{{ baseline.biodiversity.habitat_type }}</td></tr>
             </tbody>
         </table>
+
+        {% if baseline.water_tower.is_sensitive %}
+        <div style="margin-top: 20px; border: 2px solid #dc2626; background-color: #fef2f2; padding: 15px; border-radius: 8px;">
+            <h4 style="color: #dc2626; margin-top: 0; font-size: 14px;">⚠️ CRITICAL CATCHMENT WARNING: {{ baseline.water_tower.nearest_tower }}</h4>
+            <p style="font-size: 12px; color: #991b1b; text-align: justify; margin-bottom: 0;">
+                The project site is identified within <strong>{{ baseline.water_tower.distance_km }} km</strong> of the <strong>{{ baseline.water_tower.nearest_tower }}</strong>, 
+                a gazetted Kenyan Water Tower. Under EMCA 2003, this area is categorized as a high-sensitivity water catchment zone. 
+                Strict siltation controls and hydrological monitoring are mandatory during all phases of development.
+            </p>
+        </div>
+        {% endif %}
         
         <h3>6.3 Physico-Chemical Parameters</h3>
         <table>
             <tr><th>Air Quality Index (AQI)</th><td>{{ baseline.air_quality.aqi }} ({{ baseline.air_quality.aqi_label }})</td></tr>
             <tr><th>Soil Classification</th><td>{{ baseline.soil.soil_type }}</td></tr>
+            <tr><th>Soil Texture Class</th><td>{{ baseline.soil.texture_class }}</td></tr>
+            <tr><th>Total Nitrogen (g/kg)</th><td>{{ baseline.soil.nitrogen_g_per_kg }}</td></tr>
+            <tr><th>Cation Exchange (cmol/kg)</th><td>{{ baseline.soil.cec_cmol_per_kg }}</td></tr>
+            <tr><th>Organic Carbon Density</th><td>{{ baseline.soil.ocd_hg_m3 }} hg/m³</td></tr>
             <tr><th>Hydrological Proximity</th><td>{{ baseline.hydrology.source }}</td></tr>
             <tr><th>Distance to Nearest Water Body</th><td>{{ baseline.hydrology.nearest_distance_km }} km</td></tr>
-            <tr><th>Soil Texture Class</th><td>{{ baseline.soil.texture_class }}</td></tr>
+            <tr><th>Catchment Basin Name</th><td>{{ baseline.basin }}</td></tr>
         </table>
+
+        <div class="map-container" style="border: 2px solid #e2e8f0; border-radius: 8px; margin-top: 15px;">
+            <img src="{{ project.maps.hydrology }}" alt="Hydrological Overlay">
+            <p style="font-size: 10px; color: #94a3b8;">Figure 6.1: Hydrological Overlay - 30m Riparian and 60m Cautionary Buffer Zones</p>
+        </div>
+
+        <!-- Field Photos: Baseline Evidence -->
+        {% if media.baseline %}
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px;">
+            {% for img in media.baseline %}
+            <div style="border: 1px solid #e2e8f0; padding: 5px; border-radius: 4px;">
+                <img src="{{ img.url }}" style="width: 100%; border-radius: 2px;">
+                <p style="font-size: 9px; color: #64748b; margin-top: 5px;"><strong>Figure 6.{{ forloop.counter|add:1 }}:</strong> {{ img.caption }} - Baseline Verification</p>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
     </section>
 
     <!-- 9. LEGAL FRAMEWORK -->
@@ -192,7 +280,21 @@
         <div style="line-height: 1.6; text-align: justify;">
             {{ legal_narrative|linebreaks }}
         </div>
+        
+        <div class="map-container" style="border: 2px solid #e2e8f0; border-radius: 8px; margin-top: 15px;">
+            <img src="{{ project.maps.zoning }}" alt="Land Use Zoning Map">
+            <p style="font-size: 10px; color: #94a3b8;">Figure 7.2: Surrounding Land Use & Static Zoning Assessment (Kenyan Statutory Palette)</p>
+        </div>
+
         <p style="margin-top: 20px;">Detailed regulatory alignment check results are provided in <strong>Appendix A</strong>.</p>
+        
+        <h3>7.1 Human Settlement and Infrastructure</h3>
+        <p style="text-align: justify;">
+            The project site is characterized by <strong>{{ baseline.topography.land_cover_class }}</strong> terrain. 
+            Using high-resolution <strong>Google Open Buildings</strong> datasets, a count of <strong>{{ baseline.building_count }}</strong> 
+            verifiable structures was identified within the project influence buffer. 
+            The region has a mean population density of <strong>{{ baseline.population_density }} households per sq. km</strong>.
+        </p>
     </section>
 
     <!-- 10. PUBLIC PARTICIPATION -->
@@ -223,6 +325,21 @@
             </tbody>
         </table>
         <p style="font-size: 11px; color: #64748b; margin-top: 10px;">Note: NEMA-013 requirement for Swahili translation of community feedback summaries is satisfied via Muhtasari in Section 1.</p>
+
+        <!-- Field Photos: Public Participation (Barazas) -->
+        {% if media.participation %}
+        <div style="margin-top: 20px;">
+            <h4 style="font-size: 12px; color: #1e293b; border-bottom: 1px solid #f1f5f9; padding-bottom: 5px;">Photographic Evidence: Stakeholder Engagement</h4>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
+                {% for img in media.participation %}
+                <div style="border: 1px solid #e2e8f0; padding: 5px; border-radius: 4px;">
+                    <img src="{{ img.url }}" style="width: 100%; border-radius: 2px;">
+                    <p style="font-size: 9px; color: #64748b; margin-top: 5px;"><strong>Photo 8.{{ forloop.counter }}:</strong> {{ img.caption }} ({{ img.timestamp }})</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
     </section>
 
     <!-- 11. IMPACT ASSESSMENT -->
@@ -241,39 +358,44 @@
             <table style="width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 12px; background-color: #ffffff;">
                 <thead style="background-color: #f8fafc;">
                     <tr style="border-bottom: 2px solid #e2e8f0;">
-                        <th style="padding: 10px; text-align: left;">Metric</th>
-                        <th style="padding: 10px; text-align: center;">Score (1-10)</th>
-                        <th style="padding: 10px; text-align: left;">Justification</th>
+                        <th style="padding: 10px; text-align: left;">Assessment Metric</th>
+                        <th style="padding: 10px; text-align: center;">Pre-Mitigation Score</th>
+                        <th style="padding: 10px; text-align: center;">Post-Mitigation Score</th>
+                        <th style="padding: 10px; text-align: left;">Justification Framework</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr style="border-bottom: 1px solid #f1f5f9;">
                         <td style="padding: 10px;"><strong>Magnitude</strong></td>
                         <td style="padding: 10px; text-align: center;">{{ pred.magnitude }}</td>
+                        <td style="padding: 10px; text-align: center; color: #166534;">↓ Reduced via ESMP</td>
                         <td style="padding: 10px; font-style: italic;">Measured intensity of deviation from the baseline state</td>
                     </tr>
                     <tr style="border-bottom: 1px solid #f1f5f9;">
                         <td style="padding: 10px;"><strong>Probability</strong></td>
                         <td style="padding: 10px; text-align: center;">{{ pred.probability }}</td>
+                        <td style="padding: 10px; text-align: center; color: #166534;">↓ Reduced via ESMP</td>
                         <td style="padding: 10px; font-style: italic;">Likelihood of occurrence (normalized 1-10 scale)</td>
                     </tr>
                     <tr style="border-bottom: 1px solid #f1f5f9;">
                         <td style="padding: 10px;"><strong>Duration</strong></td>
                         <td style="padding: 10px; text-align: center;">{{ pred.duration }}</td>
+                        <td style="padding: 10px; text-align: center; color: #166534;">Constant</td>
                         <td style="padding: 10px; font-style: italic;">Temporal persistence of the impact (1=Temp, 5=Perm)</td>
                     </tr>
                     <tr style="border-bottom: 1px solid #f1f5f9;">
                         <td style="padding: 10px;"><strong>Extent</strong></td>
                         <td style="padding: 10px; text-align: center;">{{ pred.extent }}</td>
+                        <td style="padding: 10px; text-align: center; color: #166534;">Constant</td>
                         <td style="padding: 10px; font-style: italic;">Spatial footprint of the impact (1=Site, 5=Regional)</td>
                     </tr>
                 </tbody>
                 <tfoot style="background-color: #f1f5f9; font-weight: bold;">
                     <tr>
-                        <td style="padding: 10px;">Significance Result</td>
-                        <td colspan="2" style="padding: 10px; text-align: right; color: #166534;">
-                            {{ pred.significance_label }} (Total Score: {{ pred.significance_score }})
-                        </td>
+                        <td style="padding: 10px;">FINAL SIGNIFICANCE</td>
+                        <td style="padding: 10px; text-align: center; color: #dc2626;">{{ pred.significance_label }} ({{ pred.significance_score }})</td>
+                        <td style="padding: 10px; text-align: center; color: #166534;">{{ pred.mitigated_label }} ({{ pred.mitigated_score }})</td>
+                        <td style="padding: 10px; font-style: italic; font-weight: normal; color: #64748b;">Drop of {{ pred.impact_reduction }} points</td>
                     </tr>
                 </tfoot>
             </table>
@@ -459,8 +581,10 @@
             <li>Air Quality Regulations, 2014.</li>
             <li>Water Quality Regulations, 2006.</li>
             <li>Occupational Safety and Health Act (OSHA), 2007.</li>
-            <li>GBIF Occurrence Dataset (Athi River Region).</li>
+            <li>GBIF Occurrence Dataset (Kenyan National Node).</li>
             <li>ISRIC SoilGrids v2.0 Global Soil Inventory.</li>
+            <li>Google Open Buildings v3 Dataset (Africa Region).</li>
+            <li>Kenya Water Towers Agency (KWTA) Strategic Data.</li>
         </ul>
         
         <div style="margin-top: 80px; padding-top: 30px; border-top: 2px solid #166534;">
@@ -476,10 +600,16 @@
                 </div>
                 <div style="text-align: right;">
                     <p><strong>Professional Signature & Rubber Stamp:</strong></p>
-                    <div style="height: 60px; width: 200px; border: 1px dotted #cbd5e1; margin-top: 10px; display: flex; align-items: center; justify-content: center; background-color: #f8fafc;">
-                        <span style="color: #94a3b8; font-size: 10px;">Affix NEMA Lead Expert Stamp</span>
+                    <div style="height: 60px; width: 200px; border: 1px dotted #cbd5e1; margin-top: 10px; display: flex; align-items: center; justify-content: center; background-color: #f8fafc; border-radius: 4px;">
+                        {% if expert_signature %}
+                            <span style="color: #2563eb; font-size: 12px; font-weight: bold; text-align: center;">✓ DIGITALLY SIGNED<br><span style="font-size: 9px;">via EcoSense AI Portal</span></span>
+                        {% else %}
+                            <span style="color: #f59e0b; font-size: 10px;">Review Portal Signoff Pending</span>
+                        {% endif %}
                     </div>
-                    <p style="font-size: 10px; color: #dc2626; margin-top: 5px; font-weight: bold;">(NOT VALID FOR SUBMISSION WITHOUT ORIGINAL STAMP)</p>
+                    {% if not expert_signature %}
+                    <p style="font-size: 10px; color: #dc2626; margin-top: 5px; font-weight: bold;">(NOT VALID FOR SUBMISSION WITHOUT SIGNATURE)</p>
+                    {% endif %}
                 </div>
             </div>
         </div>

@@ -30,6 +30,7 @@ from apps.baseline.clients import (
     USGSClient,
     HydrologyClient,
     ClimateClient,
+    HydrogeologyClient,
 )
 from apps.esg.tasks import record_audit_event
 
@@ -73,6 +74,7 @@ def generate_baseline(self, project_id: str):
             future_usgs = executor.submit(USGSClient().get_data, lat, lng)
             future_hydro = executor.submit(HydrologyClient().get_data, lat, lng)
             future_climate = executor.submit(ClimateClient().get_data, lat, lng)
+            future_hydrogeo = executor.submit(HydrogeologyClient().get_data, lat, lng)
 
             gee_data = future_gee.result()
             wx_data = future_wx.result()
@@ -80,6 +82,7 @@ def generate_baseline(self, project_id: str):
             usgs_data = future_usgs.result()
             hydro_data = future_hydro.result()
             climate_data = future_climate.result()
+            hydrogeo_data = future_hydrogeo.result()
 
         # ---- Compile data sources ----
         active_sources = []
@@ -109,9 +112,27 @@ def generate_baseline(self, project_id: str):
             active_sources.append("ISRIC SoilGrids")
 
         hydro_blob = hydro_data.get("data") if hydro_data else {}
-        baseline.hydrology_data = hydro_blob or {}
+        hg_blob = hydrogeo_data.get("data") if hydrogeo_data else {}
+        
+        baseline.hydrology_data = hydro_blob or {
+            "streams": None,
+            "catchment_basin": "National Basin"
+        }
+        
+        # Inject high-fidelity GEE data if available, regardless of legacy client status
+        if sat_blob:
+            if sat_blob.get("catchment_basin"):
+                baseline.hydrology_data["catchment_basin"] = sat_blob["catchment_basin"]
+            if sat_blob.get("hydrology_streams"):
+                baseline.hydrology_data["streams"] = sat_blob["hydrology_streams"]
+                active_sources.append("HydroSHEDS (GEE)")
+
         if hydro_blob:
             active_sources.append("OpenStreetMap Overpass")
+            
+        if hg_blob:
+            baseline.hydrology_data["hydrogeology"] = hg_blob
+            active_sources.append("Africa Groundwater Atlas Heuristics")
 
         climate_blob = climate_data.get("data") if climate_data else {}
         baseline.climate_data = climate_blob or {}
@@ -123,7 +144,9 @@ def generate_baseline(self, project_id: str):
             "elevation_m": climate_blob.get("elevation_m", 0) if climate_blob else 0,
             "land_cover_class": sat_blob.get("land_cover_class", "Unknown") if sat_blob else "Unknown",
             "land_cover_breakdown": sat_blob.get("land_cover_breakdown", {}) if sat_blob else {},
-            "source": "Derived from Open-Meteo elevation + GEE land cover",
+            "protected_area_status": sat_blob.get("protected_area_status", {"is_protected": False}) if sat_blob else {"is_protected": False},
+            "population_density": sat_blob.get("population_density", 0) if sat_blob else 0,
+            "source": "Derived from Open-Meteo elevation + GEE context",
         }
 
         # ---- Noise data placeholder ----

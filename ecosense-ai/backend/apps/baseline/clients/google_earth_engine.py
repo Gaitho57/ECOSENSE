@@ -36,6 +36,15 @@ WORLDCOVER_CLASSES = {
     100: "Moss and lichen",
 }
 
+# Principal Kenya Water Tower Hubs (Coordinates for sensitivity flagging)
+WATER_TOWERS = {
+    "Mau Complex": (-0.55, 35.8),
+    "Mt. Kenya": (-0.15, 37.3),
+    "Aberdares": (-0.4, 36.7),
+    "Mt. Elgon": (1.1, 34.5),
+    "Cherangani Hills": (1.2, 35.5),
+}
+
 
 class GoogleEarthEngineClient:
     """
@@ -107,6 +116,15 @@ class GoogleEarthEngineClient:
 
             ndvi_val = round(ndvi_stats.get("ndvi", 0) or 0, 4)
 
+            # Generate Tile URL for high-fidelity visualization
+            ndvi_viz = {
+                'min': -0.1,
+                'max': 0.9,
+                'palette': ['#ef4444', '#f59e0b', '#10b981'] # Red to Amber to Green
+            }
+            ndvi_tile_data = ndvi_image.getMapId(ndvi_viz)
+            ndvi_tile_url = ndvi_tile_data['tile_fetcher'].url_format
+
             # Get image metadata from the least-cloudy image
             best_image = s2_collection.first()
             img_info = best_image.getInfo()
@@ -168,16 +186,105 @@ class GoogleEarthEngineClient:
         ).getInfo()
         tree_loss_percent = round((loss_stats.get("loss", 0) or 0) * 100, 1)
 
+        # ---- 4. Protected Areas (WDPA) ----
+        protected_intersect = ee.FeatureCollection("WCMC/WDPA/current/polygons").filterBounds(buffer)
+        protected_areas = []
+        is_protected = False
+        protected_area_name = "None"
+        protected_area_type = "None"
+        
+        if protected_intersect.size().getInfo() > 0:
+            is_protected = True
+            features = protected_intersect.getInfo()['features']
+            protected_area_name = features[0]['properties'].get('NAME', 'Unknown')
+            protected_area_type = features[0]['properties'].get('DESIG_ENG', 'N/A')
+            
+            for feature in features:
+                props = feature['properties']
+                protected_areas.append({
+                    "name": props.get('NAME', 'Unknown'),
+                    "desig": props.get('DESIG_ENG', 'N/A'),
+                    "status": props.get('STATUS', 'N/A'),
+                    "geometry": feature.get('geometry')
+                })
+
+        # ---- 5. Hydrological Basins & Streams (HydroSHEDS) ----
+        basins = ee.FeatureCollection("WWF/HydroSHEDS/v1/Basins/level05")
+        intercepting_basin = basins.filterBounds(point)
+        basin_info = intercepting_basin.getInfo().get("features", [])
+        catchment_basin = basin_info[0].get("properties", {}).get("NAME", "Regional Basin") if basin_info else "National Basin"
+
+        # Stream Networks (Level 12 for high fidelity)
+        streams = ee.FeatureCollection("WWF/HydroSHEDS/v1/FreeFlowingRivers") \
+            .filterBounds(buffer)
+        stream_geojson = streams.getInfo() if streams.size().getInfo() > 0 else None
+
+        # Land Cover Tile URL
+        lc_viz = {'min': 10, 'max': 100, 'palette': ['#006400', '#ffbb22', '#ffff4c', '#f096ff', '#fa0000', '#b4b4b4', '#f0f0f0', '#0064c8', '#0096a0', '#00cf75', '#fae6a0']}
+        lc_tile_data = worldcover.getMapId(lc_viz)
+        lc_tile_url = lc_tile_data['tile_fetcher'].url_format
+
+        # ---- 6. Population Density (WorldPop/GPW) ----
+        pop_density = ee.ImageCollection("WorldPop/GPW/v411/GPW_Population_Density") \
+            .filter(ee.Filter.date("2020-01-01", "2021-01-01")) \
+            .first()
+        
+        pop_stats = pop_density.reduceRegion(
+            reducer=ee.Reducer.mean(),
+            geometry=buffer,
+            scale=1000,
+            maxPixels=1e8
+        ).getInfo()
+        
+        pop_density_val = round(pop_stats.get("population_density", 0) or 0, 2)
+
+        # ---- 7. Settlement Structure (Google Open Buildings) ----
+        # Precise building footprints for all of Africa
+        open_buildings = ee.FeatureCollection("GOOGLE/Research/open-buildings/v3/polygons")
+        # Filter buildings within a tighter 2km radius to avoid massive GeoJSON payloads
+        local_buffer = point.buffer(2000)
+        buildings_in_buffer = open_buildings.filterBounds(local_buffer).limit(500)
+        building_count = buildings_in_buffer.size().getInfo()
+        settlement_geometries = buildings_in_buffer.getInfo() if building_count > 0 else None
+
+        # ---- 8. Kenya Water Tower Sensitivity ----
+        water_tower_sensitivity = {"is_sensitive": False, "nearest_tower": "None", "distance_km": None}
+        for name, coords in WATER_TOWERS.items():
+            # Rough distance calculation in GEE is better, but this is a heuristic point-distance
+            tower_point = ee.Geometry.Point([coords[1], coords[0]])
+            dist = point.distance(tower_point).getInfo() / 1000.0
+            if dist < 40:  # 40km sensitivity radius for major catchments
+                water_tower_sensitivity = {
+                    "is_sensitive": True,
+                    "nearest_tower": name,
+                    "distance_km": round(dist, 1)
+                }
+                break
+
         return {
             "ndvi": ndvi_val,
+            "ndvi_tile_url": ndvi_tile_url,
             "land_cover_class": land_cover_class,
             "land_cover_breakdown": land_cover_breakdown,
+            "land_cover_tile_url": lc_tile_url,
             "tree_cover_percent": tree_cover_percent,
             "tree_cover_loss_percent": tree_loss_percent,
+            "protected_area_status": {
+                "is_protected": is_protected,
+                "name": protected_area_name,
+                "designation": protected_area_type,
+                "areas": protected_areas # All intersected area geometries and metadata
+            },
+            "catchment_basin": catchment_basin,
+            "hydrology_streams": stream_geojson,
+            "population_density": pop_density_val,
+            "building_count": building_count,
+            "settlement_geometries": settlement_geometries,
+            "water_tower_proximity": water_tower_sensitivity,
             "satellite_image_date": img_date if isinstance(img_date, str) else str(img_date),
             "cloud_cover_percent": round(cloud_cover, 1) if cloud_cover is not None else None,
             "source": "Google Earth Engine",
-            "datasets": ["Sentinel-2 SR Harmonized", "ESA WorldCover v200", "Hansen GFC 2023"],
+            "datasets": ["Sentinel-2 SR", "ESA WorldCover", "Hansen GFC", "WDPA", "HydroSHEDS", "WorldPop", "Google Open Buildings v3"],
         }
 
     def _get_modis_ndvi_gee(self, geometry, start_date, end_date):

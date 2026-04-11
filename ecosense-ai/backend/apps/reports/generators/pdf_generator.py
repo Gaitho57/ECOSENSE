@@ -1,12 +1,10 @@
-"""
-PDF Generator via WeasyPrint isolating native outputs securely wrapping bucket execution.
-"""
-
 import os
 import logging
 from io import BytesIO
 import boto3
 from django.conf import settings
+from pypdf import PdfReader, PdfWriter, Transformation
+import requests
 
 logger = logging.getLogger(__name__)
 from django.template.loader import render_to_string
@@ -38,6 +36,44 @@ def generate_pdf_report(project_id: str, tenant_id: str, version: int, report_da
         
         # write_pdf handles the actual rendering metadata
         pdf_file = html.write_pdf(stylesheets=styles)
+
+        # Statutory Document Merging (The Annex Vault)
+        statutory_docs = report_data.get("statutory_docs", [])
+        if statutory_docs:
+             logger.info(f"Merging {len(statutory_docs)} statutory annexes for Project {project_id}")
+             writer = PdfWriter()
+             
+             # Add the core report first
+             reader_core = PdfReader(BytesIO(pdf_file))
+             for page in reader_core.pages:
+                 writer.add_page(page)
+             
+             # Add each statutory annex
+             for doc in statutory_docs:
+                 try:
+                     # Load from local storage or S3
+                     if doc['url'].startswith('http'):
+                          resp = requests.get(doc['url'])
+                          resp.raise_for_status()
+                          doc_content = resp.content
+                     else:
+                          # Assume local path relative to media root
+                          local_doc_path = Path(settings.MEDIA_ROOT) / doc['url'].lstrip('/media/')
+                          with open(local_doc_path, 'rb') as f:
+                               doc_content = f.read()
+                     
+                     reader_annex = PdfReader(BytesIO(doc_content))
+                     for page in reader_annex.pages:
+                         writer.add_page(page)
+                     logger.info(f"Appended Annex: {doc['type']}")
+                 except Exception as annex_err:
+                     logger.warning(f"Failed to append annex {doc['type']}: {annex_err}")
+
+             # Re-bind the merged file back to pdf_file bytes
+             merged_output = BytesIO()
+             writer.write(merged_output)
+             pdf_file = merged_output.getvalue()
+             
     except Exception as e:
         logger.warning(f"WeasyPrint primary rendering failed: {e}. Attempting fallback...")
         try:

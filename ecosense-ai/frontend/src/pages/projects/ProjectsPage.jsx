@@ -21,7 +21,7 @@ export default function ProjectsPage() {
       fetchProjects();
   }, []);
 
-  const filtered = projects.filter(p => p.name.toLowerCase().includes(search.toLowerCase()));
+  const filtered = (projects || []).filter(p => p?.name?.toLowerCase().includes(search.toLowerCase()));
 
   // Map progress % based on status exactly mapping 8 constraints
   const stages = ['scoping','baseline','assessment','review','submitted','approved','monitoring'];

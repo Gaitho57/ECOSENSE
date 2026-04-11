@@ -43,7 +43,20 @@ def run_predictions(self, project_id: str, scenario_params: dict = None):
 
     # 4. Extract
     engine = PredictionEngine()
-    predictions = engine.predict(ptype, scale, baseline_data, scenario_name=scenario_name)
+    
+    # Deriving location context from project name or coordinates (simplified logic)
+    location_ctx = "Athi River" if "athi" in project.name.lower() else "the specified site"
+    if "turkana" in project.name.lower():
+         location_ctx = "Turkana"
+
+    predictions = engine.predict(
+        ptype, 
+        scale, 
+        baseline_data, 
+        scenario_name=scenario_name,
+        project_name=project.name,
+        location_name=location_ctx
+    )
 
     # 5. Handle Scenario Mitigations natively replacing prediction objects
     if scenario_params and "mitigations" in scenario_params:

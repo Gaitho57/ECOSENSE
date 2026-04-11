@@ -4,6 +4,7 @@ from .gbif import GBIFClient
 from .usgs import USGSClient
 from .hydrology import HydrologyClient
 from .climate import ClimateClient
+from .hydrogeology import HydrogeologyClient
 
 __all__ = [
     "GoogleEarthEngineClient",
@@ -12,4 +13,5 @@ __all__ = [
     "USGSClient",
     "HydrologyClient",
     "ClimateClient",
+    "HydrogeologyClient",
 ]

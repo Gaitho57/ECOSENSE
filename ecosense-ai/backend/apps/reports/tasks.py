@@ -81,7 +81,7 @@ def perform_report_generation(project_id: str, format: str = 'pdf', jurisdiction
         report.s3_key = key
         report.s3_url = url
         report.file_size_bytes = size
-        report.status = 'ready'
+        report.status = 'pending_expert_review'
         report.generated_at = timezone.now()
         
         # Capture compliance metadata for fallback display without model changes

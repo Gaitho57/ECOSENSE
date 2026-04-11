@@ -200,14 +200,26 @@ export default function ReportPage() {
                                                           )}
                                                      </td>
                                                      <td className="px-4 py-4 whitespace-nowrap">
-                                                          {r.status === 'ready' ? (
+                                                          {r.status === 'ready' || r.status === 'ready_for_submission' ? (
                                                               <div className="flex flex-col">
                                                                   <span className="text-green-600 font-black text-[10px] uppercase flex items-center gap-1">
                                                                       <span className="w-1.5 h-1.5 bg-green-600 rounded-full"></span> Ready
                                                                   </span>
-                                                                  {(pr_score !== null && pr_score < 70) && (
-                                                                      <span className="text-red-500 text-[9px] font-bold italic">Critical Violations Inside</span>
+                                                                  {r.status === 'ready_for_submission' && (
+                                                                      <span className="text-blue-600 text-[9px] font-bold italic mt-0.5">✍️ Digitally Signed</span>
                                                                   )}
+                                                              </div>
+                                                          ) : r.status === 'pending_expert_review' ? (
+                                                              <div className="flex flex-col">
+                                                                  <span className="text-orange-500 font-bold text-[10px] uppercase">Pending Expert Review</span>
+                                                                  <div className="flex gap-2 mt-1">
+                                                                       <button onClick={async () => {
+                                                                           try { await axiosInstance.post(`/reports/${projectId}/reports/${r.id}/expert-approve/`, { action: 'approve' }); loadReports(); } catch(e) { alert("Action failed. Consult authorization."); }
+                                                                       }} className="text-[9px] bg-green-100 text-green-700 px-2 py-0.5 rounded font-bold hover:bg-green-200">Sign Off</button>
+                                                                       <button onClick={async () => {
+                                                                           try { await axiosInstance.post(`/reports/${projectId}/reports/${r.id}/expert-approve/`, { action: 'reject' }); loadReports(); } catch(e) { alert("Action failed."); }
+                                                                       }} className="text-[9px] bg-red-100 text-red-700 px-2 py-0.5 rounded font-bold hover:bg-red-200">Reject</button>
+                                                                  </div>
                                                               </div>
                                                           ) : r.status === 'generating' ? (
                                                               <span className="text-blue-500 font-bold text-[10px] uppercase animate-pulse">Compiling Engine...</span>
@@ -219,7 +231,7 @@ export default function ReportPage() {
                                                           {r.generated_at ? new Date(r.generated_at).toLocaleString() : '-'}
                                                      </td>
                                                      <td className="px-4 py-4 whitespace-nowrap text-right">
-                                                          {r.status === 'ready' && r.download_url ? (
+                                                          {(r.status === 'ready' || r.status === 'ready_for_submission' || r.status === 'pending_expert_review') && r.download_url ? (
                                                                 <button 
                                                                     onClick={() => handleDownload(r.download_url, r.version, r.format)}
                                                                     className="bg-green-600 hover:bg-green-700 text-white text-[10px] font-black px-3 py-1.5 rounded uppercase shadow-sm transition-all inline-block cursor-pointer"

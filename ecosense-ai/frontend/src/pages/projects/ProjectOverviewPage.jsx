@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import axiosInstance from '../../api/axiosInstance';
+import satellitePlaceholder from '../../assets/placeholders/satellite_unavailable.png';
 
 export default function ProjectOverviewPage() {
   const { projectId } = useParams();
@@ -63,22 +64,36 @@ export default function ProjectOverviewPage() {
         {/* Header Block constraints securely mapping natively */}
         <div className="bg-white rounded-3xl p-8 border border-gray-100 flex flex-col md:flex-row md:items-end justify-between gap-6 shadow-sm">
              <div>
-                 <div className="flex gap-3 mb-3">
-                      <span className="text-[10px] uppercase font-black text-blue-600 bg-blue-50 px-3 py-1 rounded-sm border border-blue-100">{project.project_type.replace('_', ' ')}</span>
-                      <span className="text-[10px] uppercase font-black text-gray-500 bg-gray-100 flex items-center px-3 py-1 rounded-sm border border-gray-200">Scale: {project.scale_ha || 0} ha</span>
-                 </div>
-                 <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight">{project.name}</h1>
-                 <p className="text-gray-500 max-w-3xl mt-3 text-sm leading-relaxed">{project.description || "No architectural bounds initialized explicitly for this configuration..."}</p>
-                 
-                 <div className="flex gap-6 mt-6 pt-6 border-t border-gray-100">
-                     <span className="text-xs font-bold text-gray-500 flex items-center gap-2">👨‍💼 Lead: <span className="text-gray-800">{project.lead_consultant_name || 'N/A'}</span></span>
-                     <span className="text-xs font-bold text-gray-500 flex items-center gap-2">📜 NEMA Ref: <span className="text-gray-800">{project.nema_ref || 'Pending Generation'}</span></span>
-                 </div>
+                  <div className="flex gap-3 mb-3 shrink-0 flex-wrap">
+                       <span className="text-[10px] uppercase font-black text-blue-600 bg-blue-50 px-3 py-1 rounded-sm border border-blue-100">{project.project_type?.replace('_', ' ')}</span>
+                       <span className="text-[10px] uppercase font-black text-gray-500 bg-gray-100 flex items-center px-3 py-1 rounded-sm border border-gray-200">Scale: {project.scale_value || 0}</span>
+                       <span className={`text-[10px] uppercase font-black px-3 py-1 rounded-sm border ${
+                           project.nema_category === 'high' ? 'bg-red-50 text-red-600 border-red-100' :
+                           project.nema_category === 'medium' ? 'bg-amber-50 text-amber-600 border-amber-100' :
+                           'bg-green-50 text-green-600 border-green-100'
+                       }`}>
+                           {project.nema_category?.toUpperCase()} RISK - {project.nema_category === 'high' ? 'FULL STUDY' : 'SPR'}
+                       </span>
+                  </div>
+                  <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight">{project.name}</h1>
+                  <p className="text-gray-500 max-w-3xl mt-3 text-sm leading-relaxed">{project.description || "Project initialized for statutory assessment..."}</p>
+                  
+                  <div className="flex flex-wrap gap-6 mt-6 pt-6 border-t border-gray-100">
+                      <span className="text-xs font-bold text-gray-500 flex items-center gap-2">👨‍💼 Expert: <span className="text-gray-800">{project.lead_consultant_name || 'N/A'}</span> <span className="text-[10px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-500">{project.lead_consultant?.expert_rank?.toUpperCase() || 'ASSOCIATE'}</span></span>
+                      <span className="text-xs font-bold text-gray-500 flex items-center gap-2">📜 NEMA Ref: <span className="text-gray-800">{project.nema_ref || 'Pending Generation'}</span></span>
+                  </div>
              </div>
              
-             {/* Thumbnail Map Mockup purely visual placeholder for 1-click execution bounds */}
+             {/* Thumbnail Map - Dynamically localized based on Project GIS Coordinates */}
              <div className="w-full md:w-64 h-40 bg-gray-100 rounded-xl border-2 border-gray-200 overflow-hidden relative shadow-inner shrink-0 group hover:border-blue-400 transition-colors">
-                  <div className="absolute inset-0" style={{background: 'url("https://api.mapbox.com/styles/v1/mapbox/satellite-v9/static/36.8219,-1.2921,12,0/300x200?access_token=pk.mock") center/cover'}}>
+                  <div 
+                       className="absolute inset-0" 
+                       style={{
+                           background: project.mapbox_token 
+                               ? `url("https://api.mapbox.com/styles/v1/mapbox/satellite-v9/static/${project.coordinates?.lng || 36.8219},${project.coordinates?.lat || -1.2921},12,0/300x200?access_token=${project.mapbox_token}") center/cover`
+                               : `url(${satellitePlaceholder}) center/cover`
+                       }}
+                  >
                        <div className="absolute inset-0 bg-blue-900/10 mix-blend-multiply"></div>
                   </div>
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -163,7 +178,7 @@ export default function ProjectOverviewPage() {
                        Submission Readiness Checklist
                   </h3>
                   <div className="space-y-4">
-                       [
+                       {[
                            { label: "Physical Baraza Documentation", status: project.participation_workflow?.baraza_status || 'pending' },
                            { label: "Newspaper Notice (NEMA Section 17)", status: project.participation_workflow?.newspaper_notice_status || 'pending' },
                            { label: "County Zoning Permit (Verified)", status: 'pending' },
@@ -218,7 +233,7 @@ export default function ProjectOverviewPage() {
                        </div>
                        
                        <p className="text-xs text-gray-400 leading-relaxed italic">
-                            "The engine has detected high ecological sensitivity in the Turkana corridor. Automatic intersection with mining-specific rules has reduced the project's significance score by 45% through aggressive groundwater protection and nomadic movement corridors."
+                            "{project.thinking_summary || "The engine is analyzing project-specific ecological sensitivities and statutory constraints..."}"
                        </p>
                   </div>
              </div>
