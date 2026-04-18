@@ -29,25 +29,26 @@ django-celery-beat==2.5.0
 # -------------------------------
 # GEO (PostGIS stack)
 # -------------------------------
+GDAL>=3.4.0
 geopandas==0.14.0
 shapely==2.0.2
 earthengine-api==0.1.381
 pyproj==3.6.1
 
 # -------------------------------
-# AI / ML (light version)
+# AI / ML
 # -------------------------------
 langchain==0.0.335
 openai==1.3.3
 scikit-learn==1.3.2
 joblib==1.3.2
-# xgboost intentionally removed (add later as separate service)
+xgboost==2.0.3
 
 # -------------------------------
 # REPORTING
 # -------------------------------
-WeasyPrint==60.1
-pydyf==0.8.0
+WeasyPrint==62.3
+pydyf==0.10.0
 python-docx==1.1.0
 pypdf==3.17.1
 
@@ -68,6 +69,7 @@ boto3==1.29.0
 # MEDIA
 # -------------------------------
 Pillow==10.1.0
+qrcode[pil]==7.4.2
 
 # -------------------------------
 # MESSAGING

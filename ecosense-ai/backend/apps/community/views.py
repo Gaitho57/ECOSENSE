@@ -130,18 +130,149 @@ class CommunityDashboardView(APIView):
               
          return envelope(data=data, meta={"total": len(data)})
 
+class QRBarazaCheckInView(APIView):
+    """
+    Sprint 5B: Public endpoint — attendees scan the baraza QR code and submit their name/phone.
+    Creates a CommunityFeedback record for audit trail.
+    Returns a simple HTML confirmation page.
+    """
+    permission_classes = [AllowAny]
+
+    def get(self, request, qr_token):
+        from apps.community.models import BarazaEvent
+        from django.http import HttpResponse
+
+        try:
+            event = BarazaEvent.objects.select_related('workflow__project').get(qr_token=qr_token)
+        except BarazaEvent.DoesNotExist:
+            return HttpResponse("<h2>❌ Invalid QR code. This check-in link is not recognised.</h2>", status=404)
+
+        project = event.workflow.project
+        html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Baraza Check-In — EcoSense AI</title>
+  <style>
+    body {{ font-family: sans-serif; max-width: 480px; margin: 40px auto; padding: 20px; background: #f9fafb; }}
+    h1 {{ color: #166534; font-size: 1.4rem; }}
+    .card {{ background: white; border-radius: 12px; padding: 24px; box-shadow: 0 1px 6px rgba(0,0,0,.1); }}
+    input {{ width: 100%; padding: 12px; margin: 8px 0 16px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 1rem; }}
+    button {{ width: 100%; padding: 14px; background: #16a34a; color: white; border: none; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; }}
+    .meta {{ font-size: 0.8rem; color: #6b7280; margin-top: 16px; text-align: center; }}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>📋 Baraza Attendance Check-In</h1>
+    <p><strong>Project:</strong> {project.name}</p>
+    <p><strong>Location:</strong> {event.location_name}</p>
+    <p><strong>Date:</strong> {event.date_scheduled.strftime('%d %B %Y')}</p>
+    <hr style="margin:16px 0;border-color:#e5e7eb" />
+    <form method="POST">
+      <label>Your Full Name / Jina lako kamili</label>
+      <input type="text" name="name" required placeholder="John Kamau" />
+      <label>Phone Number (optional)</label>
+      <input type="tel" name="phone" placeholder="+254700000000" />
+      <label>Your Village / Community</label>
+      <input type="text" name="community" placeholder="Athi River Village" />
+      <button type="submit">✅ Sign In / Ingia</button>
+    </form>
+    <p class="meta">EcoSense AI · NEMA-compliant digital attendance register</p>
+  </div>
+</body>
+</html>"""
+        return HttpResponse(html, content_type="text/html")
+
+    def post(self, request, qr_token):
+        from apps.community.models import BarazaEvent
+        from django.http import HttpResponse
+        import hashlib
+
+        try:
+            event = BarazaEvent.objects.select_related('workflow__project').get(qr_token=qr_token)
+        except BarazaEvent.DoesNotExist:
+            return HttpResponse("<h2>❌ Invalid QR code.</h2>", status=404)
+
+        project = event.workflow.project
+        name = request.POST.get("name", "").strip()
+        phone = request.POST.get("phone", "").strip()
+        community = request.POST.get("community", "").strip()
+
+        phone_hash = hashlib.sha256(phone.encode()).hexdigest() if phone else ""
+
+        CommunityFeedback.objects.create(
+            project=project,
+            tenant_id=project.tenant_id,
+            channel="in_person",
+            raw_text=f"Baraza attendee check-in: {name or 'Anonymous'}. Community: {community}.",
+            submitter_name=name,
+            phone_hash=phone_hash,
+            community_name=community,
+            sentiment="neutral",
+            is_anonymous=not bool(name),
+        )
+
+        # Increment actual attendance on the event
+        event.actual_attendance = (event.actual_attendance or 0) + 1
+        event.save(update_fields=['actual_attendance'])
+
+        html = f"""<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8" /><title>Thank You — EcoSense AI</title>
+<style>body{{font-family:sans-serif;max-width:480px;margin:40px auto;padding:20px;text-align:center;background:#f9fafb;}}
+.card{{background:white;border-radius:12px;padding:40px;box-shadow:0 1px 6px rgba(0,0,0,.1);}}
+h1{{color:#166534;}}p{{color:#374151;}}</style></head>
+<body><div class="card">
+<div style="font-size:4rem">✅</div>
+<h1>Asante / Thank You!</h1>
+<p>Your attendance at the <strong>{event.location_name}</strong> baraza has been recorded.</p>
+<p style="font-size:0.85rem;color:#9ca3af;margin-top:24px">EcoSense AI · NEMA public participation register</p>
+</div></body></html>"""
+        return HttpResponse(html, content_type="text/html")
+
+
 class CommunityTemplatesView(APIView):
     permission_classes = [IsAuthenticated, IsSameTenant]
-    
+
     def get(self, request, project_id):
+        import base64, io
         try:
              project = Project.objects.get(id=project_id)
              self.check_object_permissions(request, project)
         except Project.DoesNotExist:
              return envelope(error={"code": 404, "message": "Project not found."}, status_code=404)
-        
+
         engine = PredictionEngine()
         loc = f"LAT: {project.location.y}, LNG: {project.location.x}"
         templates = engine.generate_participation_templates(project.name, loc)
-        
+
+        # Generate QR codes for all baraza events
+        baraza_qr_codes = []
+        try:
+            from apps.community.models import BarazaEvent, ParticipationWorkflow
+            import qrcode
+
+            pw = ParticipationWorkflow.objects.filter(project=project).first()
+            if pw:
+                for event in BarazaEvent.objects.filter(workflow=pw):
+                    frontend_url = getattr(__import__('django.conf', fromlist=['settings']).conf.settings, 'FRONTEND_URL', 'http://localhost:5173')
+                    check_in_url = f"{frontend_url}/api/v1/public/baraza/{event.qr_token}/checkin/"
+                    qr_img = qrcode.make(check_in_url)
+                    buffer = io.BytesIO()
+                    qr_img.save(buffer, format="PNG")
+                    b64 = base64.b64encode(buffer.getvalue()).decode()
+                    baraza_qr_codes.append({
+                        "event_id": str(event.id),
+                        "location": event.location_name,
+                        "date": event.date_scheduled.isoformat(),
+                        "check_in_url": check_in_url,
+                        "qr_code_base64": f"data:image/png;base64,{b64}",
+                    })
+        except Exception as qr_err:
+            baraza_qr_codes = [{"error": str(qr_err)}]
+
+        templates["baraza_qr_codes"] = baraza_qr_codes
         return envelope(data=templates)
+

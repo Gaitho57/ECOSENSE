@@ -50,7 +50,16 @@ class EIAReport(BaseModel):
     status = models.CharField(max_length=50, default="draft", choices=STATUS_CHOICES)
     error_message = models.TextField(blank=True, null=True)
     generated_at = models.DateTimeField(null=True, blank=True)
-    
+
+    # Compliance results — stored as proper fields (not hacked into error_message)
+    compliance_score = models.FloatField(null=True, blank=True, help_text="0–100 compliance score from the last audit run")
+    compliance_grade = models.CharField(max_length=2, blank=True, null=True, help_text="A/B/C/D/F grade corresponding to compliance_score")
+
+    # NEMA submission tracking
+    submission_ref = models.CharField(max_length=100, blank=True, help_text="NEMA acknowledgement reference number")
+    submitted_at = models.DateTimeField(null=True, blank=True)
+    submission_deadline = models.DateTimeField(null=True, blank=True, help_text="30-day review deadline from submitted_at")
+
     expert_signature = models.BooleanField(default=False)
     expert_notes = models.TextField(blank=True, null=True)
     expert_approved_at = models.DateTimeField(null=True, blank=True)

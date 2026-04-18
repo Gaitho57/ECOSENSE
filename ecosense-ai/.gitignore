@@ -108,3 +108,12 @@ docker-compose.override.yml
 # ========================
 backend/data/
 backend/media/
+backend/scratch/
+
+# ========================
+# Temp / Debug artifacts
+# ========================
+backend/core/temp_settings.py
+backend/generation_error.log
+backend/mock_*.py
+backend/seed_*.py

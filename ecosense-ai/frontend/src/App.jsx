@@ -14,6 +14,7 @@ import ProjectsPage from './pages/projects/ProjectsPage';
 import ProjectOverviewPage from './pages/projects/ProjectOverviewPage';
 import MonitoringPage from './pages/projects/MonitoringPage';
 import ESGPage from './pages/projects/ESGPage';
+import AnalyticsPage from './pages/dashboard/AnalyticsPage';
 
 // Sub-Module Activations
 import BaselinePage from './pages/projects/BaselinePage';
@@ -26,6 +27,7 @@ import CompliancePage from './pages/projects/CompliancePage';
 
 import SettingsPage from './pages/settings/SettingsPage';
 import VerificationPage from './pages/public/VerificationPage';
+import ParticipationPortal from './pages/public/ParticipationPortal';
 
 function App() {
   return (
@@ -39,8 +41,9 @@ function App() {
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/accept-invite/:token" element={<AcceptInvitePage />} />
 
-        {/* Public Decentralized Blockchain Tool */}
+        {/* Public pages — no authentication required */}
         <Route path="/verify/:projectToken" element={<VerificationPage />} />
+        <Route path="/public/participate/:projectToken" element={<ParticipationPortal />} />
 
         {/* Authenticated Application Architecture */}
         <Route path="/dashboard" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
@@ -61,7 +64,10 @@ function App() {
              <Route path="projects/:projectId/compliance" element={<CompliancePage />} />
              
              <Route path="settings" element={<SettingsPage />} />
+             {/* Sprint 4C — Firm-wide analytics */}
+             <Route path="analytics" element={<AnalyticsPage />} />
         </Route>
+
         
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

@@ -11,6 +11,7 @@ export default function AppLayout() {
   const navLinks = [
     { name: 'Dashboard', path: '/dashboard', icon: '📊' },
     { name: 'Projects', path: '/dashboard/projects', icon: '🌍' },
+    { name: 'Analytics', path: '/dashboard/analytics', icon: '📈' },
     { name: 'Settings', path: '/dashboard/settings', icon: '⚙️' },
   ];
 
@@ -22,10 +23,12 @@ export default function AppLayout() {
     { name: 'GIS Mapping', path: `/dashboard/projects/${projectId}/map` },
     { name: 'Community', path: `/dashboard/projects/${projectId}/community` },
     { name: 'Report Generator', path: `/dashboard/projects/${projectId}/report` },
+    { name: 'Report Editor', path: `/dashboard/projects/${projectId}/report-editor` },
     { name: 'Legal Compliance', path: `/dashboard/projects/${projectId}/compliance` },
     { name: 'Live IoT Monitor', path: `/dashboard/projects/${projectId}/monitoring` },
-    { name: 'ESG & Blockchain', path: `/dashboard/projects/${projectId}/esg` }
+    { name: 'ESG & Blockchain', path: `/dashboard/projects/${projectId}/esg` },
   ];
+
 
   const inProjectContext = pathname.includes(`/dashboard/projects/`) && projectId;
 

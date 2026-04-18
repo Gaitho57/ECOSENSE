@@ -24,6 +24,10 @@ import {
 } from 'lucide-react';
 import axiosInstance from '../../api/axiosInstance';
 
+// ─── Helper: normalise the DRF response shape ───────────────────────────────
+// ViewSets can return arrays directly or wrapped in { data: [] }
+const extractList = (res) => res?.data?.data ?? res?.data ?? [];
+
 const NEMA_SECTIONS = [
     { id: 'summary', title: '1. Non-Technical Summary', icon: '📝' },
     { id: 'exec_summary', title: '2. Executive Summary', icon: '📊' },
@@ -60,16 +64,73 @@ const ReportEditorPage = () => {
     const [uploadingMedia, setUploadingMedia] = useState(false);
     const [uploadingDoc, setUploadingDoc] = useState(false);
 
+    // ─── Load all saved sections from the backend and build a keyed map ─────
+    const loadSections = useCallback(async () => {
+        setLoading(true);
+        try {
+            const res = await axiosInstance.get(`/reports/${projectId}/sections/`);
+            const list = extractList(res);
+            const map = {};
+            list.forEach(s => { map[s.section_id] = s; });
+            setSectionsData(map);
+            // Pre-populate the editor with the first section's content
+            setContent(map[NEMA_SECTIONS[0].id]?.content || '');
+        } catch (err) {
+            console.error('Failed to load report sections', err);
+        } finally {
+            setLoading(false);
+        }
+    }, [projectId]);
+
+    // ─── Load field media and statutory documents ─────────────────────────────
     const loadData = useCallback(async () => {
         try {
             const [mediaRes, docsRes] = await Promise.all([
                  axiosInstance.get(`/projects/${projectId}/media/`),
                  axiosInstance.get(`/projects/${projectId}/documents/`)
             ]);
-            setMedia(mediaRes.data.data || []);
-            setDocs(docsRes.data.data || []);
+            setMedia(extractList(mediaRes));
+            setDocs(extractList(docsRes));
         } catch (err) {
-            console.error("Failed to load project files", err);
+            console.error('Failed to load project files', err);
+        }
+    }, [projectId]);
+
+    // ─── POST field photo (shared helper for both GPS and non-GPS paths) ──────
+    const postMedia = useCallback(async (formData) => {
+        try {
+            await axiosInstance.post(
+                `/projects/${projectId}/media/`,
+                formData,
+                { headers: { 'Content-Type': 'multipart/form-data' } }
+            );
+            await loadData();
+        } catch (err) {
+            alert('Photo upload failed. Please try again.');
+        } finally {
+            setUploadingMedia(false);
+        }
+    }, [projectId, loadData]);
+
+    // ─── Delete a field photo ─────────────────────────────────────────────────
+    const deleteMedia = useCallback(async (mediaId) => {
+        if (!window.confirm('Remove this photo from the report?')) return;
+        try {
+            await axiosInstance.delete(`/projects/${projectId}/media/${mediaId}/`);
+            setMedia(prev => prev.filter(m => m.id !== mediaId));
+        } catch (err) {
+            alert('Could not delete photo.');
+        }
+    }, [projectId]);
+
+    // ─── Delete a statutory document ─────────────────────────────────────────
+    const deleteDoc = useCallback(async (docId) => {
+        if (!window.confirm('Remove this document from the vault?')) return;
+        try {
+            await axiosInstance.delete(`/projects/${projectId}/documents/${docId}/`);
+            setDocs(prev => prev.filter(d => d.id !== docId));
+        } catch (err) {
+            alert('Could not delete document.');
         }
     }, [projectId]);
 
@@ -100,7 +161,7 @@ const ReportEditorPage = () => {
     useEffect(() => {
         loadSections();
         loadData();
-    }, [projectId, loadData]);
+    }, [projectId, loadSections, loadData]);
 
     const handleDocUpload = async (e) => {
         const file = e.target.files[0];
@@ -380,7 +441,11 @@ const ReportEditorPage = () => {
                                                              <a href={doc.file} target="_blank" rel="noreferrer" className="p-2.5 hover:bg-slate-100 rounded-xl transition-colors text-slate-400 hover:text-green-600">
                                                                   <Download className="w-5 h-5" />
                                                              </a>
-                                                             <button className="p-2.5 hover:bg-slate-100 rounded-xl transition-colors text-slate-400 hover:text-red-500">
+                                                             <button
+                                                                  onClick={() => deleteDoc(doc.id)}
+                                                                  className="p-2.5 hover:bg-slate-100 rounded-xl transition-colors text-slate-400 hover:text-red-500"
+                                                                  title="Remove from vault"
+                                                              >
                                                                   <Trash2 className="w-5 h-5" />
                                                              </button>
                                                          </div>

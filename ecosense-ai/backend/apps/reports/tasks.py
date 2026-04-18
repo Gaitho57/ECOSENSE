@@ -4,38 +4,20 @@ Background worker scaling compilation layouts syncing generators directly across
 
 import logging
 import traceback
-import pydyf
 from celery import shared_task
 from django.utils import timezone
 from django.db import transaction
 from django.db.models import Max
-
-logger = logging.getLogger(__name__)
-
-# EcoSense AI — Runtime Dependency Hotfix
-# Patches pydyf.PDF if it's an older version that doesn't accept metadata args
-try:
-    _original_pdf_init = pydyf.PDF.__init__
-    def _patched_pdf_init(self, version='1.7', identifier=None):
-        try:
-            _original_pdf_init(self, version, identifier)
-        except TypeError:
-            # Fallback for old pydyf versions (0.x) that only take 'self'
-            _original_pdf_init(self)
-    pydyf.PDF.__init__ = _patched_pdf_init
-except Exception as e:
-    logger.warning(f"Failed to apply pydyf runtime patch: {e}")
 
 from apps.projects.models import Project
 from apps.reports.models import EIAReport
 from apps.reports.compiler import compile_report_data
 from apps.reports.generators.pdf_generator import generate_pdf_report
 from apps.reports.generators.docx_generator import generate_docx_report
-from apps.compliance.engine import ComplianceBlockedError
 from apps.esg.tasks import record_audit_event
 
-import logging
 logger = logging.getLogger(__name__)
+
 
 def perform_report_generation(project_id: str, format: str = 'pdf', jurisdiction: str = 'NEMA_Kenya', language: str = 'en'):
     """
@@ -83,14 +65,16 @@ def perform_report_generation(project_id: str, format: str = 'pdf', jurisdiction
         report.file_size_bytes = size
         report.status = 'pending_expert_review'
         report.generated_at = timezone.now()
-        
-        # Capture compliance metadata for fallback display without model changes
-        audit_res = report_data.get("audit", {})
-        score = audit_res.get("score", 0)
-        grade = audit_res.get("grade", "F")
-        report.error_message = f"Compliance: {score}% ({grade})"
 
-        report.save(update_fields=['s3_key', 's3_url', 'file_size_bytes', 'status', 'generated_at', 'error_message'])
+        # Write compliance score to proper dedicated fields
+        audit_res = report_data.get("audit", {})
+        report.compliance_score = audit_res.get("score", 0)
+        report.compliance_grade = audit_res.get("grade", "F")
+
+        report.save(update_fields=[
+            's3_key', 's3_url', 'file_size_bytes', 'status',
+            'generated_at', 'compliance_score', 'compliance_grade'
+        ])
         
         record_audit_event.delay(
             project_id,

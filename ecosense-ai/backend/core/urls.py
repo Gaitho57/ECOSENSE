@@ -35,4 +35,3 @@ urlpatterns = [
     path("api/v1/emp/", include("apps.emp.urls")),
     path("api/v1/esg/", include("apps.esg.urls")),
 ]
-# RELOAD Sun Apr  5 12:17:43 PM EAT 2026

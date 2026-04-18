@@ -11,5 +11,7 @@ app_name = "baseline"
 # Their usage corresponds to /api/v1/projects/{project_id}/generate-baseline/
 urlpatterns = [
     path('<uuid:project_id>/generate-baseline/', GenerateBaselineView.as_view(), name='generate_baseline'),
+    # GET  → retrieve full baseline data
+    # PATCH → manually override one or more data fields
     path('<uuid:project_id>/baseline/', BaselineDetailView.as_view(), name='project_baseline_detail'),
 ]

@@ -10,8 +10,10 @@ Endpoints:
 import json
 import logging
 import uuid
+from datetime import datetime
 
 from django.contrib.gis.geos import GEOSGeometry
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -24,6 +26,19 @@ from apps.baseline.models import BaselineReport
 from apps.baseline.tasks import generate_baseline
 
 logger = logging.getLogger(__name__)
+
+# Allowed top-level JSON fields that a consultant may override manually.
+# Keeping this explicit prevents arbitrary model field injection.
+OVERRIDEABLE_FIELDS = {
+    'satellite_data',
+    'soil_data',
+    'biodiversity_data',
+    'air_quality_baseline',
+    'hydrology_data',
+    'climate_data',
+    'topography_data',
+    'noise_data',
+}
 
 
 def envelope(data=None, meta=None, error=None, status_code=status.HTTP_200_OK):
@@ -131,6 +146,107 @@ class BaselineDetailView(APIView):
                 error={"code": 404, "message": "Baseline has not been generated for this project.", "details": {}},
                 status_code=status.HTTP_404_NOT_FOUND
             )
+
+    def patch(self, request, project_id):
+        """
+        Manually override one or more baseline data fields.
+
+        Body (JSON): any subset of the overrideable fields, e.g.
+            {
+              "soil_data":         { "soil_type": "Sandy Loam", "ph": 6.8 },
+              "noise_data":        { "ambient_db": 52, "source": "Field measurement" },
+              "air_quality_baseline": { "aqi": 1, "source": "Manual sensor" }
+            }
+
+        Each top-level field is deep-merged into the existing JSON so that
+        a partial update (e.g. correcting only soil pH) does not erase other
+        satellite-derived values.
+        """
+        try:
+            project = Project.objects.get(id=project_id)
+        except Project.DoesNotExist:
+            return envelope(
+                error={"code": 404, "message": "Project not found.", "details": {}},
+                status_code=status.HTTP_404_NOT_FOUND
+            )
+
+        self.check_object_permissions(request, project)
+
+        try:
+            baseline = project.baseline
+        except BaselineReport.DoesNotExist:
+            return envelope(
+                error={"code": 404, "message": "No baseline exists yet. Generate one first.", "details": {}},
+                status_code=status.HTTP_404_NOT_FOUND
+            )
+
+        overrides = request.data
+        unknown = set(overrides.keys()) - OVERRIDEABLE_FIELDS
+        if unknown:
+            return envelope(
+                error={
+                    "code": 400,
+                    "message": f"Unknown or non-overridable fields: {sorted(unknown)}",
+                    "details": {"allowed": sorted(OVERRIDEABLE_FIELDS)}
+                },
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
+
+        if not overrides:
+            return envelope(
+                error={"code": 400, "message": "Request body is empty.", "details": {}},
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
+
+        updated_fields = []
+        override_meta = {
+            "overridden_by": str(request.user.id),
+            "overridden_at": timezone.now().isoformat(),
+            "source": "Manual expert override",
+        }
+
+        for field, new_values in overrides.items():
+            if not isinstance(new_values, dict):
+                return envelope(
+                    error={
+                        "code": 400,
+                        "message": f"Field '{field}' must be a JSON object.",
+                        "details": {}
+                    },
+                    status_code=status.HTTP_400_BAD_REQUEST
+                )
+
+            # Deep-merge: preserve existing keys, update only provided keys
+            existing = getattr(baseline, field, None) or {}
+            merged = {**existing, **new_values, "_override": override_meta}
+            setattr(baseline, field, merged)
+            updated_fields.append(field)
+
+        # Append to the data_sources audit trail
+        existing_sources = baseline.data_sources or []
+        existing_sources.append({
+            "source": "Manual Expert Override",
+            "fields": updated_fields,
+            "by": str(request.user.email),
+            "at": timezone.now().isoformat(),
+        })
+        baseline.data_sources = existing_sources
+        updated_fields.append('data_sources')
+
+        baseline.save(update_fields=updated_fields)
+
+        logger.info(
+            f"Baseline {baseline.id} manually overridden by {request.user.email}: {updated_fields}"
+        )
+
+        return envelope(
+            data={
+                "message": f"Baseline updated. Fields overridden: {updated_fields}",
+                "overridden_fields": updated_fields,
+                "overridden_by": str(request.user.email),
+                "overridden_at": override_meta["overridden_at"],
+            }
+        )
 
 
 class TaskStatusView(APIView):
