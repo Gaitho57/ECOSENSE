@@ -6,7 +6,7 @@
 
 ## Overview
 
-EcoSense AI is a multi-tenant SaaS platform that digitises the full Environmental Impact Assessment (EIA) lifecycle. It replaces static paper reports with an intelligent, continuously updated compliance system — from automated baseline generation using satellite and GIS data, through AI-driven impact prediction, to post-approval IoT monitoring, ESG dashboards, and a blockchain-secured audit trail.
+EcoSense AI is a multi-tenant platform that digitises the full Environmental Impact Assessment (EIA) lifecycle. It replaces static paper reports with an intelligent, continuously updated compliance system — from automated baseline generation using satellite and GIS data, through AI-driven impact prediction, to post-approval IoT monitoring, ESG dashboards, and a blockchain-secured audit trail.
 
 ### Key Capabilities
 
