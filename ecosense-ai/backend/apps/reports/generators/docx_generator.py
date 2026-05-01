@@ -12,6 +12,19 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml.ns import qn
 from docx.oxml import OxmlElement
 
+ACRONYMS = {
+    "EMCA": "Environmental Management and Coordination Act",
+    "ESIA": "Environmental and Social Impact Assessment",
+    "ESMMP": "Environmental and Social Management and Monitoring Plan",
+    "NEMA": "National Environment Management Authority",
+    "OSHA": "Occupational Safety and Health Act",
+    "WB": "World Bank",
+    "WHO": "World Health Organization",
+    "NMT": "Non-Motorized Transport",
+    "WRMA": "Water Resources Management Authority",
+    "PPE": "Personal Protective Equipment"
+}
+
 def generate_docx_report(project_id: str, tenant_id: str, version: int, report_data: dict) -> tuple:
     """
     Iterates explicit arrays natively mapping dictionary outputs onto nested python-docx constructs natively.
@@ -44,6 +57,15 @@ def generate_docx_report(project_id: str, tenant_id: str, version: int, report_d
     # 2. TABLE OF CONTENTS (Placeholder text)
     doc.add_heading('Table of Contents', level=1)
     doc.add_paragraph("1. Executive Summary\n2. Project Description\n3. Baseline Environment\n4. Impacts & Mitigations\n5. Public Participation\nAppendix A: Compliance Audit")
+    doc.add_page_break()
+
+    # 2. ACRONYMS
+    doc.add_heading('Acronyms', level=1)
+    table = doc.add_table(rows=0, cols=2)
+    for acr, desc in sorted(ACRONYMS.items()):
+        row = table.add_row().cells
+        row[0].text = acr
+        row[1].text = desc
     doc.add_page_break()
 
     # 3. EXEC SUMMARY
@@ -109,7 +131,32 @@ def generate_docx_report(project_id: str, tenant_id: str, version: int, report_d
 
     doc.add_page_break()
 
-    # 8. COMPLIANCE APPENDIX
+    # 8. ESMP
+    doc.add_heading('6. Environmental and Social Management Plan (ESMP)', level=1)
+    doc.add_paragraph("The following matrix outlines the mitigation measures, monitoring indicators, and responsibilities for each project phase.")
+    
+    table = doc.add_table(rows=1, cols=6)
+    table.style = 'Table Grid'
+    hdr_cells = table.rows[0].cells
+    hdr_cells[0].text = 'Phase'
+    hdr_cells[1].text = 'Impact'
+    hdr_cells[2].text = 'Mitigation Measure'
+    hdr_cells[3].text = 'Monitoring Indicator'
+    hdr_cells[4].text = 'Responsibility'
+    hdr_cells[5].text = 'Cost'
+
+    for item in report_data.get('esmp', []):
+        row_cells = table.add_row().cells
+        row_cells[0].text = str(item.get('phase', ''))
+        row_cells[1].text = str(item.get('impact', ''))
+        row_cells[2].text = str(item.get('measure', ''))
+        row_cells[3].text = str(item.get('indicator', ''))
+        row_cells[4].text = str(item.get('resp', ''))
+        row_cells[5].text = str(item.get('cost', ''))
+
+    doc.add_page_break()
+
+    # 9. COMPLIANCE APPENDIX
     doc.add_heading('Appendix A: Compliance Audit', level=1)
     doc.add_paragraph(f"Compliance Score: {report_data['audit']['score']}% | Grade: {report_data['audit']['grade']}")
     

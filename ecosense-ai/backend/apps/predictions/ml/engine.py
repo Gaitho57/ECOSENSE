@@ -52,7 +52,29 @@ KENYAN_LEGAL_DB = {
     }
 }
 
+MONITORING_STANDARDS = {
+    "air": "PM10 < 50 μg/m³, NO2 < 200 μg/m³, SO2 < 20 μg/m³ (NEMA/WB)",
+    "noise": "Day < 75 dB(A), Night < 60 dB(A) (Legal Notice 61)",
+    "vibration": "Vibration velocity < 0.5 cm/s beyond 30m source",
+    "water": "Zero discharge of untreated effluent; local WRMA compliance",
+    "soil": "Zero oil spills; silt trap efficiency > 80%",
+    "social": "Zero reported GBV incidents; 100% grievance resolution rate"
+}
+
 EXPERT_MITIGATIONS = {
+    "parking": {
+        "construction": [
+            "Site clearance and earthworks using excavators fitted with silencers; water sprinkling twice daily to suppress dust.",
+            "Installation of silt traps and temporary drainage channels to prevent sediment-laden runoff into local water bodies.",
+            "Traffic management using flagmen and warning signs; maximizing works during non-peak or non-market days to reduce social disturbance.",
+            "Zero tolerance for child labor; mandatory induction for all workers on GBV prevention and HIV/AIDS awareness."
+        ],
+        "operation": [
+            "Paving using bituminous materials or paving blocks to ensure zero dust emissions during vehicle maneuvers.",
+            "Regular maintenance of drainage structures and oil interceptors to prevent groundwater pollution from vehicle leaks.",
+            "Installation of low-energy street lighting and designated Non-Motorized Transport (NMT) facilities for pedestrian safety."
+        ]
+    },
     "air": {
         "manufacturing": [
             "Apply calcium chloride or water suppression on unpaved haul roads minimum twice daily during dry season months (June–September, January).",
@@ -573,6 +595,9 @@ class PredictionEngine:
                     else:
                          measure = f"Rehabilitation of {cat} profile via native species re-vegetation (36-month monitoring)."
 
+                # Technical Monitoring Indicator
+                indicator = MONITORING_STANDARDS.get(cat, f"Compliance with {cat} baseline standards.")
+                
                 # Scale costs based on scale_ha and category significance
                 import random
                 base_cost = 150000 if phase == "Construction" else 75000

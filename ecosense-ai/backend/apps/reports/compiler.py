@@ -212,6 +212,9 @@ def compile_report_data(project_id: str) -> dict:
         pw = ParticipationWorkflow.objects.get(project=project)
         participation_data = {
             "status": "Compliant" if pw.is_compliant() else "Ongoing",
+            "count": feedback_objs.count(),
+            "summary": f"A total of {feedback_objs.count()} verifiable submissions were recorded via multi-channel engagement (SMS, Web, WhatsApp, and Stakeholder Meetings).",
+            "stakeholders": ["Local Community", "Business Community", "Area Chief", "County Government"],
             "baraza": pw.get_baraza_status_display(),
             "newspaper": pw.get_newspaper_notice_status_display(),
             "radio": pw.get_radio_announcement_status_display(),
@@ -335,9 +338,10 @@ def compile_report_data(project_id: str) -> dict:
     if not legal_narrative:
         raw_legal = pred_engine.generate_legal_narrative(
             project_type,
-            audit_results.get("passed", []) + audit_results.get("failed", [])
+            audit_results.get("passed", []) + audit_results.get("failed", []),
+            extra_acts=["Physical Planning Act 1999", "Building Code 2000", "Public Health Act Cap 242"]
         )
-        legal_narrative = _validate_section(raw_legal, ['emca', 'regulation', 'act', 'nema', 'legal'], "This project is governed primarily by EMCA 1999 and the 2003 EIA/Audit Regulations.")
+        legal_narrative = _validate_section(raw_legal, ['emca', 'regulation', 'act', 'nema', 'legal'], "This project is governed primarily by EMCA 1999, the 2003 EIA/Audit Regulations, and the Physical Planning Act.")
     
     alternatives_analysis = pred_engine.generate_alternatives_analysis(project_type, scale, baseline_data)
     
