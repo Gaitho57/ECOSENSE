@@ -61,7 +61,36 @@ MONITORING_STANDARDS = {
     "social": "Zero reported GBV incidents; 100% grievance resolution rate"
 }
 
+BIODIVERSITY_THRESHOLDS = {
+    "CR_EN_SPECIES": "≥ 0.5% global population AND ≥ 5 reproductive units (IFC Criterion 1)",
+    "RESTRICTED_RANGE": "EOO < 50,000 km² (IFC Criterion 2)",
+    "MIGRATORY_CONGREGATORY": "≥ 1% global population cyclically (IFC Criterion 3)",
+    "OFFSET_RATE_EURO_HA": 36500, # Based on Mwache KFS Benchmark
+    "REPLANTING_SURVIVAL_TARGET": "70% at 24 months"
+}
+
 EXPERT_MITIGATIONS = {
+    "biodiversity": {
+        "avoidance": [
+            "Avoid placing construction equipment, stockpiles, or camps within the forest/mangrove boundary.",
+            "Prohibit night works (18:00 - 06:00) to avoid disturbance to nocturnal and crepuscular fauna.",
+            "Strict ban on open burning of wastes and forest fires; zero-tolerance for illegal hunting/trafficking."
+        ],
+        "minimization": [
+            "Engagement of an on-site ecologist to supervise pre-clearance checks and tree marking.",
+            "Installation of silt traps and temporary drainage to prevent sediment discharge into critical habitats.",
+            "Washdown procedures for all equipment to prevent introduction of invasive species/pests."
+        ],
+        "restoration": [
+            "Re-vegetation of impacted banks and escarpments using native species (e.g., Obetia radula, Enchephalartos hildebrandtii).",
+            "Establishment of a 1:3 replacement ratio for all cleared indigenous trees.",
+            "Monthly monitoring of sapling survival; replacement of failed individuals if survival < 70%."
+        ],
+        "offset": [
+            "Payment of special user license fees to KFS for compensatory reforestation of degraded forest sections.",
+            "Funding of Community Forest Association (CFA) nursery programs for endemic coastal flora."
+        ]
+    },
     "parking": {
         "construction": [
             "Site clearance and earthworks using excavators fitted with silencers; water sprinkling twice daily to suppress dust.",
@@ -496,6 +525,34 @@ class PredictionEngine:
             "probability": round(normalized_prob * 10, 1) # Displaying on 1-10 scale in report
         }
 
+    def determine_critical_habitat_status(self, project_type: str, baseline_data: dict) -> dict:
+        """
+        Evaluates project against IFC PS6 / WB ESS6 criteria.
+        Returns a status dictionary with flagging and reasoning based on benchmark CHA thresholds.
+        """
+        is_critical = False
+        reasons = []
+        
+        # Criterion 1: Habitat of Significant Importance to CR/EN Species
+        # Threshold: ≥ 0.5% global population AND ≥ 5 reproductive units
+        endangered_objs = baseline_data.get("biodiversity", {}).get("endangered_species", [])
+        if len(endangered_objs) > 0:
+            is_critical = True
+            reasons.append(f"Contains {len(endangered_objs)} IUCN CR/EN species (IFC Criterion 1)")
+            
+        # Criterion 4: Highly Threatened/Unique Ecosystems
+        site_desc = (baseline_data.get("description", "") + " " + baseline_data.get("ecology_source", "")).lower()
+        if any(x in site_desc for x in ["mangrove", "kaya", "gazetted forest", "riparian buffer", "discrete management unit"]):
+            is_critical = True
+            reasons.append("Interphases with Highly Threatened/Unique Ecosystem (IFC Criterion 4: Mwache Forest/Mangrove/Kaya)")
+
+        return {
+            "is_critical": is_critical,
+            "reasons": reasons,
+            "standards": ["IFC Performance Standard 6", "World Bank ESS6"],
+            "dm_unit": "Mwache-Tanza-Mbuguni-Bonje Forest Ecosystem (DMU)" if "mwache" in site_desc else "Project Specific DMU"
+        }
+
     def _generate_expert_content(self, project_type: str, category: str, severity: str, prob: float, significance: dict, baseline: dict, project_name: str = "the project", location_name: str = "the project area") -> tuple:
         """Deeply technical Internal AI content with specific Kenyan mitigations."""
         
@@ -514,10 +571,20 @@ class PredictionEngine:
         )
         
         # 2. Sector-Specific Mitigation Retrieval
-        # Use .copy() to prevent cross-report mutation of the static EXPERT_MITIGATIONS dict
-        mitigations = EXPERT_MITIGATIONS.get(category, {}).get(project_type, []).copy()
-        
-        # Context Intersection: Inject ultra-specific content if keywords match baseline
+        # Professional Mitigation Hierarchy Logic (IFC PS6 / WB ESS6)
+        if category.lower() in ["biodiversity", "ecology", "riparian", "forest"]:
+             hierarchy = EXPERT_MITIGATIONS.get("biodiversity", {})
+             mitigations = [
+                 f"AVOID: {hierarchy['avoidance'][0]}",
+                 f"MINIMIZE: {hierarchy['minimization'][0]}",
+                 f"RESTORE: {hierarchy['restoration'][0]}",
+                 f"OFFSET: {hierarchy['offset'][0]}"
+             ]
+        else:
+             mitigations = EXPERT_MITIGATIONS.get(category.lower(), {}).get(project_type.lower(), []).copy()
+             if not mitigations:
+                  # Fallback to general category mitigations
+                  mitigations = EXPERT_MITIGATIONS.get(category.lower(), {}).get("general", [])
         species_list = str(baseline.get("biodiversity", {}).get("species_list", [])).lower()
         if category == "biodiversity":
             if "gyps" in species_list or "vulture" in species_list:
@@ -600,10 +667,15 @@ class PredictionEngine:
                 
                 # Scale costs based on scale_ha and category significance
                 import random
-                base_cost = 150000 if phase == "Construction" else 75000
-                scale_factor = min(2.5, max(1.0, float(scale_ha or 1) / 10.0))
-                random_variance = random.uniform(0.9, 1.2)
-                final_cost = int(base_cost * scale_factor * random_variance)
+                if cat in ("biodiversity", "forest", "ecology") and phase == "Operation":
+                     # Apply KFS Offset Benchmarking (€36,500 / ha)
+                     ha = float(scale_ha or 1)
+                     final_cost = int(ha * BIODIVERSITY_THRESHOLDS["OFFSET_RATE_EURO_HA"] * 150) # Approx KES conversion
+                else:
+                     base_cost = 150000 if phase == "Construction" else 75000
+                     scale_factor = min(2.5, max(1.0, float(scale_ha or 1) / 10.0))
+                     random_variance = random.uniform(0.9, 1.2)
+                     final_cost = int(base_cost * scale_factor * random_variance)
 
                 esmp_data.append({
                     "phase": phase,

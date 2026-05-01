@@ -22,7 +22,13 @@ ACRONYMS = {
     "WHO": "World Health Organization",
     "NMT": "Non-Motorized Transport",
     "WRMA": "Water Resources Management Authority",
-    "PPE": "Personal Protective Equipment"
+    "PPE": "Personal Protective Equipment",
+    "CHA": "Critical Habitat Assessment",
+    "BMP": "Biodiversity Management Plan",
+    "DMU": "Discrete Management Unit",
+    "KBA": "Key Biodiversity Area",
+    "IBAT": "Integrated Biodiversity Assessment Tool",
+    "IUCN": "International Union for Conservation of Nature"
 }
 
 def generate_docx_report(project_id: str, tenant_id: str, version: int, report_data: dict) -> tuple:
@@ -82,7 +88,25 @@ def generate_docx_report(project_id: str, tenant_id: str, version: int, report_d
             run.bold = True
             doc.add_paragraph(f"Remedy: {alert['remedy']}")
     
-    # 4. PROJECT DESCRIPTION
+    # 4. CRITICAL HABITAT ASSESSMENT (NEW)
+    if report_data['baseline'].get('cha_flag', {}).get('is_critical'):
+        doc.add_heading('Critical Habitat Assessment (CHA)', level=2)
+        cha = report_data['baseline']['cha_flag']
+        p = doc.add_paragraph()
+        run = p.add_run("CRITICAL HABITAT TRIGGERED")
+        run.bold = True
+        run.font.color.rgb = RGBColor(255, 0, 0)
+        
+        doc.add_paragraph(f"Discrete Management Unit (DMU): {cha['dm_unit']}")
+        doc.add_paragraph("Reasons for Designation:").bold = True
+        for reason in cha['reasons']:
+            doc.add_paragraph(reason, style='List Bullet')
+            
+        doc.add_heading('Biodiversity Management Plan (BMP) Summary', level=2)
+        doc.add_paragraph("Based on IFC PS6 requirements, a net-gain outcome is mandatory for this project.")
+        doc.add_paragraph(f"Ecosystem Services: {report_data['baseline'].get('ecosystem_services', 'N/A')}")
+        
+    # 5. PROJECT DESCRIPTION
     doc.add_heading('2. Project Description', level=1)
     doc.add_paragraph(f"The project is a {report_data['project']['type']} development covering {report_data['project']['scale_ha']} hectares.")
 

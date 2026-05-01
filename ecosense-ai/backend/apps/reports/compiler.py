@@ -345,6 +345,17 @@ def compile_report_data(project_id: str) -> dict:
     
     alternatives_analysis = pred_engine.generate_alternatives_analysis(project_type, scale, baseline_data)
     
+    # 5.2 Critical Habitat Assessment (CHA) Flagging (IFC PS6 / WB ESS6)
+    cha_data = pred_engine.determine_critical_habitat_status(project_type, baseline_data)
+    baseline_data["cha_flag"] = cha_data
+    
+    # 5.3 Ecosystem Services Narrative
+    ecosystem_services = "Ecological services provided by the project area include coastal protection, carbon sequestration (if mangrove/forest), and localized nutrient cycling."
+    if cha_data["is_critical"]:
+        ecosystem_services += f" This site is designated as a Critical Habitat based on: {', '.join(cha_data['reasons'])}."
+    
+    baseline_data["ecosystem_services"] = ecosystem_services
+    
     hazard_plan = manual_sections.get('hazards')
     if not hazard_plan:
         raw_hazard = pred_engine.generate_hazard_plan(project_type)
