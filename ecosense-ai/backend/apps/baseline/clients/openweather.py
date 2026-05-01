@@ -37,43 +37,56 @@ class OpenWeatherClient:
 
     def __init__(self):
         self.api_key = getattr(settings, "OPENWEATHER_API_KEY", "")
-        self.base_url_air = "http://api.openweathermap.org/data/2.5/air_pollution"
-        self.base_url_weather = "http://api.openweathermap.org/data/2.5/weather"
+        self.base_url_air = "https://air-quality-api.open-meteo.com/v1/air-quality"
+        self.base_url_weather = "https://api.open-meteo.com/v1/forecast"
 
     @retry_api_call(max_retries=3, delay=2)
     def get_data(self, lat: float, lng: float, radius_km: int = 10) -> dict:
         """
-        Fetch comprehensive air quality and weather attributes.
+        Fetch comprehensive air quality and weather attributes from Open-Meteo.
         """
-        if not self.api_key:
-            raise ValueError("OPENWEATHER_API_KEY is not set.")
-
-        params = {"lat": lat, "lon": lng, "appid": self.api_key}
+        params_air = {
+            "latitude": lat,
+            "longitude": lng,
+            "current": "european_aqi,pm10,pm2_5,nitrogen_dioxide,sulphur_dioxide,carbon_monoxide,ozone"
+        }
 
         # ---- 1. Air Pollution Data ----
-        air_resp = requests.get(self.base_url_air, params=params, timeout=30)
+        air_resp = requests.get(self.base_url_air, params=params_air, timeout=10)
         air_resp.raise_for_status()
         air_json = air_resp.json()
 
-        air_entry = air_json.get("list", [{}])[0]
-        components = air_entry.get("components", {})
-        aqi = air_entry.get("main", {}).get("aqi", 1)
+        current_air = air_json.get("current", {})
+        aqi = current_air.get("european_aqi", 1)
+        # Scale European AQI (0-100) down to 1-5 scale for UI compatibility
+        scaled_aqi = min(5, max(1, int((aqi / 20) + 1)))
+
+        components = {
+            "pm2_5": current_air.get("pm2_5", 0.0),
+            "pm10": current_air.get("pm10", 0.0),
+            "no2": current_air.get("nitrogen_dioxide", 0.0),
+            "so2": current_air.get("sulphur_dioxide", 0.0),
+            "co": current_air.get("carbon_monoxide", 0.0),
+            "o3": current_air.get("ozone", 0.0),
+        }
 
         # ---- 2. Current Weather Data ----
-        wx_params = {**params, "units": "metric"}
-        wx_resp = requests.get(self.base_url_weather, params=wx_params, timeout=30)
+        params_wx = {
+            "latitude": lat,
+            "longitude": lng,
+            "current": "temperature_2m,relative_humidity_2m,apparent_temperature,surface_pressure,wind_speed_10m,wind_direction_10m,wind_gusts_10m,weather_code"
+        }
+        wx_resp = requests.get(self.base_url_weather, params=params_wx, timeout=10)
         wx_resp.raise_for_status()
         wx_json = wx_resp.json()
 
-        wind = wx_json.get("wind", {})
-        main = wx_json.get("main", {})
-        weather = wx_json.get("weather", [{}])[0]
+        current_wx = wx_json.get("current", {})
 
         # ---- 3. Build comprehensive response ----
         return {
             # Air Quality Index
-            "aqi": aqi,
-            "aqi_label": AQI_LABELS.get(aqi, "Unknown"),
+            "aqi": scaled_aqi,
+            "aqi_label": AQI_LABELS.get(scaled_aqi, "Unknown"),
 
             # Primary pollutants (µg/m³)
             "pm2_5": components.get("pm2_5", 0.0),
@@ -82,28 +95,28 @@ class OpenWeatherClient:
             "so2": components.get("so2", 0.0),
             "co": components.get("co", 0.0),
             "o3": components.get("o3", 0.0),
-            "nh3": components.get("nh3", 0.0),
-            "no": components.get("no", 0.0),
+            "nh3": 0.0,
+            "no": 0.0,
 
             # WHO guideline exceedances
             "who_exceedances": self._check_who_limits(components),
 
             # Wind
-            "wind_speed_ms": wind.get("speed", 0.0),
-            "wind_direction_deg": wind.get("deg", 0),
-            "wind_gust_ms": wind.get("gust", None),
+            "wind_speed_ms": current_wx.get("wind_speed_10m", 0.0) / 3.6, # km/h to m/s
+            "wind_direction_deg": current_wx.get("wind_direction_10m", 0),
+            "wind_gust_ms": current_wx.get("wind_gusts_10m", 0.0) / 3.6 if current_wx.get("wind_gusts_10m") else None,
 
             # Temperature & Humidity
-            "temperature_c": main.get("temp", 0),
-            "feels_like_c": main.get("feels_like", 0),
-            "humidity_percent": main.get("humidity", 0),
-            "pressure_hpa": main.get("pressure", 0),
+            "temperature_c": current_wx.get("temperature_2m", 0),
+            "feels_like_c": current_wx.get("apparent_temperature", 0),
+            "humidity_percent": current_wx.get("relative_humidity_2m", 0),
+            "pressure_hpa": current_wx.get("surface_pressure", 0),
 
             # Current conditions
-            "weather_description": weather.get("description", ""),
-            "visibility_m": wx_json.get("visibility", 10000),
+            "weather_description": f"WMO Code {current_wx.get('weather_code', 0)}",
+            "visibility_m": 10000,
 
-            "source": "OpenWeatherMap API",
+            "source": "Open-Meteo API",
         }
 
     @staticmethod

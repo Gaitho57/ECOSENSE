@@ -15,6 +15,8 @@ export default function HydrologyLayer({ hydrology_data, isVisible = true }) {
     let geoJsonData = { type: 'FeatureCollection', features: [] };
     if (hydrology_data?.streams) {
         geoJsonData = hydrology_data.streams;
+    } else if (hydrology_data?.features?.type === 'FeatureCollection') {
+        geoJsonData = hydrology_data.features;
     } else if (hydrology_data?.type === 'FeatureCollection') {
         geoJsonData = hydrology_data;
     }

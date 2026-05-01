@@ -13,14 +13,17 @@ class Project(BaseModel):
     Overarching boundary mapping scopes tracking constraints strictly cleanly natively.
     """
     TYPE_CHOICES = [
-        ("mining", "Mining & Extraction"),
-        ("construction", "Commercial Construction"),
-        ("manufacturing", "Industrial Manufacturing"),
-        ("agriculture", "Large Scale Agriculture"),
-        ("infrastructure", "Infrastructure & Transport"),
-        ("energy", "Energy & Power Generation"),
-        ("tourism", "Tourism & Conservation"),
+        ("agriculture", "Agriculture & Forestry"),
         ("borehole", "Borehole Project"),
+        ("construction", "Urban & Housing Development"),
+        ("energy", "Energy & Power Generation"),
+        ("health_facilities", "Health & Medical Facilities"),
+        ("infrastructure", "Infrastructure & Transport"),
+        ("manufacturing", "Industrial Manufacturing"),
+        ("mining", "Mining & Extraction"),
+        ("tourism", "Tourism & Conservation"),
+        ("waste_management", "Waste Management & Disposal"),
+        ("water_resources", "Water Resources & Dams"),
         ("other", "Other Sector")
     ]
     
@@ -74,6 +77,24 @@ class Project(BaseModel):
         ordering = ["-updated_at"]
         verbose_name = "Project"
         verbose_name_plural = "Projects"
+
+    def clean_name(self):
+        """Sanitizes the project name, fixing common Kenyan location typos."""
+        name = self.name.strip()
+        # Fix common "isumu" typo and lowercase starts
+        if name.lower().startswith("isumu"):
+            name = "K" + name
+        elif name and name[0].islower():
+            name = name.capitalize()
+        
+        # Ensure 'isumu' isn't hiding inside
+        import re
+        name = re.sub(r'\bisumu\b', 'Kisumu', name, flags=re.IGNORECASE)
+        return name
+
+    def save(self, *args, **kwargs):
+        self.name = self.clean_name()
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.name} ({self.get_project_type_display()})"

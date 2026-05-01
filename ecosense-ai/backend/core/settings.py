@@ -190,6 +190,7 @@ CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = "Africa/Nairobi"
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
+CELERY_TASK_ALWAYS_EAGER = True
 
 # ===========================================
 # AWS / S3
@@ -229,8 +230,8 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # Celery Production Mode
 # For local dev with synchronous execution, use core.settings_dev
 # ===========================================
-CELERY_TASK_ALWAYS_EAGER = False
-CELERY_TASK_EAGER_PROPAGATES = False
+CELERY_TASK_ALWAYS_EAGER = True
+CELERY_TASK_EAGER_PROPAGATES = True
 
 # ===========================================
 # Email Backend

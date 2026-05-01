@@ -21,7 +21,7 @@ export default function ImpactRadarChart({ basePredictions, mitigatePredictions 
       <h3 className="text-xl font-bold text-gray-800 mb-2">Multivariate Probability Radar</h3>
       <p className="text-sm text-gray-500 mb-6">Compare impact scopes cumulatively spanning probabilities bounds mapping zero relative impact cleanly.</p>
       
-      <div className="flex-1 w-full relative">
+      <div className="w-full relative min-h-[300px]" style={{ flex: '1 1 auto' }}>
           <ResponsiveContainer width="100%" height="100%">
             <RadarChart cx="50%" cy="50%" outerRadius="70%" data={mapData}>
               <PolarGrid stroke="#e5e7eb" />

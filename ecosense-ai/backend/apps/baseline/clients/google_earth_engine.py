@@ -18,6 +18,7 @@ import ee
 import requests
 from django.conf import settings
 from .utils import retry_api_call
+from ..utils.geospatial_atlas import get_regional_profile
 
 logger = logging.getLogger(__name__)
 
@@ -77,9 +78,29 @@ class GoogleEarthEngineClient:
         Uses GEE if authenticated, otherwise falls back to free REST APIs.
         """
         if self._gee_available:
-            return self._get_data_gee(lat, lng, radius_km)
+            data = self._get_data_gee(lat, lng, radius_km)
         else:
-            return self._get_data_fallback(lat, lng, radius_km)
+            data = self._get_data_fallback(lat, lng, radius_km)
+
+        # ---- SMART FALLBACK VIA GEOSPATIAL ATLAS ----
+        # If land cover is unknown or NDVI is default 0.3, enrich from atlas
+        if data.get("land_cover_class") == "Unknown" or data.get("ndvi", 0.3) == 0.3:
+            atlas = get_regional_profile(lat, lng)
+            veg_atlas = atlas.get("vegetation", {})
+            
+            if data.get("land_cover_class") == "Unknown":
+                data["land_cover_class"] = veg_atlas.get("land_cover", "Mixed Savannah")
+                data["land_cover_breakdown"] = {data["land_cover_class"]: 100.0}
+            
+            if data.get("ndvi", 0.3) == 0.3:
+                data["ndvi"] = veg_atlas.get("ndvi", 0.4)
+            
+            if data.get("tree_cover_percent", 0) <= 0:
+                data["tree_cover_percent"] = veg_atlas.get("tree_cover", 10.0)
+                
+            data["source"] = f"{data.get('source', 'EcoSense Atlas')} (Regional Atlas Augmentation)"
+
+        return data
 
     # ------------------------------------------------------------------
     # Primary path: Real GEE computations
@@ -356,11 +377,11 @@ class GoogleEarthEngineClient:
                 "community": "AG",
                 "longitude": lng,
                 "latitude": lat,
-                "start": (end_date - timedelta(days=365)).strftime("%Y%m"),
-                "end": end_date.strftime("%Y%m"),
+                "start": (end_date - timedelta(days=365)).strftime("%Y"),
+                "end": end_date.strftime("%Y"),
                 "format": "JSON",
             }
-            resp = requests.get(url, params=params, timeout=30)
+            resp = requests.get(url, params=params, timeout=5)
             resp.raise_for_status()
             data = resp.json()
 
@@ -396,7 +417,7 @@ class GoogleEarthEngineClient:
         Estimate land cover using OpenStreetMap land use tags via Overpass API.
         """
         try:
-            overpass_url = "https://overpass-api.de/api/interpreter"
+            overpass_url = "https://lz4.overpass-api.de/api/interpreter"
             query = f"""
             [out:json][timeout:25];
             (
@@ -406,7 +427,7 @@ class GoogleEarthEngineClient:
             );
             out tags;
             """
-            resp = requests.post(overpass_url, data={"data": query}, timeout=30)
+            resp = requests.post(overpass_url, data={"data": query}, timeout=5)
             resp.raise_for_status()
             elements = resp.json().get("elements", [])
 

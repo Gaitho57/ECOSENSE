@@ -50,6 +50,16 @@ def generate_docx_report(project_id: str, tenant_id: str, version: int, report_d
     doc.add_heading('1. Executive Summary', level=1)
     doc.add_paragraph(f"This report analyzes the {report_data['project']['name']} project. Baseline Grade: {report_data['baseline']['sensitivity_grade']}.")
     
+    # Compliance Alerts
+    if report_data['baseline'].get('compliance_alerts'):
+        doc.add_heading('Compliance Alerts', level=2)
+        for alert in report_data['baseline']['compliance_alerts']:
+            p = doc.add_paragraph()
+            run = p.add_run(f"[{alert['level']}] {alert['message']}")
+            run.font.color.rgb = RGBColor(255, 0, 0)
+            run.bold = True
+            doc.add_paragraph(f"Remedy: {alert['remedy']}")
+    
     # 4. PROJECT DESCRIPTION
     doc.add_heading('2. Project Description', level=1)
     doc.add_paragraph(f"The project is a {report_data['project']['type']} development covering {report_data['project']['scale_ha']} hectares.")

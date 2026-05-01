@@ -26,7 +26,7 @@ class HydrologyClient:
     """
 
     def __init__(self):
-        self.overpass_url = "https://overpass-api.de/api/interpreter"
+        self.overpass_url = "https://lz4.overpass-api.de/api/interpreter"
 
     @retry_api_call(max_retries=3, delay=3)
     def get_data(self, lat: float, lng: float, radius_km: int = 10) -> dict:
@@ -67,7 +67,7 @@ class HydrologyClient:
         out body geom;
         """
 
-        resp = requests.post(self.overpass_url, data={"data": query}, timeout=45)
+        resp = requests.post(self.overpass_url, data={"data": query}, timeout=15)
         resp.raise_for_status()
         elements = resp.json().get("elements", [])
 

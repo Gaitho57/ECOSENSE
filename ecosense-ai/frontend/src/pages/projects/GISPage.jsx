@@ -149,10 +149,15 @@ export default function GISPage() {
           const res = await axiosInstance.get(`/projects/${projectId}/simulations/dispersion/`, {
               params: dispersionParams
           });
-          if (res.data.error) setErrorMsg(res.data.error);
-          else setDispersionData(res.data);
           
-          setLayers(prev => ({...prev, dispersion: true}));
+          // Check if response is an error object disguised as 200 OK
+          if (res.data.error) {
+              setErrorMsg(res.data.error);
+          } else {
+              setDispersionData(res.data);
+              setErrorMsg(""); // Clear errors on success
+              setLayers(prev => ({...prev, dispersion: true}));
+          }
       } catch (e) {
           setErrorMsg("Failed to generate dispersion plume geometries.");
       }
@@ -164,10 +169,13 @@ export default function GISPage() {
       setErrorMsg("");
       try {
           const res = await axiosInstance.get(`/projects/${projectId}/simulations/flood/`);
-          if (res.data.error) setErrorMsg(res.data.error);
-          else setFloodData(res.data);
-
-          setLayers(prev => ({...prev, flood: true}));
+          if (res.data.error) {
+              setErrorMsg(res.data.error);
+          } else {
+              setFloodData(res.data);
+              setErrorMsg(""); // Clear errors on success
+              setLayers(prev => ({...prev, flood: true}));
+          }
       } catch (e) {
           setErrorMsg("Failed to generate hydrological flood networks.");
       }
@@ -346,6 +354,19 @@ export default function GISPage() {
                                {isSimulating ? 'Simulating Plume...' : 'Run Dispersion Simulation'}
                            </button>
                        </div>
+
+                       {dispersionData && !errorMsg && (
+                           <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                               <h5 className="text-xs font-bold text-green-800 uppercase tracking-widest mb-2">Analysis Result</h5>
+                               <div className="flex items-center gap-3">
+                                   <div className="bg-green-100 p-2 rounded-full">💨</div>
+                                   <div>
+                                       <p className="text-sm font-bold text-gray-800">Dispersion Plume Generated</p>
+                                       <p className="text-xs text-gray-500">{dispersionData.features?.length || 0} concentration levels mapped.</p>
+                                   </div>
+                               </div>
+                           </div>
+                       )}
                    </div>
                ) : (
                    <div className="space-y-6">
@@ -361,6 +382,19 @@ export default function GISPage() {
                                {isSimulating ? 'Calculating Watersheds...' : 'Calculate Flood Risk Zones'}
                            </button>
                        </div>
+
+                       {floodData && !errorMsg && (
+                           <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                               <h5 className="text-xs font-bold text-blue-800 uppercase tracking-widest mb-2">Analysis Result</h5>
+                               <div className="flex items-center gap-3">
+                                   <div className="bg-blue-100 p-2 rounded-full">🌊</div>
+                                   <div>
+                                       <p className="text-sm font-bold text-gray-800">Flood Zones Calculated</p>
+                                       <p className="text-xs text-gray-500">{floodData.features?.length || 0} risk boundaries identified.</p>
+                                   </div>
+                               </div>
+                           </div>
+                       )}
                    </div>
                )}
            </div>

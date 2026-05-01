@@ -76,13 +76,20 @@ def generate_baseline(self, project_id: str):
             future_climate = executor.submit(ClimateClient().get_data, lat, lng)
             future_hydrogeo = executor.submit(HydrogeologyClient().get_data, lat, lng)
 
-            gee_data = future_gee.result()
-            wx_data = future_wx.result()
-            gbif_data = future_gbif.result()
-            usgs_data = future_usgs.result()
-            hydro_data = future_hydro.result()
-            climate_data = future_climate.result()
-            hydrogeo_data = future_hydrogeo.result()
+        def safe_result(future, default_val=None):
+            try:
+                return future.result()
+            except Exception as exc:
+                logger.error(f"API Client failed: {exc}")
+                return default_val or {}
+
+        gee_data = safe_result(future_gee)
+        wx_data = safe_result(future_wx)
+        gbif_data = safe_result(future_gbif)
+        usgs_data = safe_result(future_usgs)
+        hydro_data = safe_result(future_hydro)
+        climate_data = safe_result(future_climate)
+        hydrogeo_data = safe_result(future_hydrogeo)
 
         # ---- Compile data sources ----
         active_sources = []

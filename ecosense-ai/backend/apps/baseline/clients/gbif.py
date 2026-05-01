@@ -69,7 +69,7 @@ class GBIFClient:
             "hasGeospatialIssue": "false",
         }
 
-        resp = requests.get(self.occurrence_url, params=params, timeout=30)
+        resp = requests.get(self.occurrence_url, params=params, timeout=5)
         resp.raise_for_status()
         result = resp.json()
         occurrences = result.get("results", [])
@@ -116,8 +116,8 @@ class GBIFClient:
         near_threatened_count = 0
         species_list = list(species_dict.values())
 
-        # Query IUCN status for up to 150 species (to avoid excessive API calls while ensuring depth)
-        for sp in species_list[:150]:
+        # Query IUCN status for up to 15 species (top species) to avoid excessive API calls
+        for sp in species_list[:15]:
             if sp["species_key"]:
                 iucn_status = self._get_iucn_status(sp["species_key"])
                 sp["iucn_status"] = iucn_status
@@ -190,7 +190,7 @@ class GBIFClient:
         try:
             resp = requests.get(
                 f"{self.species_url}/{species_key}",
-                timeout=10,
+                timeout=5,
             )
             if resp.status_code == 200:
                 data = resp.json()
@@ -201,7 +201,7 @@ class GBIFClient:
                 # Also check threat statuses via the species/iucnRedListCategory endpoint
                 iucn_resp = requests.get(
                     f"{self.species_url}/{species_key}/iucnRedListCategory",
-                    timeout=10,
+                    timeout=5,
                 )
                 if iucn_resp.status_code == 200:
                     iucn_data = iucn_resp.json()

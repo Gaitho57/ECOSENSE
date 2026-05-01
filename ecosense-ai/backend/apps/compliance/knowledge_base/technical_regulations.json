@@ -1,0 +1,62 @@
+[
+  { 
+    "id": "WASTE-C01", 
+    "act": "Waste Management Regulations 2006", 
+    "section": "Reg 5-11", 
+    "requirement": "Biomedical/Clinical waste must be segregated at source (Yellow/Red/Black) and stored in leak-proof containers.", 
+    "applies_to": ["health_facilities"], 
+    "is_critical": true, 
+    "check_type": "document", 
+    "remedy": "Implement mandatory color-coded waste segregation training and infrastructure." 
+  },
+  { 
+    "id": "WASTE-C02", 
+    "act": "Waste Management Regulations 2006", 
+    "section": "Reg 14", 
+    "requirement": "On-site medical waste incinerators must meet NEMA technical specifications (99.9% combustion efficiency).", 
+    "applies_to": ["health_facilities"], 
+    "is_critical": true, 
+    "check_type": "document", 
+    "remedy": "Attach technical data sheet for incinerator showing NEMA-approved scrubbers." 
+  },
+  { 
+    "id": "WATER-Q01", 
+    "act": "Water Quality Regulations 2006", 
+    "section": "Reg 4-8", 
+    "requirement": "Effluent from medical facilities must not exceed 30mg/L BOD or 50mg/L COD before discharge into public sewer.", 
+    "applies_to": ["health_facilities"], 
+    "is_critical": true, 
+    "check_type": "threshold", 
+    "remedy": "Install a specialized hospital Effluent Treatment Plant (ETP) with chemical neutralization." 
+  },
+  { 
+    "id": "AIR-Q01", 
+    "act": "Air Quality Regulations 2014", 
+    "section": "Third Schedule", 
+    "requirement": "Stack emissions for medical waste incinerators must not exceed PM limits of 50mg/Nm3.", 
+    "applies_to": ["health_facilities"], 
+    "is_critical": true, 
+    "check_type": "threshold", 
+    "remedy": "Install baghouse filters and dry scrubbers on the incinerator stack." 
+  },
+  { 
+    "id": "NOISE-001", 
+    "act": "Noise Regulations 2009", 
+    "section": "First Schedule", 
+    "requirement": "Noise levels in Silent Zones (Hospitals) must not exceed 45dB (Day) and 35dB (Night).", 
+    "applies_to": ["health_facilities"], 
+    "is_critical": true, 
+    "check_type": "threshold", 
+    "remedy": "Install acoustic enclosures for generators and implement a 'No-Honking' policy within 100m." 
+  },
+  { 
+    "id": "OSHA-001", 
+    "act": "OSHA 2007", 
+    "section": "Section 16", 
+    "requirement": "Provision of specialized PPE (Lead aprons, Dosimeters) for radiology and oncology staff.", 
+    "applies_to": ["health_facilities"], 
+    "is_critical": true, 
+    "check_type": "document", 
+    "remedy": "Establish a Radiation Safety Program and provide certified PPE to all oncology personnel." 
+  }
+]

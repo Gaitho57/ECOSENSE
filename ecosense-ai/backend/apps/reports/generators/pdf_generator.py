@@ -18,7 +18,7 @@ def generate_pdf_report(project_id: str, tenant_id: str, version: int, report_da
     Compliance auditing is now handled by the compiler and rendered as an appendix.
     Returns (s3_key, file_size, s3_url)
     """
-    template_name = "reports/nema_report_sw.html" if language == "sw" else "reports/nema_report.html"
+    template_name = "reports/nema_report_sw.html" if language == "sw" else "reports/nema_report_v2.html"
     html_string = render_to_string(template_name, report_data)
     
     # Extract absolute paths enabling WeasyPrint finding CSS natively inside directories 

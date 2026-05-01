@@ -13,6 +13,7 @@ export default function PredictionsPage() {
   const [scenarioPredictions, setScenarioPredictions] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTaskId, setActiveTaskId] = useState(null);
+  const [lastScenarioName, setLastScenarioName] = useState(null);
   const [feedback, setFeedback] = useState("");
 
   // Loading predictions cleanly without complex react-query hooks specifically for this standalone map
@@ -46,7 +47,9 @@ export default function PredictionsPage() {
                       // Reload baseline and latest scenario structurally
                       loadPredictions("baseline");
                       // If it was a scenario run, load scenario output. 
-                      // Actually, for simplicity, we reload baseline to check it exists
+                      if (lastScenarioName) {
+                          loadPredictions(lastScenarioName);
+                      }
                   } else if (res.data.data.status === 'failed' || res.data.data.status === 'FAILURE') {
                       setActiveTaskId(null);
                       setFeedback("Execution Failed. Check server logs.");
@@ -57,7 +60,7 @@ export default function PredictionsPage() {
           }, 3000);
       }
       return () => clearInterval(interval);
-  }, [activeTaskId]);
+  }, [activeTaskId, lastScenarioName]);
 
   const handleRunPrediction = async () => {
       setIsLoading(true);
@@ -74,16 +77,13 @@ export default function PredictionsPage() {
   const handleRunScenario = async (mitigations) => {
       setFeedback("Executing Parameter Reductions...");
       try {
+          const sName = "mitigated_" + new Date().getTime();
+          setLastScenarioName(sName);
           const res = await axiosInstance.post(`/projects/${projectId}/scenarios/`, {
               mitigations: mitigations,
-              scenario_name: "mitigated_" + new Date().getTime()
+              scenario_name: sName
           });
           setActiveTaskId(res.data.data.task_id);
-          
-          // Poll for completion, then load the custom scenario explicitly
-          // We attach a tiny standalone interval here to grab the EXACT scenario name
-          const sName = "mitigated_" + new Date().getTime(); // Same logical block mapping slightly off
-          // Rely on generic task polling
           
       } catch (e) {
           setFeedback("Scenario initialization failed.");

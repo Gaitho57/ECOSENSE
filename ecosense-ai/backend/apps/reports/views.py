@@ -43,10 +43,13 @@ class GenerateReportView(APIView):
         if fmt not in ["pdf", "docx"]:
              return envelope(error={"code": 400, "message": "Unsupported format."}, status_code=400)
 
-        generate_report.delay(str(project_id), fmt, jurisdiction)
-
-        local_task_id = f"local-{uuid.uuid4()}"
-        return envelope(data={"task_id": local_task_id, "message": "Generation initiated."}, status_code=status.HTTP_202_ACCEPTED)
+        from apps.reports.tasks import perform_report_generation
+        report_id = perform_report_generation(str(project_id), fmt, jurisdiction)
+        
+        if report_id:
+             return envelope(data={"task_id": "local-success", "message": "Report generated successfully."}, status_code=status.HTTP_200_OK)
+        else:
+             return envelope(error={"code": 500, "message": "Generation failed. Check logs."}, status_code=500)
 
 
 class ProjectReportsView(APIView):
@@ -90,22 +93,46 @@ class ProjectReportsView(APIView):
 
 class ReportPreviewView(APIView):
     """Sprint 3B: Render the report as HTML in the browser — no PDF download needed."""
-    permission_classes = [IsAuthenticated, IsSameTenant]
+    permission_classes = []  # AllowAny to handle manual token auth in GET
 
     def get(self, request, project_id):
         from django.template.loader import render_to_string
         from django.http import HttpResponse
         from apps.reports.compiler import compile_report_data
+        from rest_framework_simplejwt.tokens import AccessToken
+        from django.contrib.auth import get_user_model
+
+        # ---- SMART AUTH FALLBACK FOR BROWSER TABS ----
+        # Browser tabs cannot send custom headers easily. 
+        # We allow ?token=... for the preview URL.
+        token_str = request.query_params.get('token')
+        if token_str:
+            try:
+                from rest_framework_simplejwt.authentication import JWTAuthentication
+                jwt_auth = JWTAuthentication()
+                validated_token = jwt_auth.get_validated_token(token_str)
+                user = jwt_auth.get_user(validated_token)
+                if user:
+                    request.user = user
+                    logger.info(f"Authenticated preview user {user.email} via query token.")
+            except Exception as auth_err:
+                logger.warning(f"Query token auth failed: {auth_err}")
 
         try:
             project = Project.objects.get(id=project_id)
-            self.check_object_permissions(request, project)
-        except Project.DoesNotExist:
-            return envelope(error={"code": 404, "message": "Project not found."}, status_code=404)
+            # Manually enforce authentication and tenant check
+            if not request.user.is_authenticated:
+                 return HttpResponse("Authentication required. Please log in again.", status=401)
+            
+            if hasattr(project, "tenant_id") and hasattr(request.user, "tenant_id"):
+                 if project.tenant_id != request.user.tenant_id:
+                      return HttpResponse("Access Denied: Tenant mismatch.", status=403)
+        except Exception as e:
+            return HttpResponse(f"Unauthorized or Project not found: {e}", status=401)
 
         try:
             report_data = compile_report_data(project_id)
-            html = render_to_string("reports/nema_report.html", report_data)
+            html = render_to_string("reports/nema_report_v2.html", report_data)
             return HttpResponse(html, content_type="text/html")
         except Exception as e:
             logger.error(f"Preview render failed: {e}")

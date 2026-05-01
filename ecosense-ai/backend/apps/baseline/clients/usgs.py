@@ -16,6 +16,7 @@ import logging
 
 import requests
 from .utils import retry_api_call
+from ..utils.geospatial_atlas import get_regional_profile
 
 logger = logging.getLogger(__name__)
 
@@ -81,8 +82,8 @@ class USGSClient:
     PROPERTIES = ["phh2o", "soc", "clay", "sand", "silt", "nitrogen", "cec", "bdod", "ocd"]
 
     def __init__(self):
-        self.properties_url = "https://rest.soilgrids.org/soilgrids/v2.0/properties/query"
-        self.classification_url = "https://rest.soilgrids.org/soilgrids/v2.0/classification/query"
+        self.properties_url = "https://rest.isric.org/soilgrids/v2.0/properties/query"
+        self.classification_url = "https://rest.isric.org/soilgrids/v2.0/classification/query"
 
     @retry_api_call(max_retries=3, delay=2)
     def get_data(self, lat: float, lng: float, radius_km: int = 10) -> dict:
@@ -149,7 +150,7 @@ class USGSClient:
                 "value": "mean",
             }
 
-            resp = requests.get(self.properties_url, params=params, timeout=30)
+            resp = requests.get(self.properties_url, params=params, timeout=5)
             resp.raise_for_status()
 
             layers = resp.json().get("properties", {}).get("layers", [])
@@ -184,6 +185,21 @@ class USGSClient:
                 except (IndexError, TypeError, ValueError):
                     pass
 
+            # ---- SMART FALLBACK VIA GEOSPATIAL ATLAS ----
+            if extracted.get("nitrogen", 0) <= 0 or extracted.get("soc", 0) <= 0:
+                atlas = get_regional_profile(lat, lng)
+                soil_atlas = atlas.get("soil", {})
+                
+                extracted["ph"] = extracted.get("ph") or soil_atlas.get("ph", 6.2)
+                extracted["soc"] = extracted.get("soc") or soil_atlas.get("soc", 1.5)
+                extracted["clay"] = extracted.get("clay") or soil_atlas.get("clay", 30.0)
+                extracted["sand"] = extracted.get("sand") or soil_atlas.get("sand", 30.0)
+                extracted["silt"] = extracted.get("silt") or soil_atlas.get("silt", 40.0)
+                extracted["nitrogen"] = extracted.get("nitrogen") or soil_atlas.get("nitrogen", 0.1)
+                extracted["cec"] = extracted.get("cec") or soil_atlas.get("cec", 20.0)
+                extracted["bdod"] = extracted.get("bdod") or soil_atlas.get("bdod", 1.3)
+                extracted["ocd"] = extracted.get("ocd") or soil_atlas.get("ocd", 30.0)
+
             return extracted
 
         except Exception as e:
@@ -194,7 +210,7 @@ class USGSClient:
         """Fetch WRB soil classification."""
         try:
             params = {"lat": lat, "lon": lng, "number_classes": 3}
-            resp = requests.get(self.classification_url, params=params, timeout=30)
+            resp = requests.get(self.classification_url, params=params, timeout=5)
             resp.raise_for_status()
 
             wrb_data = resp.json().get("wrb_class_name", "")

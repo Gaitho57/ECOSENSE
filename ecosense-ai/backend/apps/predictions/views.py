@@ -10,6 +10,7 @@ from apps.accounts.permissions import IsSameTenant
 from apps.projects.models import Project
 from apps.predictions.models import ImpactPrediction
 from apps.predictions.tasks import run_predictions
+from apps.predictions.ml.engine import PredictionEngine
 
 # Simulation Engines
 from apps.predictions.simulations.dispersion import calculate_dispersion

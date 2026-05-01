@@ -67,11 +67,18 @@ export default function NewProjectModal({ onClose, onCreated }) {
                                           className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 font-bold text-gray-800 focus:outline-none focus:border-blue-500 focus:bg-white transition-colors"
                                           value={formData.project_type} onChange={e => setFormData({...formData, project_type: e.target.value})}
                                       >
-                                          <option value="infrastructure">Infrastructure & Roads</option>
-                                          <option value="mining">Mining & Extraction</option>
+                                          <option value="agriculture">Agriculture & Forestry</option>
+                                          <option value="borehole">Borehole Project</option>
+                                          <option value="construction">Urban & Housing Development</option>
+                                          <option value="energy">Energy & Power Generation</option>
+                                          <option value="health_facilities">Health & Medical Facilities</option>
+                                          <option value="infrastructure">Infrastructure & Transport</option>
                                           <option value="manufacturing">Industrial Manufacturing</option>
-                                          <option value="energy">Energy Generation</option>
-                                          <option value="agriculture">Commercial Agriculture</option>
+                                          <option value="mining">Mining & Extraction</option>
+                                          <option value="tourism">Tourism & Conservation</option>
+                                          <option value="waste_management">Waste Management & Disposal</option>
+                                          <option value="water_resources">Water Resources & Dams</option>
+                                          <option value="other">Other Sector</option>
                                       </select>
                                   </div>
                                   <div>
