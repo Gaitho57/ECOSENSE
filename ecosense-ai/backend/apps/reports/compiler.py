@@ -379,7 +379,7 @@ def compile_report_data(project_id: str) -> dict:
     )
 
     # 5.3 Detailed ESMP Array
-    esmp_table = pred_engine.generate_detailed_esmp(project_type, predictions_data)
+    esmp_table = pred_engine.generate_detailed_esmp(project_type, predictions_data, scale_ha=scale)
 
     # 6. Annex Data Extraction
     # Boundary Coordinates (Extracting Polygon if present)

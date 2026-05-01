@@ -636,7 +636,7 @@ class PredictionEngine:
 
         return desc, mitigations
 
-    def generate_detailed_esmp(self, project_type: str, predictions: list) -> list:
+    def generate_detailed_esmp(self, project_type: str, predictions: list, scale_ha: float = 1.0) -> list:
         """Internal AI: Generates a professional ESMP matrix with phase-specific technical intensity."""
         esmp_data = []
         phases = ["Pre-Construction", "Construction", "Operation", "Decommissioning"]
