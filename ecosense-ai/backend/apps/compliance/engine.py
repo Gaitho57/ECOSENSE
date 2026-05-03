@@ -156,7 +156,8 @@ class ComplianceEngine:
                      evidence = "Statutory violation of EMCA Section 58: No official EIA reporting templates initialized for this project boundary."
                 else:
                      status = "passed"
-                     evidence = f"Project classified under Second Schedule as large-scale {p_type}; full Mandatory Study conducted per Section 7 legal framework for {context.get('county', 'the project area')}."
+                     schedule = "Second Schedule (High Risk)" if project.nema_category == 'high' else "First Schedule (Low/Medium Risk)"
+                     evidence = f"Project correctly classified under {schedule} as {p_type}; appropriate {project.get_nema_category_display()} reporting initialized."
                      
             elif reg["id"] == "EMCA-002" or reg["id"] == "NEMA-004":
                 pw = getattr(project, "participation_workflow", None)
@@ -236,7 +237,8 @@ class ComplianceEngine:
 
             elif reg["id"] == "NEMA-001":
                 status = "passed"
-                evidence = f"Project classified as high-risk under Second Schedule — {p_type} facility >200ha; confirmed by official classification in Section 7."
+                schedule = "Second Schedule" if project.nema_category == 'high' else "First Schedule"
+                evidence = f"Project classified as {project.get_nema_category_display()} under {schedule} — {p_type} facility (Scale: {project.scale_ha}ha); confirmed by official classification."
 
             elif reg["id"] == "NEMA-002":
                 status = "passed"
@@ -251,15 +253,19 @@ class ComplianceEngine:
                      evidence = "Baseline conditions missing; required for Reg 16 compliance."
 
             elif reg["id"] == "NEMA-005":
-                # Check for 30-day review period
-                submission_date = project.created_at # Using created_at as proxy for initialization
-                days_elapsed = (timezone.now() - submission_date).days
-                if days_elapsed < 30:
-                     status = "warning"
-                     evidence = f"30-day public review clock initiated on {submission_date.strftime('%Y-%m-%d')}; mandatory period has not elapsed ({days_elapsed}/30 days). Final submission prohibited before {(submission_date + timedelta(days=30)).strftime('%Y-%m-%d')}."
+                if project.nema_category == "low":
+                    status = "passed"
+                    evidence = "Statutory 30-day public review period NOT required for Low-Risk (SPR) projects per EMCA (EIA/EA) Regulations."
                 else:
-                     status = "passed"
-                     evidence = f"Statutory 30-day public review period successfully completed ({days_elapsed} days elapsed since initiation)."
+                    # Check for 30-day review period for High/Medium risk
+                    submission_date = project.created_at
+                    days_elapsed = (timezone.now() - submission_date).days
+                    if days_elapsed < 30:
+                         status = "warning"
+                         evidence = f"30-day public review clock initiated on {submission_date.strftime('%Y-%m-%d')}; mandatory period has not elapsed ({days_elapsed}/30 days). Final submission prohibited before {(submission_date + timedelta(days=30)).strftime('%Y-%m-%d')}."
+                    else:
+                         status = "passed"
+                         evidence = f"Statutory 30-day public review period successfully completed ({days_elapsed} days elapsed since initiation)."
 
             elif reg["id"] == "NEMA-008":
                 status = "passed"

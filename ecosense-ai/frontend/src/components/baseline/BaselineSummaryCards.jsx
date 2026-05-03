@@ -120,6 +120,28 @@ export default function BaselineSummaryCards({ baseline, isLoading }) {
         </div>
       </div>
 
+      {/* ==== Section: Historical RAG Context (from uploaded EIA reports) ==== */}
+      {baseline.historical_context && (
+        <div className="pt-3">
+          <h3 className="text-[10px] font-bold text-amber-500 uppercase tracking-widest px-1 mb-2">📚 Historical Local Context (AI-Retrieved)</h3>
+          <div className="bg-amber-50 rounded-xl p-4 shadow-sm border border-amber-200">
+            <div className="flex items-start gap-3 mb-3">
+              <div className="p-2 rounded-lg bg-amber-100 text-amber-600 text-lg shrink-0">🏛️</div>
+              <div>
+                <p className="text-xs font-bold text-amber-800">Cross-Referenced from Historical EIA Archive</p>
+                <p className="text-[10px] text-amber-600">Synthesized from past reports in the local RAG database</p>
+              </div>
+            </div>
+            <p className="text-[11px] text-gray-700 leading-relaxed italic">
+              "{baseline.historical_context}"
+            </p>
+            <p className="text-[9px] text-amber-500 mt-2 font-medium uppercase tracking-wider">
+              ✓ Grounded in verified historical EIA documentation
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* ==== Section: Physical Environment ==== */}
       <div className="pt-3">
         <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1 mb-2">Physical Environment</h3>

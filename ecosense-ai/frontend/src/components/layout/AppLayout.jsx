@@ -12,6 +12,7 @@ export default function AppLayout() {
     { name: 'Dashboard', path: '/dashboard', icon: '📊' },
     { name: 'Projects', path: '/dashboard/projects', icon: '🌍' },
     { name: 'Analytics', path: '/dashboard/analytics', icon: '📈' },
+    { name: 'Billing', path: '/dashboard/billing', icon: '💳' },
     { name: 'Settings', path: '/dashboard/settings', icon: '⚙️' },
   ];
 

@@ -105,14 +105,28 @@ class ClimateClient:
             return self._get_atlas_fallback(lat, lng)
 
     def _get_atlas_fallback(self, lat: float, lng: float) -> dict:
-        """Consult regional atlas if API fails."""
+        """Consult regional atlas if API fails and provide synthetic monthly distribution."""
         atlas = get_regional_profile(lat, lng)
         climate = atlas.get("climate", {})
+        temp = climate.get("temp_avg", 25.0)
+        precip = climate.get("rainfall_annual", 800)
+        
+        # Distribute annual rainfall across months (typical Kenyan bi-modal pattern)
+        weights = [0.05, 0.05, 0.15, 0.25, 0.10, 0.05, 0.02, 0.03, 0.05, 0.10, 0.10, 0.05]
+        monthly = []
+        for i, month in enumerate(MONTH_NAMES):
+            monthly.append({
+                "month": month,
+                "temperature": {"mean_avg": temp + (1 if i in [1, 2, 9] else -1 if i in [6, 7] else 0)},
+                "precipitation_mm": round(precip * weights[i], 1),
+                "humidity_percent": {"max_avg": 75 if weights[i] > 0.1 else 55}
+            })
         
         return {
-            "source": "EcoSense Regional Atlas (Meteorological Heuristic)",
-            "average_temperature": climate.get("temp_avg", 25.0),
-            "annual_precipitation": climate.get("rainfall_annual", 800),
+            "source": "EcoSense Regional Atlas (Synthetic Baseline)",
+            "monthly": monthly,
+            "average_temperature": temp,
+            "annual_precipitation": precip,
             "humidity": climate.get("humidity", 50),
             "koppen_classification": "Tropical Savanna (Inferred)",
             "seasonal_analysis": "Bi-modal rainfall pattern expected with primary peaks in April and November.",

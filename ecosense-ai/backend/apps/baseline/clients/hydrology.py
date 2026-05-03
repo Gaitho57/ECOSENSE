@@ -67,7 +67,8 @@ class HydrologyClient:
         out body geom;
         """
 
-        resp = requests.post(self.overpass_url, data={"data": query}, timeout=15)
+        headers = {"User-Agent": "EcoSenseAI/1.0 (environmental impact assessment tool)"}
+        resp = requests.post(self.overpass_url, data={"data": query}, headers=headers, timeout=15)
         resp.raise_for_status()
         elements = resp.json().get("elements", [])
 

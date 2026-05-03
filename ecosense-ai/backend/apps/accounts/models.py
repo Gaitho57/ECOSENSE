@@ -89,6 +89,21 @@ class Tenant(models.Model):
         null=True,
         help_text="NEMA registration identifier (if applicable).",
     )
+    
+    # Commercial / Credit Tracking (NEW)
+    credits_remaining = models.IntegerField(
+        default=3, 
+        help_text="Number of free reports remaining for this tenant."
+    )
+    is_premium = models.BooleanField(
+        default=False, 
+        help_text="Whether this tenant has a premium subscription."
+    )
+    billing_status = models.CharField(
+        max_length=50,
+        default="trialing",
+        choices=[("trialing", "Trial Mode"), ("active", "Active/Paid"), ("past_due", "Payment Required")]
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -234,6 +249,26 @@ class User(AbstractBaseUser, PermissionsMixin):
     date_joined = models.DateTimeField(
         auto_now_add=True,
         help_text="When the user account was created.",
+    )
+    
+    # Professional Certification Credentials (NEW)
+    nema_registration_no = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text="Official NEMA registration number (e.g. NEMA/EIA/ER/1542).",
+    )
+    digital_stamp = models.ImageField(
+        upload_to="experts/stamps/",
+        blank=True,
+        null=True,
+        help_text="Uploaded official NEMA practicing stamp image.",
+    )
+    digital_signature = models.ImageField(
+        upload_to="experts/signatures/",
+        blank=True,
+        null=True,
+        help_text="Uploaded digital signature image.",
     )
 
     objects = UserManager()

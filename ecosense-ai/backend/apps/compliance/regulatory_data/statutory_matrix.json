@@ -1,0 +1,38 @@
+{
+    "sectors": {
+        "health": {
+            "acts": ["Public Health Act (Cap 242)", "Medical Practitioners and Dentists Act (Cap 253)", "Radiation Protection Act (Cap 243)"],
+            "regulations": ["NEMA (Waste Management) Regulations 2006", "NEMA (Noise & Excessive Vibration) 2009"],
+            "permits": ["NEMA EIA License", "Radiation Protection Board Permit", "County Business Permit"]
+        },
+        "water": {
+            "acts": ["Water Act 2016", "Irrigation Act 2019", "Environmental Management and Coordination Act 1999"],
+            "regulations": ["Water Resources Management Rules 2007", "Water Quality Regulations 2006"],
+            "permits": ["WRA Water Abstraction Permit", "Borehole Drilling Permit", "EIA License"]
+        },
+        "energy": {
+            "acts": ["Energy Act 2019", "Petroleum Act 2019", "Geothermal Resources Act"],
+            "regulations": ["Energy (Solar Photovoltaic Systems) Regulations", "NEMA Air Quality 2014"],
+            "permits": ["EPRA Generation License", "KCAA Height Clearance (for Wind)", "ERC Authorization"]
+        },
+        "construction": {
+            "acts": ["National Construction Authority Act", "Physical and Land Use Planning Act 2019", "County Government Act 2012"],
+            "regulations": ["NCA Building Regulations", "Public Health Building Code"],
+            "permits": ["NCA Registration", "County Planning Approval", "Architectural/Structural Approval"]
+        }
+    },
+    "regional_bylaws": {
+        "Nairobi": {
+            "statutes": ["Nairobi City County Physical Planning Act", "Nairobi Water and Sewerage Bylaws"],
+            "agencies": ["NCC Environmental Dept", "Athi Water Works"]
+        },
+        "Mombasa": {
+            "statutes": ["Integrated Coastal Zone Management (ICZM) Policy", "Mombasa Port Authority Bylaws"],
+            "agencies": ["KPA", "Coast Water Works"]
+        },
+        "Kisumu": {
+            "statutes": ["Lake Victoria North Basin Management Plan", "Kisumu Urban Planning Bylaws"],
+            "agencies": ["LBDA (Lake Basin Development Authority)", "LVSWWDA"]
+        }
+    }
+}

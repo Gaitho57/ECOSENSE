@@ -105,8 +105,8 @@ class BaselineDetailView(APIView):
             baseline = project.baseline
             if baseline.status != "complete":
                 return envelope(
-                    error={"code": 404, "message": f"Baseline is currently {baseline.status}.", "details": {}},
-                    status_code=status.HTTP_404_NOT_FOUND
+                    data={"status": baseline.status, "message": f"Baseline is currently {baseline.status}."},
+                    status_code=status.HTTP_200_OK
                 )
 
             # Serialize project boundary as GeoJSON for frontend map rendering
@@ -115,16 +115,12 @@ class BaselineDetailView(APIView):
             data = {
                 "id": str(baseline.id),
                 "status": baseline.status,
-
-                # Project spatial data
                 "project_location": {
                     "lat": project.location.y,
                     "lng": project.location.x,
                 },
                 "project_boundary": boundary_geojson,
                 "project_scale_ha": float(project.scale_ha) if project.scale_ha else None,
-
-                # Environmental data layers
                 "satellite_data": baseline.satellite_data,
                 "soil_data": baseline.soil_data,
                 "biodiversity_data": baseline.biodiversity_data,
@@ -133,18 +129,34 @@ class BaselineDetailView(APIView):
                 "climate_data": baseline.climate_data,
                 "topography_data": baseline.topography_data,
                 "noise_data": baseline.noise_data,
-
-                # Scoring & metadata
                 "sensitivity_scores": baseline.sensitivity_scores,
                 "data_sources": baseline.data_sources,
                 "generated_at": baseline.generated_at,
             }
+
+            # === RAG Historical Context Injection ===
+            try:
+                from apps.predictions.ml.engine import PredictionEngine
+                lat_val = project.location.y
+                lng_val = project.location.x
+                county_name = "Kenya"
+                if lng_val > 39.0 and lat_val < -3.0: county_name = "Mombasa"
+                elif lng_val < 35.5: county_name = "Kisumu"
+                elif lng_val > 37.5 and lat_val < -1.0: county_name = "Machakos"
+                elif -1.4 <= lat_val <= -1.2 and 36.7 <= lng_val <= 37.0: county_name = "Nairobi"
+                elif 35.5 <= lng_val <= 37.5: county_name = "Nakuru"
+                engine = PredictionEngine()
+                data["historical_context"] = engine.get_historical_baseline_context(county_name)
+            except Exception as rag_err:
+                logger.warning(f"Could not load RAG historical context: {rag_err}")
+                data["historical_context"] = ""
+
             return envelope(data=data)
 
         except BaselineReport.DoesNotExist:
             return envelope(
-                error={"code": 404, "message": "Baseline has not been generated for this project.", "details": {}},
-                status_code=status.HTTP_404_NOT_FOUND
+                data={"status": "not_started", "message": "Baseline has not been generated for this project."},
+                status_code=status.HTTP_200_OK
             )
 
     def patch(self, request, project_id):

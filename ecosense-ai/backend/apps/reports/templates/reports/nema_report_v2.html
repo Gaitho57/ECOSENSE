@@ -48,7 +48,7 @@
         <div style="margin-top: 60px; font-size: 20px; color: #475569;">
             <p><strong>NEMA Category:</strong> {{ project.category }}</p>
             <p><strong>Project Type:</strong> {{ project.type }}</p>
-            <p><strong>Scale/Capacity:</strong> {{ project.scale_value }} Units/Hectares</p>
+            <p><strong>Scale/Capacity:</strong> {{ project.scale_value }}</p>
             <p><strong>Location:</strong> {{ project.location_coords }}</p>
         </div>
 
@@ -208,7 +208,12 @@
     <section class="page-break">
         <h2>6. Baseline Information</h2>
         
-        <h3>6.1 Climate and Meteorology</h3>
+        {% if baseline.historical_context %}
+        <h3>6.1 Historical Regional Context</h3>
+        <p><em>{{ baseline.historical_context }}</em></p>
+        {% endif %}
+
+        <h3>6.2 Climate and Meteorology</h3>
         <p>Historical data ({{ baseline.climate.period.start }} to {{ baseline.climate.period.end }}) indicates a <strong>{{ baseline.climate.climate_classification.name }}</strong> climate regime.</p>
         <table>
             <thead>

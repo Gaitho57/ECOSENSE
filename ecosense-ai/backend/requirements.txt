@@ -13,6 +13,7 @@ django-cors-headers==4.3.0
 django-environ==0.11.2
 django-extensions==3.2.3
 django-ratelimit==4.1.0
+requests==2.31.0
 
 # -------------------------------
 # DATABASE
@@ -29,7 +30,7 @@ django-celery-beat==2.5.0
 # -------------------------------
 # GEO (PostGIS stack)
 # -------------------------------
-GDAL>=3.4.0
+GDAL==3.6.2
 geopandas==0.14.0
 shapely==2.0.2
 earthengine-api==0.1.381
@@ -43,6 +44,8 @@ openai==1.3.3
 scikit-learn==1.3.2
 joblib==1.3.2
 xgboost==2.0.3
+chromadb==0.4.18
+tiktoken==0.5.1
 
 # -------------------------------
 # REPORTING

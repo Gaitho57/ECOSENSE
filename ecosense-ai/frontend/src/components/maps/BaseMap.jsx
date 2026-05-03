@@ -78,26 +78,63 @@ const BaseMap = forwardRef(({
 
   useImperativeHandle(ref, () => map, [map]);
 
+  const [webglError, setWebglError] = useState(false);
+
   useEffect(() => {
     if (!mapContainer.current) return;
 
-    const mapInstance = new maplibregl.Map({
-      container: mapContainer.current,
-      style: STYLES[currentStyle],
-      center: center,
-      zoom: zoom,
-    });
+    // Native WebGL support check (more robust than library-specific calls)
+    const checkWebGL = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        return !!(window.WebGLRenderingContext && (canvas.getContext('webgl') || canvas.getContext('experimental-webgl')));
+      } catch (e) {
+        return false;
+      }
+    };
 
-    mapInstance.on('load', () => {
-      setMap(mapInstance);
-      // Add standard navigation controls natively for precise GIS scaling
-      const nav = new maplibregl.NavigationControl();
-      mapInstance.addControl(nav, 'top-left');
-    });
+    if (!checkWebGL()) {
+      console.error("WebGL not supported in this browser/hardware environment.");
+      setWebglError(true);
+      return;
+    }
+
+    let mapInstance;
+    try {
+      mapInstance = new maplibregl.Map({
+        container: mapContainer.current,
+        style: STYLES[currentStyle],
+        center: center,
+        zoom: zoom,
+        // Performance tuning for software renderers (llvmpipe)
+        failIfMajorPerformanceCaveat: false, 
+        antialias: false,
+      });
+
+      mapInstance.on('load', () => {
+        setMap(mapInstance);
+        const nav = new maplibregl.NavigationControl();
+        mapInstance.addControl(nav, 'top-left');
+      });
+
+      mapInstance.on('error', (e) => {
+        console.error("MapLibre error:", e);
+        if (e.error?.message?.includes("WebGL")) {
+          setWebglError(true);
+        }
+      });
+
+    } catch (err) {
+      console.error("Failed to initialize MapLibre GL:", err);
+      setWebglError(true);
+      return;
+    }
 
     return () => {
-      mapInstance.remove();
-      setMap(null);
+      if (mapInstance) {
+        mapInstance.remove();
+        setMap(null);
+      }
     };
   }, []); // Run once on mount
   
@@ -115,30 +152,53 @@ const BaseMap = forwardRef(({
   };
 
   return (
-    <div style={{ height: height, width: '100%', position: 'relative' }}>
+    <div style={{ height: height, width: '100%', position: 'relative' }} className="bg-slate-900 overflow-hidden">
       <div ref={mapContainer} style={{ height: '100%', width: '100%' }} />
       
+      {webglError && (
+        <div className="absolute inset-0 flex items-center justify-center bg-slate-900/80 backdrop-blur-sm p-8 text-center z-20">
+          <div className="max-w-md">
+            <div className="text-4xl mb-4">⚠️</div>
+            <h3 className="text-xl font-black text-white mb-2 tracking-tight">Environmental Visualization Blocked</h3>
+            <p className="text-sm text-slate-300 font-medium leading-relaxed mb-6">
+              WebGL is currently unavailable on your system. This is common when using software rendering (llvmpipe). 
+              Try enabling <b>"Override software rendering list"</b> in your browser flags.
+            </p>
+            <div className="flex gap-3 justify-center">
+               <button 
+                onClick={() => window.location.reload()}
+                className="px-6 py-3 bg-white text-slate-900 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-slate-100 transition-all"
+               >
+                 Retry Initialisation
+               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Map Style Switcher (Premium Open Logic) */}
-      <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-md rounded-xl shadow-lg border border-gray-100 p-1.5 z-10 flex text-[10px] font-black uppercase tracking-widest overflow-hidden transition-all hover:shadow-xl">
-        <button 
-          onClick={() => handleStyleSwitch('satellite')}
-          className={`px-4 py-2 rounded-lg transition-all ${currentStyle === 'satellite' ? 'bg-green-600 text-white shadow-sm' : 'hover:bg-gray-100 text-gray-400'}`}
-        >
-          Satellite
-        </button>
-        <button 
-          onClick={() => handleStyleSwitch('light')}
-          className={`px-4 py-2 rounded-lg transition-all ${currentStyle === 'light' ? 'bg-blue-600 text-white shadow-sm' : 'hover:bg-gray-100 text-gray-400'}`}
-        >
-          Light
-        </button>
-        <button 
-          onClick={() => handleStyleSwitch('dark')}
-          className={`px-4 py-2 rounded-lg transition-all ${currentStyle === 'dark' ? 'bg-slate-900 text-white shadow-sm' : 'hover:bg-gray-100 text-gray-400'}`}
-        >
-          Dark
-        </button>
-      </div>
+      {!webglError && (
+        <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-md rounded-xl shadow-lg border border-gray-100 p-1.5 z-10 flex text-[10px] font-black uppercase tracking-widest overflow-hidden transition-all hover:shadow-xl">
+          <button 
+            onClick={() => handleStyleSwitch('satellite')}
+            className={`px-4 py-2 rounded-lg transition-all ${currentStyle === 'satellite' ? 'bg-green-600 text-white shadow-sm' : 'hover:bg-gray-100 text-gray-400'}`}
+          >
+            Satellite
+          </button>
+          <button 
+            onClick={() => handleStyleSwitch('light')}
+            className={`px-4 py-2 rounded-lg transition-all ${currentStyle === 'light' ? 'bg-blue-600 text-white shadow-sm' : 'hover:bg-gray-100 text-gray-400'}`}
+          >
+            Light
+          </button>
+          <button 
+            onClick={() => handleStyleSwitch('dark')}
+            className={`px-4 py-2 rounded-lg transition-all ${currentStyle === 'dark' ? 'bg-slate-900 text-white shadow-sm' : 'hover:bg-gray-100 text-gray-400'}`}
+          >
+            Dark
+          </button>
+        </div>
+      )}
 
       {map && children}
     </div>

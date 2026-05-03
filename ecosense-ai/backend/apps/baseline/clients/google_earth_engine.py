@@ -282,6 +282,16 @@ class GoogleEarthEngineClient:
                 }
                 break
 
+        # ---- 9. Elevation (SRTM v3) ----
+        srtm = ee.Image("USGS/SRTMGL1_003")
+        elev_stats = srtm.reduceRegion(
+            reducer=ee.Reducer.mean(),
+            geometry=buffer,
+            scale=30,
+            maxPixels=1e8
+        ).getInfo()
+        elevation_m = round(elev_stats.get("elevation", 0) or 0, 1)
+
         return {
             "ndvi": ndvi_val,
             "ndvi_tile_url": ndvi_tile_url,
@@ -290,6 +300,7 @@ class GoogleEarthEngineClient:
             "land_cover_tile_url": lc_tile_url,
             "tree_cover_percent": tree_cover_percent,
             "tree_cover_loss_percent": tree_loss_percent,
+            "elevation_m": elevation_m,
             "protected_area_status": {
                 "is_protected": is_protected,
                 "name": protected_area_name,
@@ -305,7 +316,7 @@ class GoogleEarthEngineClient:
             "satellite_image_date": img_date if isinstance(img_date, str) else str(img_date),
             "cloud_cover_percent": round(cloud_cover, 1) if cloud_cover is not None else None,
             "source": "Google Earth Engine",
-            "datasets": ["Sentinel-2 SR", "ESA WorldCover", "Hansen GFC", "WDPA", "HydroSHEDS", "WorldPop", "Google Open Buildings v3"],
+            "datasets": ["Sentinel-2 SR", "ESA WorldCover", "Hansen GFC", "SRTM v3", "WDPA", "HydroSHEDS", "WorldPop", "Google Open Buildings v3"],
         }
 
     def _get_modis_ndvi_gee(self, geometry, start_date, end_date):
@@ -350,17 +361,32 @@ class GoogleEarthEngineClient:
         # ---- 3. Tree Cover from Hansen via Global Forest Watch API ----
         tree_cover_percent = self._get_tree_cover_rest(lat, lng)
 
+        # ---- 4. Elevation fallback via Open-Meteo ----
+        elevation_m = self._get_elevation_rest(lat, lng)
+
         return {
             "ndvi": ndvi_val,
             "land_cover_class": land_cover_result.get("dominant_class", "Unknown"),
             "land_cover_breakdown": land_cover_result.get("breakdown", {}),
             "tree_cover_percent": tree_cover_percent,
             "tree_cover_loss_percent": None,
+            "elevation_m": elevation_m,
             "satellite_image_date": datetime.utcnow().strftime("%Y-%m-%d"),
             "cloud_cover_percent": None,
             "source": "REST API Fallback (GEE unavailable)",
-            "datasets": ["MODIS NDVI", "Heuristic land cover", "GFW tree cover"],
+            "datasets": ["MODIS NDVI", "Heuristic land cover", "GFW tree cover", "Open-Meteo Elevation"],
         }
+
+    def _get_elevation_rest(self, lat: float, lng: float) -> float:
+        """Fetch elevation from Open-Meteo Elevation API."""
+        try:
+            url = "https://api.open-meteo.com/v1/elevation"
+            params = {"latitude": lat, "longitude": lng}
+            resp = requests.get(url, params=params, timeout=5)
+            resp.raise_for_status()
+            return resp.json().get("elevation", [0])[0]
+        except Exception:
+            return 0.0
 
     def _get_modis_ndvi_rest(self, lat: float, lng: float) -> float:
         """
@@ -377,11 +403,12 @@ class GoogleEarthEngineClient:
                 "community": "AG",
                 "longitude": lng,
                 "latitude": lat,
-                "start": (end_date - timedelta(days=365)).strftime("%Y"),
-                "end": end_date.strftime("%Y"),
+                "start": "2024",
+                "end": "2025",
                 "format": "JSON",
             }
-            resp = requests.get(url, params=params, timeout=5)
+            headers = {"User-Agent": "EcoSenseAI/1.0 (environmental impact assessment tool)"}
+            resp = requests.get(url, params=params, headers=headers, timeout=5)
             resp.raise_for_status()
             data = resp.json()
 
@@ -427,7 +454,8 @@ class GoogleEarthEngineClient:
             );
             out tags;
             """
-            resp = requests.post(overpass_url, data={"data": query}, timeout=5)
+            headers = {"User-Agent": "EcoSenseAI/1.0 (environmental impact assessment tool)"}
+            resp = requests.post(overpass_url, data={"data": query}, headers=headers, timeout=5)
             resp.raise_for_status()
             elements = resp.json().get("elements", [])
 

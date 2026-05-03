@@ -26,6 +26,7 @@ import ReportEditorPage from './pages/projects/ReportEditorPage';
 import CompliancePage from './pages/projects/CompliancePage';
 
 import SettingsPage from './pages/settings/SettingsPage';
+import BillingPage from './pages/billing/BillingPage';
 import VerificationPage from './pages/public/VerificationPage';
 import ParticipationPortal from './pages/public/ParticipationPortal';
 
@@ -64,6 +65,7 @@ function App() {
              <Route path="projects/:projectId/compliance" element={<CompliancePage />} />
              
              <Route path="settings" element={<SettingsPage />} />
+             <Route path="billing" element={<BillingPage />} />
              {/* Sprint 4C — Firm-wide analytics */}
              <Route path="analytics" element={<AnalyticsPage />} />
         </Route>

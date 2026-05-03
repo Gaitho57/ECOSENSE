@@ -25,6 +25,15 @@ def perform_report_generation(project_id: str, format: str = 'pdf', jurisdiction
     """
     try:
          project = Project.objects.get(id=project_id)
+         # 💳 Commercial Credit Guard
+         from apps.accounts.models import Tenant
+         tenant = Tenant.objects.get(id=project.tenant_id)
+         
+         if not tenant.is_premium and tenant.credits_remaining <= 0:
+             logger.warning(f"Commercial Block: Tenant {tenant.name} has 0 credits. Generation rejected.")
+             # Update any existing report records to 'PAYMENT_REQUIRED' status if necessary
+             return "PAYMENT_REQUIRED"
+             
     except Project.DoesNotExist:
          logger.error(f"Generate Report Failed: Project {project_id} not mapped.")
          return None
@@ -33,6 +42,7 @@ def perform_report_generation(project_id: str, format: str = 'pdf', jurisdiction
     try:
          report_data = compile_report_data(project_id)
     except Exception as e:
+         traceback.print_exc()
          logger.error(f"Compilation pipeline failed: {e}")
          return None
 
@@ -76,6 +86,11 @@ def perform_report_generation(project_id: str, format: str = 'pdf', jurisdiction
             'generated_at', 'compliance_score', 'compliance_grade'
         ])
         
+        # 💳 Consumptive Credit Accounting (Decrement on success)
+        from django.db.models import F
+        if not tenant.is_premium:
+            Tenant.objects.filter(id=tenant.id).update(credits_remaining=F('credits_remaining') - 1)
+
         record_audit_event.delay(
             project_id,
             "REPORT_GENERATED",

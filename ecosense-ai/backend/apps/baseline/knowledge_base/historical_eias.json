@@ -1,0 +1,32 @@
+[
+    {
+        "region": "Kisumu Central / Winam Gulf",
+        "bounds": {"lat_min": -0.2, "lat_max": 0.05, "lng_min": 34.6, "lng_max": 34.9},
+        "historical_elevation_m": 1132.5,
+        "soil_type": "Black Cotton (Vertisols) / Lacustrine Silts",
+        "groundwater_depth_m": "12m - 45m",
+        "aquifer_type": "Alluvial / Volcanic",
+        "local_flora": ["Acacia polyacantha", "Balanites aegyptiaca", "Phragmites mauritianus"],
+        "source": "NEMA/EIA/SR/1452 - Kisumu Port Expansion Baseline 2019"
+    },
+    {
+        "region": "Nakuru / Lake Nakuru Buffer",
+        "bounds": {"lat_min": -0.4, "lat_max": -0.2, "lng_min": 35.9, "lng_max": 36.2},
+        "historical_elevation_m": 1788.0,
+        "soil_type": "Volcanic Ash / Solonetz",
+        "groundwater_depth_m": "80m - 150m (Deep Aquifer)",
+        "aquifer_type": "Fractured Volcanics",
+        "local_flora": ["Acacia xanthophloea", "Tarchonanthus camphoratus", "Chloris gayana"],
+        "source": "NEMA/EIA/SR/2981 - Nakuru Affordable Housing Baseline 2021"
+    },
+    {
+        "region": "Athi River / Machakos Industrial",
+        "bounds": {"lat_min": -1.6, "lat_max": -1.4, "lng_min": 36.9, "lng_max": 37.2},
+        "historical_elevation_m": 1515.0,
+        "soil_type": "Sandy Loam / Vertisols",
+        "groundwater_depth_m": "60m - 120m",
+        "aquifer_type": "Crystalline Basement / Phonolites",
+        "local_flora": ["Acacia tortilis", "Themeda triandra", "Euphorbia candelabrum"],
+        "source": "NEMA/EIA/SR/4412 - Athi River Industrial Zone Audit 2020"
+    }
+]

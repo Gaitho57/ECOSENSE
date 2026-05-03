@@ -62,8 +62,11 @@ INSTALLED_APPS = [
     "apps.baseline",
     "apps.predictions",
     "apps.community",
-    "apps.reports",
     "apps.compliance",
+    "apps.billing",
+    "apps.regulations",
+    "apps.site_visit",
+    "apps.reports",
     "apps.emp",
     "apps.esg",
 ]
@@ -93,6 +96,9 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
             ],
+            "libraries": {
+                "report_filters": "apps.reports.templatetags.report_filters",
+            },
         },
     },
 ]

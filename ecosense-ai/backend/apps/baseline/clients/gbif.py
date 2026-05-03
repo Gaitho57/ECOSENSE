@@ -128,7 +128,7 @@ class GBIFClient:
                     near_threatened_count += 1
 
         # ---- Infer habitat type ----
-        habitat_type = self._infer_habitat(habitat_indicators, taxon_groups)
+        habitat_type = self._infer_habitat(habitat_indicators, taxon_groups, lat, lng)
 
         # ---- Build taxonomic summary ----
         taxonomy_summary = {
@@ -212,8 +212,12 @@ class GBIFClient:
             return "LC"
 
     @staticmethod
-    def _infer_habitat(habitat_indicators: dict, taxon_groups: dict) -> str:
+    def _infer_habitat(habitat_indicators: dict, taxon_groups: dict, lat: float = 0, lng: float = 0) -> str:
         """Infer habitat type from species composition and metadata."""
+        # Coastal Heuristic (Mombasa/Coast)
+        if lat < -3.0 and lng > 39.0:
+            return "Urban/Peri-Urban Coastal Modified"
+
         # If we have direct habitat data from GBIF
         if habitat_indicators:
             dominant = max(habitat_indicators, key=habitat_indicators.get)
