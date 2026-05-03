@@ -113,6 +113,7 @@ DATABASES = {
     "default": env.db(
         "DATABASE_URL",
         default="postgis://ecosense_user:ecosense_dev_password@localhost:5432/ecosense",
+        engine="django.contrib.gis.db.backends.postgis"
     ),
 }
 
