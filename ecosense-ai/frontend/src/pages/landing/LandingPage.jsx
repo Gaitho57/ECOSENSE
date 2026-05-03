@@ -9,7 +9,7 @@ export default function LandingPage() {
         <nav className="flex justify-between items-center px-6 md:px-12 py-6 absolute top-0 left-0 right-0 z-50">
              <div className="flex items-center gap-3">
                  <span className="text-3xl">🌍</span>
-                 <span className="text-xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-blue-500">EcoSense AI</span>
+                 <span className="text-xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-blue-500">EcoSenseEIA</span>
              </div>
              <div className="flex items-center gap-6 text-sm font-bold">
                  <a href="#features" className="hidden md:block text-gray-300 hover:text-white transition-colors">Features</a>

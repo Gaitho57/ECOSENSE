@@ -36,10 +36,13 @@ class UserSerializer(serializers.ModelSerializer):
             "phone",
             "tenant_id",
             "tenant_name",
+            "nema_registration_no",
+            "digital_stamp",
+            "digital_signature",
             "is_active",
             "date_joined",
         ]
-        read_only_fields = fields
+        read_only_fields = ["id", "email", "tenant_id", "tenant_name", "date_joined"]
 
 
 class RegisterSerializer(serializers.Serializer):

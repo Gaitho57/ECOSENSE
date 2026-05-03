@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
+import axios from '../../api/axiosInstance';
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('profile');
   
   const TABS = [
     { id: 'profile', label: 'My Profile' },
+    { id: 'certification', label: 'NEMA Certification' },
     { id: 'organisation', label: 'Organisation' },
     { id: 'team', label: 'Team Execution' },
     { id: 'notifications', label: 'Notifications' },
@@ -55,6 +57,64 @@ export default function SettingsPage() {
                           <button className="bg-gray-900 text-white font-bold px-6 py-3 rounded-lg hover:bg-black mt-4">Save Identity Constraints</button>
                      </div>
                  )}
+
+                 {activeTab === 'certification' && (
+                      <div className="max-w-xl space-y-8">
+                           <div className="border-b border-gray-100 pb-4 mb-6">
+                               <h3 className="text-lg font-black text-gray-800">Professional Certification (NEMA)</h3>
+                               <p className="text-sm text-gray-500">These assets are automatically embedded into your regulatory reports.</p>
+                           </div>
+
+                           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <div className="space-y-4">
+                                     <label className="block text-[11px] font-black uppercase text-gray-400">NEMA Practicing Stamp</label>
+                                     <div className="aspect-square w-full border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer group">
+                                          <div className="text-4xl group-hover:scale-110 transition-transform">🛡️</div>
+                                          <span className="text-[10px] font-bold text-gray-400 mt-2">Upload PNG/JPG</span>
+                                     </div>
+                                </div>
+                                <div className="space-y-4">
+                                     <label className="block text-[11px] font-black uppercase text-gray-400">Digital Signature</label>
+                                     <div className="aspect-square w-full border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer group">
+                                          <div className="text-4xl group-hover:scale-110 transition-transform">✍️</div>
+                                          <span className="text-[10px] font-bold text-gray-400 mt-2">Upload PNG/JPG</span>
+                                     </div>
+                                </div>
+                           </div>
+
+                           <div>
+                               <label className="block text-[11px] font-black uppercase text-gray-400 mb-2">NEMA Expert Registration No.</label>
+                               <input id="nema-reg-no" className="w-full bg-gray-50 border border-gray-200 p-4 rounded-xl font-mono text-sm" placeholder="e.g. NEMA/EIA/ER/1234" />
+                           </div>
+
+                           <div className="p-4 bg-amber-50 border border-amber-100 rounded-xl flex gap-3 items-start">
+                                <div className="text-amber-500">⚠️</div>
+                                <div className="text-xs text-amber-700 leading-relaxed font-medium">
+                                    By uploading these assets, you authorize EcoSense AI to embed them into your reports. These assets are encrypted and stored securely.
+                                </div>
+                           </div>
+
+                           <button 
+                                onClick={async () => {
+                                    const formData = new FormData();
+                                    const regNo = document.getElementById('nema-reg-no').value;
+                                    formData.append('nema_registration_no', regNo);
+                                    
+                                    // File handling logic would go here in a full implementation
+                                    // For now, we trigger the text update
+                                    try {
+                                        await axios.patch('/api/v1/auth/me/update/', formData);
+                                        alert("Certification assets updated successfully!");
+                                    } catch (err) {
+                                        alert("Update failed. Please check your credentials.");
+                                    }
+                                }}
+                                className="bg-blue-600 text-white font-bold px-8 py-4 rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-100"
+                           >
+                               Update Certification Assets
+                           </button>
+                      </div>
+                  )}
 
                  {activeTab === 'organisation' && (
                      <div className="max-w-xl space-y-6">

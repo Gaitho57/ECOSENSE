@@ -17,6 +17,7 @@ from apps.accounts.views import (
     MeView,
     RefreshView,
     RegisterView,
+    UpdateProfileView,
     InviteUserView,
     AcceptInviteView,
 )
@@ -29,6 +30,7 @@ urlpatterns = [
     path("logout/", LogoutView.as_view(), name="logout"),
     path("refresh/", RefreshView.as_view(), name="refresh"),
     path("me/", MeView.as_view(), name="me"),
+    path("me/update/", UpdateProfileView.as_view(), name="me-update"),
     path("invite/", InviteUserView.as_view(), name="invite"),
     path("accept-invite/<uuid:token>/", AcceptInviteView.as_view(), name="accept-invite"),
 ]

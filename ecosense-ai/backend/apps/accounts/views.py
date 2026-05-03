@@ -1,5 +1,5 @@
 """
-EcoSense AI — Accounts API Views.
+EcoSenseEIA — Accounts API Views.
 
 All responses use the standard API envelope:
     { "data": {}, "meta": {}, "error": null }
@@ -134,6 +134,27 @@ class RegisterView(generics.CreateAPIView):
             },
             status_code=status.HTTP_201_CREATED,
         )
+
+
+class UpdateProfileView(generics.UpdateAPIView):
+    """
+    PATCH /api/v1/auth/me/update/
+    
+    Update user profile including certification assets (stamps/signatures).
+    """
+    serializer_class = UserSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self):
+        return self.request.user
+
+    def patch(self, request, *args, **kwargs):
+        user = self.get_object()
+        serializer = self.get_serializer(user, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        
+        return envelope(data={"user": serializer.data})
 
 
 class LoginView(APIView):
@@ -351,7 +372,7 @@ class InviteUserView(APIView):
         
         try:
             send_mail(
-                subject=f"Invitation to join {tenant.name} on EcoSense AI",
+                subject=f"Invitation to join {tenant.name} on EcoSenseEIA",
                 message=f"You have been invited to join {tenant.name} as a {role}.\n\nPlease accept your invitation here:\n{invite_link}",
                 from_email=settings.DEFAULT_FROM_EMAIL if hasattr(settings, "DEFAULT_FROM_EMAIL") else "noreply@ecosense.ai",
                 recipient_list=[email],
@@ -415,10 +436,6 @@ class AcceptInviteView(APIView):
         invitation.is_used = True
         invitation.save(update_fields=["is_used"])
 
-        # Create JWT tokens
-        tokens = get_tokens_for_user(user)
-        user_data = UserSerializer(user).data
-
         return envelope(
             data={
                 "user": user_data,
@@ -426,3 +443,23 @@ class AcceptInviteView(APIView):
             },
             status_code=status.HTTP_201_CREATED,
         )
+
+class UpdateProfileView(generics.UpdateAPIView):
+    """
+    PATCH /api/v1/auth/me/update/
+    
+    Update user profile including certification assets (stamps/signatures).
+    """
+    serializer_class = UserSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self):
+        return self.request.user
+
+    def patch(self, request, *args, **kwargs):
+        user = self.get_object()
+        serializer = self.get_serializer(user, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        
+        return envelope(data={"user": serializer.data})

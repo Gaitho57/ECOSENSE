@@ -43,7 +43,7 @@ WORKDIR /app
 COPY requirements.txt .
 
 RUN pip install --upgrade pip && \
-    pip install --no-cache-dir --use-feature=fast-deps -r requirements.txt
+    pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 

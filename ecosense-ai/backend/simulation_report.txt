@@ -1,0 +1,127 @@
+ECOSENSE AI — Simulation Report
+Generated: 2026-05-02 22:11:44 EAT
+======================================================================
+
+
+────────────────────────────────────────────────────────────
+  ECOSENSE AI — FULL END-TO-END SIMULATION
+────────────────────────────────────────────────────────────
+
+────────────────────────────────────────────────────────────
+  1. Tenant & User Setup
+────────────────────────────────────────────────────────────
+  ✅ PASS  Tenant created
+         ID: 2889b292-cafe-4220-b621-41632decf199 | NEMA ID: NEMA/EIA/FIRM/SIM001
+  ✅ PASS  Consultant user: sim_consultant@ecosense.test
+         Role: consultant | Tenant: EcoSense Simulation Firm
+
+────────────────────────────────────────────────────────────
+  2. Project Creation (3 scenarios)
+────────────────────────────────────────────────────────────
+  ✅ PASS  [EXISTS] Athi River Oncology Hospital
+         Type: health_facilities | NEMA: high | 2.5ha
+  ✅ PASS  [EXISTS] Kisumu North Borehole Project
+         Type: borehole | NEMA: medium | 0.5ha
+  ✅ PASS  [EXISTS] Nakuru Affordable Housing Estate
+         Type: construction | NEMA: medium | 8.4ha
+
+────────────────────────────────────────────────────────────
+  3. Regulation Registry Check
+────────────────────────────────────────────────────────────
+  ℹ️  INFO  Total regulations in registry: 14
+  ✅ PASS  Regulations for health_facilities/Athi River Oncology Hospital
+         7 applicable: EMCA-EIA-REG-2003, EMCA-S58, EMCA-WASTE-REG-2006, IFC-PS1, IFC-PS6
+
+────────────────────────────────────────────────────────────
+  4. Document Checklist Auto-Generation
+────────────────────────────────────────────────────────────
+  ✅ PASS  Checklist for Athi River Oncology Hospital
+         11 documents required
+  ✅ PASS  Checklist for Kisumu North Borehole Project
+         11 documents required
+  ✅ PASS  Checklist for Nakuru Affordable Housing Estate
+         11 documents required
+
+────────────────────────────────────────────────────────────
+  5. Baseline Generation
+────────────────────────────────────────────────────────────
+  ✅ PASS  Baseline EXISTS: Athi River Oncology Hospital
+         Status: complete
+  ✅ PASS  Baseline EXISTS: Kisumu North Borehole Project
+         Status: complete
+  ✅ PASS  Baseline EXISTS: Nakuru Affordable Housing Estate
+         Status: complete
+
+────────────────────────────────────────────────────────────
+  6. AI Impact Predictions
+────────────────────────────────────────────────────────────
+  ✅ PASS  Predictions EXIST: Athi River Oncology Hospital
+         7 predictions
+  ✅ PASS  Predictions EXIST: Kisumu North Borehole Project
+         7 predictions
+  ✅ PASS  Predictions EXIST: Nakuru Affordable Housing Estate
+         7 predictions
+
+────────────────────────────────────────────────────────────
+  7. Community Feedback Simulation
+────────────────────────────────────────────────────────────
+  ✅ PASS  Feedback: Athi River Oncology Hospital
+         3 entries recorded
+  ✅ PASS  Feedback: Kisumu North Borehole Project
+         3 entries recorded
+  ✅ PASS  Feedback: Nakuru Affordable Housing Estate
+         3 entries recorded
+
+────────────────────────────────────────────────────────────
+  8. Public Notice & Public Submissions
+────────────────────────────────────────────────────────────
+  ✅ PASS  Public Notice: Athi River Oncology Hospital
+         Code: EIA-2026-2666EF | Days left: 21 | Submissions: 3
+  ✅ PASS  Public Notice: Kisumu North Borehole Project
+         Code: EIA-2026-945F9E | Days left: 21 | Submissions: 3
+
+────────────────────────────────────────────────────────────
+  9. Site Visit & Field Measurements
+────────────────────────────────────────────────────────────
+  ✅ PASS  Site Visit: Athi River Oncology Hospital
+         4 field measurements | 4 synced to baseline
+  ✅ PASS  Site Visit: Kisumu North Borehole Project
+         4 field measurements | 4 synced to baseline
+
+────────────────────────────────────────────────────────────
+  10. Compliance Audit
+────────────────────────────────────────────────────────────
+  ✅ PASS  Compliance: Athi River Oncology Hospital
+         Score: 100.0% (Grade A) | Passed: 6 | Failed: 0 | Warnings: 0
+  ✅ PASS  Compliance: Kisumu North Borehole Project
+         Score: 85.7% (Grade B) | Passed: 24 | Failed: 2 | Warnings: 2
+  ✅ PASS  Compliance: Nakuru Affordable Housing Estate
+         Score: 81.8% (Grade B) | Passed: 18 | Failed: 2 | Warnings: 2
+
+────────────────────────────────────────────────────────────
+  11. Report Generation (Full Pipeline)
+────────────────────────────────────────────────────────────
+  ✅ PASS  Report [DOCX]: Athi River Oncology Hospital
+         Status: pending_expert_review | Size: 43.7KB | Time: 3.2s | Compliance: 100.0%
+  ✅ PASS  Report [PDF]: Athi River Oncology Hospital
+         Status: pending_expert_review | Size: 215.4KB | Time: 0.4s | Compliance: 100.0%
+  ✅ PASS  Report [DOCX]: Kisumu North Borehole Project
+         Status: pending_expert_review | Size: 44.6KB | Time: 0.6s | Compliance: 85.7%
+  ✅ PASS  Report [PDF]: Kisumu North Borehole Project
+         Status: pending_expert_review | Size: 226.0KB | Time: 0.7s | Compliance: 85.7%
+  ✅ PASS  Report [DOCX]: Nakuru Affordable Housing Esta
+         Status: pending_expert_review | Size: 44.5KB | Time: 0.8s | Compliance: 81.8%
+  ✅ PASS  Report [PDF]: Nakuru Affordable Housing Esta
+         Status: pending_expert_review | Size: 226.6KB | Time: 0.6s | Compliance: 81.8%
+
+────────────────────────────────────────────────────────────
+  12. RAG Historical Baseline Context
+────────────────────────────────────────────────────────────
+  ⚠️  WARN  RAG Pipeline
+         Vector store not ready yet: name 'region_data' is not defined
+
+────────────────────────────────────────────────────────────
+  SIMULATION COMPLETE — FINAL SUMMARY
+────────────────────────────────────────────────────────────
+
+  TOTAL: 32 | PASS: 31 | FAIL: 0 | WARN: 1

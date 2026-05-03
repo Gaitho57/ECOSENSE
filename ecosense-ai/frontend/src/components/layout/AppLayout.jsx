@@ -43,7 +43,7 @@ export default function AppLayout() {
         <div className="h-20 flex items-center justify-center border-b border-gray-800">
              {isSidebarOpen ? (
                  <span className="text-xl font-black text-green-500 tracking-tight flex items-center gap-2">
-                      <span className="text-3xl">🌍</span> EcoSense AI
+                      <span className="text-3xl">🌍</span> EcoSenseEIA
                  </span>
              ) : (
                  <span className="text-3xl">🌍</span>
