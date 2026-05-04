@@ -78,8 +78,21 @@ class GenerateBaselineView(APIView):
                 status_code=status.HTTP_409_CONFLICT
             )
 
-        generate_baseline.delay(str(project_id))
+        # Try async (Celery) first, fall back to synchronous if no broker available
         local_task_id = f"local-{uuid.uuid4()}"
+        try:
+            generate_baseline.delay(str(project_id))
+            logger.info(f"Baseline task dispatched via Celery for project {project_id}")
+        except Exception as celery_err:
+            logger.warning(f"Celery unavailable ({celery_err}), running baseline synchronously")
+            try:
+                generate_baseline(str(project_id))
+            except Exception as sync_err:
+                logger.error(f"Synchronous baseline generation failed: {sync_err}")
+                return envelope(
+                    error={"code": 500, "message": f"Baseline generation failed: {str(sync_err)}", "details": {}},
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
 
         return envelope(
             data={"task_id": local_task_id, "message": "Baseline generation started"},

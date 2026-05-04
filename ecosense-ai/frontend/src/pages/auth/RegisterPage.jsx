@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import axios from 'axios';
+import axiosInstance from '../../api/axiosInstance';
 import useAuthStore from '../../store/authStore';
-
-const baseURL = import.meta.env.VITE_API_URL || '/api/v1';
 
 export default function RegisterPage() {
     const navigate = useNavigate();
@@ -21,7 +19,7 @@ export default function RegisterPage() {
         setLoading(true);
 
         try {
-            const response = await axios.post(`${baseURL}/auth/register/`, formData);
+            const response = await axiosInstance.post('auth/register/', formData);
 
             // The backend limits natively map JWT extraction automatically post-registration mapping 1 API bound
             const { user, access_token, refresh_token } = response.data.data;

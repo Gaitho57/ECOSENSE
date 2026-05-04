@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import useAuthStore from '../../store/authStore';
-import axios from 'axios';
+import axiosInstance from '../../api/axiosInstance';
 
 const acceptInviteSchema = z.object({
   full_name: z.string().min(2, { message: 'Full name is required' }),
@@ -32,7 +32,7 @@ export default function AcceptInvitePage() {
   const onSubmit = async (data) => {
     setApiError(null);
     try {
-      const response = await axios.post(`/api/v1/auth/accept-invite/${token}/`, data);
+      const response = await axiosInstance.post(`auth/accept-invite/${token}/`, data);
 
       const { user, access_token, refresh_token } = response.data.data;
 

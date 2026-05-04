@@ -88,11 +88,14 @@ def run_predictions(self, project_id: str, scenario_params: dict = None):
          project.status = "review"
          project.save(update_fields=["status"])
          
-         record_audit_event.delay(
-             project_id, 
-             "PREDICTION_RUN", 
-             {"scenario": scenario_name, "total_impacts": len(created_objs)}
-         )
+         try:
+             record_audit_event.delay(
+                 project_id, 
+                 "PREDICTION_RUN", 
+                 {"scenario": scenario_name, "total_impacts": len(created_objs)}
+             )
+         except Exception:
+             pass  # Celery broker unavailable, skip audit
          
          # 8. Return explicitly map count
          return len(created_objs)

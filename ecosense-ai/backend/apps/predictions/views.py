@@ -33,8 +33,19 @@ class RunPredictionView(APIView):
         if not hasattr(project, 'baseline') or project.baseline.status != 'complete':
             return envelope(error={"code": 400, "message": "Baseline must be complete before running predictions.", "details": {}}, status_code=status.HTTP_400_BAD_REQUEST)
 
-        run_predictions.delay(str(project_id))
+        import logging
+        logger = logging.getLogger(__name__)
         local_task_id = f"local-{uuid.uuid4()}"
+        try:
+            run_predictions.delay(str(project_id))
+            logger.info(f"Predictions task dispatched via Celery for project {project_id}")
+        except Exception as celery_err:
+            logger.warning(f"Celery unavailable ({celery_err}), running predictions synchronously")
+            try:
+                run_predictions(str(project_id))
+            except Exception as sync_err:
+                logger.error(f"Synchronous prediction failed: {sync_err}")
+                return envelope(error={"code": 500, "message": f"Prediction failed: {str(sync_err)}", "details": {}}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
         return envelope(data={"task_id": local_task_id, "message": "Predictions started successfully."}, status_code=status.HTTP_202_ACCEPTED)
 
 class ProjectPredictionsView(APIView):
@@ -101,8 +112,14 @@ class ProjectScenariosView(APIView):
              return envelope(error={"code": 400, "message": "Must provide mitigations to run scenario.", "details": {}}, status_code=400)
 
         params = {"mitigations": mitigations, "scenario_name": scenario_name}
-        run_predictions.delay(str(project_id), params)
         local_task_id = f"local-{uuid.uuid4()}"
+        try:
+            run_predictions.delay(str(project_id), params)
+        except Exception:
+            try:
+                run_predictions(str(project_id), params)
+            except Exception as sync_err:
+                return envelope(error={"code": 500, "message": f"Scenario failed: {str(sync_err)}", "details": {}}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
         return envelope(data={"task_id": local_task_id, "message": f"Scenario {scenario_name} compilation started."}, status_code=status.HTTP_202_ACCEPTED)
 
 class DispersionSimulationView(APIView):

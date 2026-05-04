@@ -190,15 +190,18 @@ def generate_baseline(self, project_id: str):
         project.status = "assessment"
         project.save(update_fields=["status"])
 
-        record_audit_event.delay(
-            str(project_id),
-            "BASELINE_GENERATED",
-            {
-                "grade": baseline.sensitivity_scores.get("grade", "N/A"),
-                "total_score": baseline.sensitivity_scores.get("overall", 0),
-                "data_sources": active_sources,
-            }
-        )
+        try:
+            record_audit_event.delay(
+                str(project_id),
+                "BASELINE_GENERATED",
+                {
+                    "grade": baseline.sensitivity_scores.get("grade", "N/A"),
+                    "total_score": baseline.sensitivity_scores.get("overall", 0),
+                    "data_sources": active_sources,
+                }
+            )
+        except Exception:
+            logger.warning("Audit event dispatch skipped (no Celery broker)")
 
         return {
             "project_id": str(project_id),

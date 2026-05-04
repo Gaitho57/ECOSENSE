@@ -76,7 +76,13 @@ class PublicParticipationView(APIView):
             is_anonymous=not bool(name)
         )
         
-        process_feedback_nlp.delay(str(feedback.id))
+        try:
+            process_feedback_nlp.delay(str(feedback.id))
+        except Exception:
+            try:
+                process_feedback_nlp(str(feedback.id))
+            except Exception:
+                pass  # NLP enrichment is non-critical
         
         return envelope(data={"message": "Thank you for your feedback"}, status_code=201)
 
