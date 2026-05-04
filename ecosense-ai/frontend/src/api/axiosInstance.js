@@ -3,8 +3,8 @@ import useAuthStore from '../store/authStore';
 
 const rawBaseURL = import.meta.env.VITE_API_URL || '';
 const baseURL = rawBaseURL.endsWith('/') 
-  ? `${rawBaseURL}api/v1` 
-  : `${rawBaseURL}/api/v1`;
+  ? `${rawBaseURL}api/v1/` 
+  : `${rawBaseURL}/api/v1/`;
 
 /**
  * Pre-configured Axios instance for EcoSense AI.

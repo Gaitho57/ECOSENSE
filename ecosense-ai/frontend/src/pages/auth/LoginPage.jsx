@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import axios from 'axios';
+import axiosInstance from '../../api/axiosInstance';
 import useAuthStore from '../../store/authStore';
-
-const baseURL = import.meta.env.VITE_API_URL || '/api/v1';
 
 export default function LoginPage() {
     const navigate = useNavigate();
@@ -23,7 +21,7 @@ export default function LoginPage() {
         setLoading(true);
 
         try {
-            const response = await axios.post(`${baseURL}/auth/login/`, {
+            const response = await axiosInstance.post('auth/login/', {
                 email, password
             });
 
