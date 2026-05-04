@@ -20,7 +20,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 env = environ.Env(
     DEBUG=(bool, False),
     ALLOWED_HOSTS=(list, ["localhost", "127.0.0.1"]),
-    CORS_ALLOWED_ORIGINS=(list, ["http://localhost:3000"]),
+    CORS_ALLOWED_ORIGINS=(list, [
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "https://ecosensehq.co.ke",
+        "https://eia.ecosensehq.co.ke",
+    ]),
     FRONTEND_URL=(str, "http://localhost:3000"),
 )
 
