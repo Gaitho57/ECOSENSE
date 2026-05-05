@@ -52,11 +52,14 @@ const KeepAlive = () => {
   return null;
 };
 
+import { MapProvider } from './components/maps/MapContext';
+
 function App() {
   return (
     <BrowserRouter>
-      <KeepAlive />
-      <Routes>
+      <MapProvider>
+        <KeepAlive />
+        <Routes>
         {/* Unauthenticated Marketing Footprints */}
         <Route path="/" element={<LandingPage />} />
         
@@ -96,6 +99,7 @@ function App() {
         
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      </MapProvider>
     </BrowserRouter>
   );
 }

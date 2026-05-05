@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import axiosInstance from '../../api/axiosInstance';
 import { useBaseline } from '../../hooks/useBaseline';
-import { useMap, MapProvider } from '../../components/maps/MapContext';
+import { useMap } from '../../components/maps/MapContext';
 import BaseMap from '../../components/maps/BaseMap';
 import LayerControl from '../../components/maps/LayerControl';
 import L from 'leaflet';
@@ -263,25 +263,23 @@ export default function GISPage() {
         {/* Map Canvas */}
         <div className="flex-1 h-full w-full absolute inset-0 z-0">
           {!isLoadingProject && (
-              <MapProvider>
-                  <BaseMap center={mapCenter} zoom={14} onMove={(c) => setMapCenter(c)}>
-                      <LayerControl layers={layers} setLayers={setLayers} />
-                      <ProjectCenterMarker center={[projectData?.coordinates?.lng, projectData?.coordinates?.lat]} />
-                      <BufferRingsLayer center={[projectData?.coordinates?.lng, projectData?.coordinates?.lat]} />
+              <BaseMap center={mapCenter} zoom={14} onMove={(c) => setMapCenter(c)}>
+                  <LayerControl layers={layers} setLayers={setLayers} />
+                  <ProjectCenterMarker center={[projectData?.coordinates?.lng, projectData?.coordinates?.lat]} />
+                  <BufferRingsLayer center={[projectData?.coordinates?.lng, projectData?.coordinates?.lat]} />
 
-                      <ProjectBoundaryLayer boundaryGeoJSON={boundaryGeoJSON} isVisible={layers.boundary} />
-                      <NDVILayer ndvi_score={baseline?.satellite_data?.ndvi} ndvi_tile_url={baseline?.satellite_data?.ndvi_tile_url} center={mapCenter} isVisible={layers.ndvi} />
-                      <HydrologyLayer hydrology_data={baseline?.hydrology_data} isVisible={layers.hydrology} />
-                      <BiodiversityLayer biodiversity_data={baseline?.biodiversity_data} center={mapCenter} isVisible={layers.biodiversity} />
-                      <AirQualityLayer air_quality_baseline={baseline?.air_quality_baseline} center={mapCenter} isVisible={layers.air_quality} />
-                      <ProtectedAreaLayer protected_areas={baseline?.satellite_data?.protected_area_status?.areas} isVisible={layers.protected_areas} />
-                      <WaterTowerLayer proximity_data={baseline?.satellite_data?.water_tower_proximity} isVisible={layers.water_towers} />
-                      <SettlementLayer settlement_data={baseline?.satellite_data?.settlement_geometries} isVisible={layers.settlements} />
+                  <ProjectBoundaryLayer boundaryGeoJSON={boundaryGeoJSON} isVisible={layers.boundary} />
+                  <NDVILayer ndvi_score={baseline?.satellite_data?.ndvi} ndvi_tile_url={baseline?.satellite_data?.ndvi_tile_url} center={mapCenter} isVisible={layers.ndvi} />
+                  <HydrologyLayer hydrology_data={baseline?.hydrology_data} isVisible={layers.hydrology} />
+                  <BiodiversityLayer biodiversity_data={baseline?.biodiversity_data} center={mapCenter} isVisible={layers.biodiversity} />
+                  <AirQualityLayer air_quality_baseline={baseline?.air_quality_baseline} center={mapCenter} isVisible={layers.air_quality} />
+                  <ProtectedAreaLayer protected_areas={baseline?.satellite_data?.protected_area_status?.areas} isVisible={layers.protected_areas} />
+                  <WaterTowerLayer proximity_data={baseline?.satellite_data?.water_tower_proximity} isVisible={layers.water_towers} />
+                  <SettlementLayer settlement_data={baseline?.satellite_data?.settlement_geometries} isVisible={layers.settlements} />
 
-                      <DispersionLayer geoJSON={dispersionData} isVisible={layers.dispersion} />
-                      <FloodLayer geoJSON={floodData} isVisible={layers.flood} />
-                  </BaseMap>
-              </MapProvider>
+                  <DispersionLayer geoJSON={dispersionData} isVisible={layers.dispersion} />
+                  <FloodLayer geoJSON={floodData} isVisible={layers.flood} />
+              </BaseMap>
           )}
           {isLoadingProject && (
               <div className="h-full w-full bg-slate-900 flex items-center justify-center">
