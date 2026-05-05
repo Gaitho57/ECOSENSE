@@ -312,7 +312,17 @@ export default function BaselinePage() {
 
   useEffect(() => {
     if (baseline?.project_location) {
-      setMapCenter([baseline.project_location.lng, baseline.project_location.lat]);
+      const { lng, lat } = baseline.project_location;
+      
+      // Automatic Kenya-Bounds Check
+      const isOutOfKenya = lng < 33 || lng > 42 || lat < -5 || lat > 6;
+      
+      if (isOutOfKenya) {
+        console.warn("Baseline location out of bounds. Snapping to Athi River.");
+        setMapCenter([36.9741, -1.4678]);
+      } else {
+        setMapCenter([lng, lat]);
+      }
     }
   }, [baseline]);
 

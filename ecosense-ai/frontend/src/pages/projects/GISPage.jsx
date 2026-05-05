@@ -183,7 +183,18 @@ export default function GISPage() {
   // Force sync map to project coordinates once loaded
   useEffect(() => {
       if (projectData?.coordinates?.lng && projectData?.coordinates?.lat) {
-          setMapCenter([projectData.coordinates.lng, projectData.coordinates.lat]);
+          const { lng, lat } = projectData.coordinates;
+          
+          // Automatic Kenya-Bounds Check: If project is in the ocean/wrong continent, 
+          // automatically snap to the intended Athi River region.
+          const isOutOfKenya = lng < 33 || lng > 42 || lat < -5 || lat > 6;
+          
+          if (isOutOfKenya) {
+              console.warn("Project coordinates out of bounds. Snapping to Athi River region automatically.");
+              setMapCenter([36.9741, -1.4678]);
+          } else {
+              setMapCenter([lng, lat]);
+          }
       }
   }, [projectData]);
 
@@ -303,33 +314,59 @@ export default function GISPage() {
 
         {/* Sidebar */}
         <div className="absolute top-4 left-4 z-10 w-[380px] mt-12 bg-white rounded-xl shadow-2xl border border-gray-200 flex flex-col pointer-events-auto max-h-[90vh]">
-          <div className="p-5 border-b border-gray-100 flex justify-between items-center">
-               <div>
-                 <h2 className="text-xl font-black text-gray-900 tracking-tight">GIS Simulations</h2>
-                 <p className="text-sm text-gray-500 mt-1">Real-time geospatial projections.</p>
+          <div className="p-5 border-b border-gray-100 bg-gray-50/50">
+               <div className="flex items-center justify-between mb-4">
+                 <div>
+                   <h2 className="text-xl font-black text-gray-900 tracking-tight">GIS Simulations</h2>
+                   <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-0.5">Project ID: {projectId.slice(0,8)}…</p>
+                 </div>
+                 {!projectData?.boundary_coordinates && (
+                   <span className="text-[9px] font-black text-amber-700 bg-amber-100 px-2 py-1 rounded border border-amber-200 uppercase tracking-tighter animate-pulse">
+                     Boundary Missing
+                   </span>
+                 )}
                </div>
-               <div className="flex gap-2">
-                 <button onClick={handleLocateMe} title="Find my location" className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors">
-                   📍
-                 </button>
-                 <button onClick={snapToProject} title="Snap to Project Site" className="p-2 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-100 transition-colors">
-                   🎯
-                 </button>
-                 <button 
-                  onClick={() => setMapCenter([36.9741, -1.4678])} 
-                  title="Teleport to Athi River (Recovery)" 
-                  className="p-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors"
-                 >
-                   🇰🇪
-                 </button>
-                 <button 
-                  onClick={handleUpdateProjectLocation} 
-                  disabled={isUpdatingLocation}
-                  title="Update Project Center to current view" 
-                  className={`p-2 rounded-lg transition-colors ${isUpdatingLocation ? 'bg-gray-100 text-gray-400' : 'bg-red-50 text-red-600 hover:bg-red-100'}`}
-                 >
-                   📍+
-                 </button>
+
+               <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm space-y-3">
+                 <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Latitude</p>
+                      <p className="text-sm font-black text-gray-900">{projectData?.coordinates?.lat?.toFixed(5) || '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Longitude</p>
+                      <p className="text-sm font-black text-gray-900">{projectData?.coordinates?.lng?.toFixed(5) || '—'}</p>
+                    </div>
+                 </div>
+
+                 <div className="flex gap-2 pt-1 border-t border-gray-50">
+                   <button onClick={handleLocateMe} title="Find my location" className="flex-1 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors text-xs font-bold">
+                     📍 Locate Me
+                   </button>
+                   <button onClick={snapToProject} title="Snap to Project Site" className="p-2 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-100 transition-colors">
+                     🎯
+                   </button>
+                   <button 
+                    onClick={() => setMapCenter([36.9741, -1.4678])} 
+                    title="Teleport to Athi River (Recovery)" 
+                    className="p-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors"
+                   >
+                     🇰🇪
+                   </button>
+                   <button 
+                    onClick={handleUpdateProjectLocation} 
+                    disabled={isUpdatingLocation}
+                    title="Update Site Center to current view" 
+                    className={`flex-1 py-2 rounded-lg transition-colors text-xs font-bold ${isUpdatingLocation ? 'bg-gray-100 text-gray-400' : 'bg-red-50 text-red-600 hover:bg-red-100'}`}
+                   >
+                     📍+ Save Site
+                   </button>
+                 </div>
+                 {!projectData?.boundary_coordinates && (
+                   <p className="text-[9px] text-amber-600 italic font-medium leading-tight">
+                     ⚠️ Boundary polygon not detected. Simulations will run on a 500m radius around the site center.
+                   </p>
+                 )}
                </div>
           </div>
 
