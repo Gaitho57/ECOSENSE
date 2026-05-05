@@ -13,21 +13,26 @@ const LeafletMapSync = ({ setMap, center, zoom, onMove }) => {
   useEffect(() => {
     if (map) {
       setMap(map);
-      if (center) {
-        map.setView([center[1], center[0]], zoom || map.getZoom());
-      }
-      
       const onMoveEnd = () => {
         if (onMove) {
           const c = map.getCenter();
           onMove([c.lng, c.lat]);
         }
       };
-      
       map.on('moveend', onMoveEnd);
       return () => map.off('moveend', onMoveEnd);
     }
-  }, [map, setMap, center, zoom, onMove]);
+  }, [map, setMap, onMove]);
+
+  useEffect(() => {
+    if (map && center) {
+      const current = map.getCenter();
+      const dist = Math.sqrt(Math.pow(current.lng - center[0], 2) + Math.pow(current.lat - center[1], 2));
+      if (dist > 0.0001) {
+        map.setView([center[1], center[0]], zoom || map.getZoom(), { animate: true });
+      }
+    }
+  }, [center, zoom, map]);
   return null;
 };
 
