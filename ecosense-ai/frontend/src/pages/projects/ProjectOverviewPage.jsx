@@ -167,7 +167,14 @@ export default function ProjectOverviewPage() {
         <div className="w-full md:w-64 h-40 bg-gray-100 rounded-xl border-2 border-gray-200 overflow-hidden relative shadow-inner shrink-0 hover:border-blue-400 transition-colors">
           <div className="absolute inset-0" style={{
             background: project.mapbox_token
-              ? `url("https://api.mapbox.com/styles/v1/mapbox/satellite-v9/static/${project.coordinates?.lng || 36.8219},${project.coordinates?.lat || -1.2921},12,0/300x200?access_token=${project.mapbox_token}") center/cover`
+              ? (() => {
+                  const lng = project.coordinates?.lng ?? 36.9741;
+                  const lat = project.coordinates?.lat ?? -1.4678;
+                  const isOutOfKenya = lng < 33 || lng > 42 || lat < -5 || lat > 6;
+                  const safeLng = isOutOfKenya ? 36.9741 : lng;
+                  const safeLat = isOutOfKenya ? -1.4678 : lat;
+                  return `url("https://api.mapbox.com/styles/v1/mapbox/satellite-v9/static/${safeLng},${safeLat},12,0/300x200?access_token=${project.mapbox_token}") center/cover`;
+                })()
               : `url(${satellitePlaceholder}) center/cover`
           }}>
             <div className="absolute inset-0 bg-blue-900/10 mix-blend-multiply" />
