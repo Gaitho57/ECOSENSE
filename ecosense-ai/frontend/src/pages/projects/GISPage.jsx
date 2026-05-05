@@ -239,17 +239,26 @@ export default function GISPage() {
   };
 
   const handleUpdateProjectLocation = async () => {
-    if (!window.confirm("Set the current map center as the official project site location?")) return;
+    const [lng, lat] = mapCenter;
+    
+    // Sanity Check: Prevent saving "Off-Planet" coordinates
+    if (Math.abs(lng) > 180 || Math.abs(lat) > 90) {
+        alert("❌ Invalid coordinates detected! Please use the 🇰🇪 reset button to return to Kenya before saving.");
+        return;
+    }
+
+    if (!window.confirm(`Set the current map center (${lat.toFixed(4)}, ${lng.toFixed(4)}) as the official project site location?`)) return;
+    
     setIsUpdatingLocation(true);
     try {
         await axiosInstance.patch(`/projects/${projectId}/`, {
-            coordinates: { lng: mapCenter[0], lat: mapCenter[1] }
+            coordinates: { lng, lat }
         });
         alert("✅ Project location updated successfully!");
         fetchProject();
     } catch (err) {
-        console.error("Failed to update project location", err);
-        alert("Error updating project location.");
+        console.error("Update failed:", err);
+        alert("Failed to update project location.");
     } finally {
         setIsUpdatingLocation(false);
     }
@@ -382,14 +391,44 @@ export default function GISPage() {
                </div>
 
                <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm space-y-3">
+                 { (Math.abs(projectData?.coordinates?.lng || 0) > 180) && (
+                   <div className="p-3 bg-red-50 border border-red-200 rounded-lg mb-2">
+                     <p className="text-[10px] text-red-700 font-black uppercase tracking-widest mb-2 animate-pulse">
+                       🚨 Critical Coordinate Error
+                     </p>
+                     <p className="text-[10px] text-red-600 leading-tight mb-3 font-medium">
+                       The database has corrupted longitude data ({projectData?.coordinates?.lng}). This is why the marker is invisible.
+                     </p>
+                     <button 
+                       onClick={async () => {
+                         setMapCenter([36.9741, -1.4678]);
+                         setIsUpdatingLocation(true);
+                         try {
+                           await axiosInstance.patch(`/projects/${projectId}/`, { coordinates: { lng: 36.9741, lat: -1.4678 } });
+                           fetchProject();
+                           alert("✅ Coordinates Repaired!");
+                         } catch(e) { alert("Repair failed."); }
+                         finally { setIsUpdatingLocation(false); }
+                       }}
+                       className="w-full py-2 bg-red-600 hover:bg-red-700 text-white text-[10px] font-black uppercase tracking-widest rounded-lg shadow-lg"
+                     >
+                       🛠️ Repair Project Location
+                     </button>
+                   </div>
+                 )}
+                 
                  <div className="grid grid-cols-2 gap-4">
                     <div>
                       <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Latitude</p>
-                      <p className="text-sm font-black text-gray-900">{projectData?.coordinates?.lat?.toFixed(5) || '—'}</p>
+                      <p className="text-sm font-black text-gray-900">
+                        {projectData?.coordinates?.lat > 90 ? 'ERROR' : (projectData?.coordinates?.lat?.toFixed(5) || '—')}
+                      </p>
                     </div>
                     <div>
                       <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Longitude</p>
-                      <p className="text-sm font-black text-gray-900">{projectData?.coordinates?.lng?.toFixed(5) || '—'}</p>
+                      <p className="text-sm font-black text-gray-900">
+                        {projectData?.coordinates?.lng > 180 ? 'ERROR' : (projectData?.coordinates?.lng?.toFixed(5) || '—')}
+                      </p>
                     </div>
                  </div>
 
