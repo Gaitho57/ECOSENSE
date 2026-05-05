@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import axiosInstance from '../../api/axiosInstance';
 import { useBaseline } from '../../hooks/useBaseline';
 import { useMap, MapProvider } from '../../components/maps/MapContext';
 import BaseMap from '../../components/maps/BaseMap';
 import LayerControl from '../../components/maps/LayerControl';
+import L from 'leaflet';
 
 // Simulation Layers
 import DispersionLayer from '../../components/maps/layers/DispersionLayer';
@@ -23,47 +24,79 @@ import * as turf from '@turf/turf';
 
 function BufferRingsLayer({ center }) {
   const { map } = useMap();
+  const leafletLayersRef = useRef([]);
 
   useEffect(() => {
-    if (!map || !map.isStyleLoaded() || !center) return;
+    if (!map || !center) return;
 
-    const sourceId = 'buffer-rings';
-    
-    // Create dual rings using TurfJS generically
-    const pt = turf.point(center);
-    const ring500 = turf.circle(pt, 0.5, { steps: 64, units: 'kilometers' });
-    const ring2k = turf.circle(pt, 2.0, { steps: 64, units: 'kilometers' });
-    
-    const fc = turf.featureCollection([ring500, ring2k]);
+    const isMapLibre = !!map.addSource;
+    const isLeaflet = !!map.addLayer && !isMapLibre;
 
-    const addLayer = () => {
-        if (!map.getSource(sourceId)) {
-            map.addSource(sourceId, { type: 'geojson', data: fc });
-            
-            map.addLayer({
-                id: 'buffer-rings-line',
-                type: 'line',
-                source: sourceId,
-                paint: {
-                    'line-color': '#FFFFFF',
-                    'line-width': 1.5,
-                    'line-dasharray': [2, 2],
-                    'line-opacity': 0.7
-                }
-            });
-        }
-    };
+    if (isMapLibre) {
+      if (!map.isStyleLoaded()) return;
 
-    addLayer();
-    map.on('style.load', addLayer);
-    
-    return () => {
-        map.off('style.load', addLayer);
-        if (map && map.getStyle()) {
-            if (map.getLayer('buffer-rings-line')) map.removeLayer('buffer-rings-line');
-            if (map.getSource(sourceId)) map.removeSource(sourceId);
-        }
-    };
+      const sourceId = 'buffer-rings';
+      const pt = turf.point(center);
+      const ring500 = turf.circle(pt, 0.5, { steps: 64, units: 'kilometers' });
+      const ring2k = turf.circle(pt, 2.0, { steps: 64, units: 'kilometers' });
+      const fc = turf.featureCollection([ring500, ring2k]);
+
+      const addLayer = () => {
+          if (!map.getSource(sourceId)) {
+              map.addSource(sourceId, { type: 'geojson', data: fc });
+              map.addLayer({
+                  id: 'buffer-rings-line',
+                  type: 'line',
+                  source: sourceId,
+                  paint: {
+                      'line-color': '#FFFFFF',
+                      'line-width': 1.5,
+                      'line-dasharray': [2, 2],
+                      'line-opacity': 0.7
+                  }
+              });
+          }
+      };
+
+      addLayer();
+      map.on('style.load', addLayer);
+      
+      return () => {
+          map.off('style.load', addLayer);
+          if (map && map.getStyle()) {
+              if (map.getLayer('buffer-rings-line')) map.removeLayer('buffer-rings-line');
+              if (map.getSource(sourceId)) map.removeSource(sourceId);
+          }
+      };
+    } else if (isLeaflet) {
+      // Clear old layers
+      leafletLayersRef.current.forEach(l => map.removeLayer(l));
+      leafletLayersRef.current = [];
+
+      const r500 = L.circle([center[1], center[0]], {
+        radius: 500,
+        color: '#FFFFFF',
+        weight: 1.5,
+        dashArray: '5, 5',
+        fill: false,
+        opacity: 0.7
+      }).addTo(map);
+
+      const r2k = L.circle([center[1], center[0]], {
+        radius: 2000,
+        color: '#FFFFFF',
+        weight: 1.5,
+        dashArray: '5, 5',
+        fill: false,
+        opacity: 0.7
+      }).addTo(map);
+
+      leafletLayersRef.current = [r500, r2k];
+
+      return () => {
+        leafletLayersRef.current.forEach(l => map.removeLayer(l));
+      };
+    }
 
   }, [map, center]);
 
