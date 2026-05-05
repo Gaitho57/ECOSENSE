@@ -24,29 +24,28 @@ def calculate_flood_zones(lat, lng, radius_km=10):
                  nlng, nlat, _ = geod.fwd(lng, lat, angle, r_km * 1000)
                  points.append({"lat": nlat, "lng": nlng})
 
-        # 2. Query Open-Elevation (Requires coordinates as "lat,lng|lat,lng...")
-        coord_strings = []
-        for p in points:
-             coord_strings.append(f"{p['lat']},{p['lng']}")
-             
-        payload = "|".join(coord_strings)
-        url = f"https://api.open-elevation.com/api/v1/lookup?locations={payload}"
+        # 2. Query Open-Meteo (High reliability replacement for unstable open-elevation)
+        lats = [str(p['lat']) for p in points]
+        lngs = [str(p['lng']) for p in points]
         
-        # Notice: The open elevation API can be slow/timeout. We apply a direct threshold request here
-        resp = requests.get(url, timeout=15)
+        url = f"https://api.open-meteo.com/v1/elevation?latitude={','.join(lats)}&longitude={','.join(lngs)}"
+        
+        resp = requests.get(url, timeout=10)
         resp.raise_for_status()
         
-        results = resp.json().get("results", [])
-        if not results:
-             raise ValueError("Open Elevation returned empty.")
-
-        # 3. Analyze logic
+        data = resp.json()
+        raw_elevations = data.get("elevation", [])
+        
+        if not raw_elevations:
+             raise ValueError("Open-Meteo returned empty.")
+        
+        # 3. Map results back to our coordinate structure
         elevations = []
-        for r in results:
+        for i, elev in enumerate(raw_elevations):
              elevations.append({
-                 "lat": r["latitude"],
-                 "lng": r["longitude"],
-                 "elev": r["elevation"]
+                 "lat": float(lats[i]),
+                 "lng": float(lngs[i]),
+                 "elev": elev
              })
              
         min_elev = min(e["elev"] for e in elevations)
