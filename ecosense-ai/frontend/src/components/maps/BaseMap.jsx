@@ -48,13 +48,13 @@ const BaseMap = forwardRef(({
   const mapContainer = useRef(null);
   
   const STYLES = {
-    satellite: 'https://api.maptiler.com/maps/hybrid/style.json?key=get_your_own_key',
-    light: 'https://api.maptiler.com/maps/bright/style.json?key=get_your_own_key',
-    dark: 'https://api.maptiler.com/maps/darkmatter/style.json?key=get_your_own_key'
+    satellite: 'https://api.maptiler.com/maps/hybrid/style.json?key=get_your_own_key', // Still needs a key, but others are public
+    light: 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json',
+    dark: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json'
   };
 
   const LEAFLET_TILES = {
-    satellite: "https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}",
+    satellite: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
     light: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
     dark: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
   };

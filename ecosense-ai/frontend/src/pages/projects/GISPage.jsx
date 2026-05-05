@@ -180,6 +180,19 @@ export default function GISPage() {
       fetchProject();
   }, [projectId]);
 
+  // Force sync map to project coordinates once loaded
+  useEffect(() => {
+      if (projectData?.coordinates?.lng && projectData?.coordinates?.lat) {
+          setMapCenter([projectData.coordinates.lng, projectData.coordinates.lat]);
+      }
+  }, [projectData]);
+
+  const snapToProject = () => {
+    if (projectData?.coordinates?.lng && projectData?.coordinates?.lat) {
+        setMapCenter([projectData.coordinates.lng, projectData.coordinates.lat]);
+    }
+  };
+
   const handleLocateMe = () => {
     if (!navigator.geolocation) {
         alert("Geolocation is not supported by your browser.");
@@ -299,13 +312,16 @@ export default function GISPage() {
                  <button onClick={handleLocateMe} title="Find my location" className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors">
                    📍
                  </button>
+                 <button onClick={snapToProject} title="Snap to Project Site" className="p-2 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-100 transition-colors">
+                   🎯
+                 </button>
                  <button 
                   onClick={handleUpdateProjectLocation} 
                   disabled={isUpdatingLocation}
                   title="Update Project Center to current view" 
                   className={`p-2 rounded-lg transition-colors ${isUpdatingLocation ? 'bg-gray-100 text-gray-400' : 'bg-red-50 text-red-600 hover:bg-red-100'}`}
                  >
-                   🎯
+                   📍+
                  </button>
                </div>
           </div>
