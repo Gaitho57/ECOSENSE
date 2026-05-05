@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import axios from 'axios';
 
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import AppLayout from './components/layout/AppLayout';
@@ -30,9 +31,31 @@ import BillingPage from './pages/billing/BillingPage';
 import VerificationPage from './pages/public/VerificationPage';
 import ParticipationPortal from './pages/public/ParticipationPortal';
 
+const KeepAlive = () => {
+  useEffect(() => {
+    const ping = async () => {
+      try {
+        const apiUrl = import.meta.env.VITE_API_URL || 'https://cosense-eia-backend.onrender.com';
+        await axios.get(`${apiUrl}/health/`);
+        console.log('Keep-alive ping successful');
+      } catch (err) {
+        console.error('Keep-alive ping failed', err);
+      }
+    };
+    
+    // Ping every 10 minutes to stay within Render's 15m timeout
+    const interval = setInterval(ping, 600000);
+    ping();
+    
+    return () => clearInterval(interval);
+  }, []);
+  return null;
+};
+
 function App() {
   return (
     <BrowserRouter>
+      <KeepAlive />
       <Routes>
         {/* Unauthenticated Marketing Footprints */}
         <Route path="/" element={<LandingPage />} />
