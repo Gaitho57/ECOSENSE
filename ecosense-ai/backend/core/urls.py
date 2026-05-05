@@ -20,8 +20,14 @@ Routes:
 
 from django.contrib import admin
 from django.urls import include, path
+from django.http import JsonResponse
+
+def health_check(request):
+    return JsonResponse({"status": "healthy"})
 
 urlpatterns = [
+    # Health Check (Prevent Sleep)
+    path("health/", health_check),
     # Django Admin
     path("admin/", admin.site.urls),
     # API v1 — Authentication
