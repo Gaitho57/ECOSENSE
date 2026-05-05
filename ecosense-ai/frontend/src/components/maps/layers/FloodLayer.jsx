@@ -68,7 +68,7 @@ export default function FloodLayer({ geoJSON, isVisible = true }) {
         if (map && map.getStyle()) {
           if (map.getLayer(fillLayerId)) map.removeLayer(fillLayerId);
           if (map.getLayer(outlineLayerId)) map.removeLayer(outlineLayerId);
-          if (map.getSource(sourceId)) map.getSource(sourceId);
+          if (map.getSource(sourceId)) map.removeSource(sourceId);
         }
       };
     } else if (isLeaflet) {

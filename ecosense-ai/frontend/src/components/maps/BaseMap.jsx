@@ -8,11 +8,16 @@ import { MapContainer, TileLayer, useMap as useLeafletMap } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css';
 
 // Component to capture leaflet map instance and share it via context
-const LeafletMapSync = ({ setMap }) => {
+const LeafletMapSync = ({ setMap, center, zoom }) => {
   const map = useLeafletMap();
   useEffect(() => {
-    if (map) setMap(map);
-  }, [map, setMap]);
+    if (map) {
+      setMap(map);
+      if (center) {
+        map.setView([center[1], center[0]], zoom || map.getZoom());
+      }
+    }
+  }, [map, setMap, center, zoom]);
   return null;
 };
 
@@ -184,16 +189,18 @@ const BaseMap = forwardRef(({
         <div ref={mapContainer} style={{ height: '100%', width: '100%' }} />
       ) : (
         <MapContainer 
+          key={`${center[0]}-${center[1]}-${currentStyle}`}
           center={[center[1], center[0]]} 
           zoom={zoom} 
-          style={{ height: '100%', width: '100%' }}
+          style={{ height: '100%', width: '100%', background: '#0f172a' }}
           zoomControl={false}
         >
           <TileLayer
-            attribution='&copy; EcoSense AI'
+            attribution='&copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
             url={LEAFLET_TILES[currentStyle]}
+            maxZoom={19}
           />
-          <LeafletMapSync setMap={setMap} />
+          <LeafletMapSync setMap={setMap} center={center} zoom={zoom} />
         </MapContainer>
       )}
       
