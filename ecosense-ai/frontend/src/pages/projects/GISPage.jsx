@@ -22,7 +22,7 @@ import ProtectedAreaLayer from '../../components/maps/layers/ProtectedAreaLayer'
 import WaterTowerLayer from '../../components/maps/layers/WaterTowerLayer';
 import SettlementLayer from '../../components/maps/layers/SettlementLayer';
 
-import { Marker, Popup, Circle } from 'react-leaflet';
+import { Marker, Popup, Circle, Tooltip } from 'react-leaflet';
 
 function ProjectCenterMarker({ center }) {
   const { map, isLeaflet, isMapLibre } = useMap();
@@ -30,39 +30,59 @@ function ProjectCenterMarker({ center }) {
 
   useEffect(() => {
     if (!map || !center || !isMapLibre) return;
-    
     if (!markerRef.current) {
         // @ts-ignore
-        markerRef.current = new window.maplibregl.Marker({ color: "#FF0000" })
+        markerRef.current = new window.maplibregl.Marker({ color: "#ef4444" })
             .setLngLat(center)
-            .setPopup(new window.maplibregl.Popup().setHTML("<b>Project Center</b>"))
             .addTo(map);
     } else {
         markerRef.current.setLngLat(center);
     }
-
-    return () => {
-        if (markerRef.current) {
-            markerRef.current.remove();
-            markerRef.current = null;
-        }
-    };
+    return () => { if (markerRef.current) markerRef.current.remove(); markerRef.current = null; };
   }, [map, center, isMapLibre]);
 
-  if (isLeaflet && center) {
+  if (isLeaflet && center?.[0] && center?.[1]) {
     const icon = L.divIcon({
-        html: '<div style="background-color: #ef4444; width: 16px; height: 16px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 15px rgba(239, 68, 68, 0.6); position: relative;"><div style="position: absolute; top: -25px; left: -20px; background: white; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 900; white-space: nowrap; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">SITE CENTER</div></div>',
-        className: 'project-center-marker',
-        iconSize: [16, 16],
-        iconAnchor: [8, 8]
+        html: `
+            <div style="position: relative; width: 24px; height: 24px;">
+                <div style="position: absolute; width: 100%; height: 100%; background: rgba(239, 68, 68, 0.4); border-radius: 50%; animation: marker-pulse 2s infinite;"></div>
+                <div style="position: absolute; top: 6px; left: 6px; width: 12px; height: 12px; background: #ef4444; border: 2px solid white; border-radius: 50%; box-shadow: 0 0 10px rgba(0,0,0,0.5);"></div>
+            </div>
+        `,
+        className: 'project-site-marker',
+        iconSize: [24, 24],
+        iconAnchor: [12, 12]
     });
+
     return (
-        <Marker position={[center[1], center[0]]} icon={icon}>
-            <Popup><b>Project Center</b></Popup>
-        </Marker>
+        <>
+            <style>{`
+                @keyframes marker-pulse {
+                    0% { transform: scale(0.5); opacity: 1; }
+                    100% { transform: scale(4); opacity: 0; }
+                }
+            `}</style>
+            <Marker position={[center[1], center[0]]} icon={icon}>
+                <Tooltip permanent direction="top" offset={[0, -15]} opacity={1}>
+                    <div className="bg-red-600 text-white px-2 py-1 rounded font-black text-[10px] uppercase tracking-widest shadow-xl border border-red-500">
+                        📍 Site Center
+                    </div>
+                </Tooltip>
+                <Popup>
+                    <div className="p-1 text-center">
+                        <p className="font-black text-gray-900 text-xs">Athi River Project</p>
+                        <p className="text-[10px] text-gray-500">{center[1].toFixed(5)}, {center[0].toFixed(5)}</p>
+                    </div>
+                </Popup>
+            </Marker>
+            <Circle 
+                center={[center[1], center[0]]} 
+                radius={50} 
+                pathOptions={{ color: '#ef4444', fillColor: '#ef4444', fillOpacity: 0.1, weight: 1 }} 
+            />
+        </>
     );
   }
-
   return null;
 }
 
