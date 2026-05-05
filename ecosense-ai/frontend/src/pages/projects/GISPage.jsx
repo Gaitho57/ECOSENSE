@@ -6,6 +6,7 @@ import { useMap, MapProvider } from '../../components/maps/MapContext';
 import BaseMap from '../../components/maps/BaseMap';
 import LayerControl from '../../components/maps/LayerControl';
 import L from 'leaflet';
+import * as turf from '@turf/turf'; 
 
 // Simulation Layers
 import DispersionLayer from '../../components/maps/layers/DispersionLayer';
@@ -20,7 +21,45 @@ import ProjectBoundaryLayer from '../../components/maps/layers/ProjectBoundaryLa
 import ProtectedAreaLayer from '../../components/maps/layers/ProtectedAreaLayer';
 import WaterTowerLayer from '../../components/maps/layers/WaterTowerLayer';
 import SettlementLayer from '../../components/maps/layers/SettlementLayer';
-import * as turf from '@turf/turf'; 
+
+function ProjectCenterMarker({ center }) {
+  const { map } = useMap();
+  const markerRef = useRef(null);
+
+  useEffect(() => {
+    if (!map || !center) return;
+    const isMapLibre = !!map.addSource;
+    const isLeaflet = !!map.addLayer && !isMapLibre;
+
+    if (isMapLibre) {
+        if (!markerRef.current) {
+            // @ts-ignore
+            markerRef.current = new window.maplibregl.Marker({ color: "#FF0000" })
+                .setLngLat(center)
+                .setPopup(new window.maplibregl.Popup().setHTML("<b>Project Center</b>"))
+                .addTo(map);
+        } else {
+            markerRef.current.setLngLat(center);
+        }
+    } else if (isLeaflet) {
+        if (markerRef.current) map.removeLayer(markerRef.current);
+        markerRef.current = L.marker([center[1], center[0]], {
+            icon: L.divIcon({
+                html: '<div style="background-color: #ef4444; width: 16px; height: 16px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 15px rgba(239, 68, 68, 0.6); position: relative;"><div style="position: absolute; top: -25px; left: -20px; background: white; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 900; white-space: nowrap; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">SITE CENTER</div></div>',
+                className: 'project-center-marker',
+                iconSize: [16, 16],
+                iconAnchor: [8, 8]
+            })
+        }).addTo(map).bindPopup("<b>Project Center</b>");
+    }
+
+    return () => {
+        if (markerRef.current) markerRef.current.remove();
+    };
+  }, [map, center]);
+
+  return null;
+}
 
 function BufferRingsLayer({ center }) {
   const { map } = useMap();
@@ -97,38 +136,31 @@ function BufferRingsLayer({ center }) {
         leafletLayersRef.current.forEach(l => map.removeLayer(l));
       };
     }
-
   }, [map, center]);
 
   return null;
 }
 
 export default function GISPage() {
-  const { projectId = 'placeholder-id' } = useParams();
+  const { projectId } = useParams();
   const [mapCenter, setMapCenter] = useState([36.8219, -1.2921]); // Default to Nairobi
+  const [projectData, setProjectData] = useState(null);
   const [isLoadingProject, setIsLoadingProject] = useState(true);
+  const [isUpdatingLocation, setIsUpdatingLocation] = useState(false);
   
-  // Data Fetching - Baseline context natively 
   const { data: baseline, isLoading: isLoadingBaseline } = useBaseline(projectId);
 
-  // Tab State
   const [activeTab, setActiveTab] = useState('dispersion');
-
-  // Simulation Parameters State
   const [dispersionParams, setDispersionParams] = useState({
       emission_rate: 100,
       wind_speed: 4,
       wind_direction: 90,
       stability_class: 'D'
   });
-
-  // GeoJSON results State
   const [dispersionData, setDispersionData] = useState(null);
   const [floodData, setFloodData] = useState(null);
   const [isSimulating, setIsSimulating] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
-
-  // Layers mapping - Synchronized with LayerControl keys
   const [layers, setLayers] = useState({
       dispersion: true,
       flood: true,
@@ -142,25 +174,56 @@ export default function GISPage() {
       settlements: true
   });
 
-  // Fetch Project Coordinates to center map generically 
+  const fetchProject = async () => {
+    try {
+        const res = await axiosInstance.get(`/projects/${projectId}/`);
+        const p = res.data.data;
+        setProjectData(p);
+        if (p && p.coordinates) {
+            setMapCenter([p.coordinates.lng, p.coordinates.lat]);
+        }
+    } catch (e) {
+        console.error("Failed to sync project coordinates natively.", e);
+    } finally {
+        setIsLoadingProject(false);
+    }
+  };
+
   useEffect(() => {
-      const fetchProject = async () => {
-          try {
-              const res = await axiosInstance.get(`/projects/${projectId}/`);
-              const coords = res.data.data;
-              if (coords && coords.coordinates) {
-                  setMapCenter([coords.coordinates.lng, coords.coordinates.lat]);
-              }
-          } catch (e) {
-              console.error("Failed to sync project coordinates natively.", e);
-          } finally {
-              setIsLoadingProject(false);
-          }
-      };
       fetchProject();
   }, [projectId]);
 
-  // Transform Baseline data for layers
+  const handleLocateMe = () => {
+    if (!navigator.geolocation) {
+        alert("Geolocation is not supported by your browser.");
+        return;
+    }
+    navigator.geolocation.getCurrentPosition((position) => {
+        const { longitude, latitude } = position.coords;
+        setMapCenter([longitude, latitude]);
+    }, (err) => {
+        console.error("Geolocation error:", err);
+        alert("Failed to get your current location.");
+    });
+  };
+
+  const handleUpdateProjectLocation = async () => {
+    if (!window.confirm("Set the current map center as the official project site location?")) return;
+    setIsUpdatingLocation(true);
+    try {
+        await axiosInstance.patch(`/projects/${projectId}/`, {
+            coordinates: { lng: mapCenter[0], lat: mapCenter[1] }
+        });
+        alert("✅ Project location updated successfully!");
+        fetchProject();
+    } catch (err) {
+        console.error("Failed to update project location", err);
+        alert("Error updating project location.");
+    } finally {
+        setIsUpdatingLocation(false);
+    }
+  };
+
   const boundaryGeoJSON = baseline?.project_boundary
     ? {
         type: 'FeatureCollection',
@@ -172,9 +235,6 @@ export default function GISPage() {
       }
     : null;
 
-  const hydrologyGeoJSON = baseline?.hydrology_data || null;
-
-  // Handlers
   const runDispersion = async () => {
       setIsSimulating(true);
       setErrorMsg("");
@@ -182,13 +242,10 @@ export default function GISPage() {
           const res = await axiosInstance.get(`/projects/${projectId}/simulations/dispersion/`, {
               params: dispersionParams
           });
-          
-          // Check if response is an error object disguised as 200 OK
           if (res.data.error) {
               setErrorMsg(res.data.error);
           } else {
               setDispersionData(res.data);
-              setErrorMsg(""); // Clear errors on success
               setLayers(prev => ({...prev, dispersion: true}));
           }
       } catch (e) {
@@ -206,7 +263,6 @@ export default function GISPage() {
               setErrorMsg(res.data.error);
           } else {
               setFloodData(res.data);
-              setErrorMsg(""); // Clear errors on success
               setLayers(prev => ({...prev, flood: true}));
           }
       } catch (e) {
@@ -217,68 +273,26 @@ export default function GISPage() {
 
   return (
     <div className="h-screen w-full relative flex overflow-hidden">
-        
-        {/* Full Screen Map Execution Canvas */}
-       <div className="flex-1 h-full w-full absolute inset-0 z-0">
+        {/* Map Canvas */}
+        <div className="flex-1 h-full w-full absolute inset-0 z-0">
           {!isLoadingProject && (
               <MapProvider>
-                  <BaseMap center={mapCenter} zoom={12} style="mapbox://styles/mapbox/satellite-v9">
-                      
-                      {/* Layer Control Top Right */}
+                  <BaseMap center={mapCenter} zoom={14} onMove={(c) => setMapCenter(c)}>
                       <LayerControl layers={layers} setLayers={setLayers} />
-                      
-                      {/* Static Baseline Rings */}
-                      <BufferRingsLayer center={mapCenter} />
+                      <ProjectCenterMarker center={[projectData?.coordinates?.lng, projectData?.coordinates?.lat]} />
+                      <BufferRingsLayer center={[projectData?.coordinates?.lng, projectData?.coordinates?.lat]} />
 
-                      {/* Baseline Environmental Layers */}
-                      <ProjectBoundaryLayer 
-                        boundaryGeoJSON={boundaryGeoJSON} 
-                        isVisible={layers.boundary} 
-                      />
-                      
-                      <NDVILayer 
-                        ndvi_score={baseline?.satellite_data?.ndvi} 
-                        ndvi_tile_url={baseline?.satellite_data?.ndvi_tile_url}
-                        center={mapCenter}
-                        isVisible={layers.ndvi} 
-                      />
-                      
-                      <HydrologyLayer 
-                        hydrology_data={baseline?.hydrology_data} 
-                        isVisible={layers.hydrology} 
-                      />
-                      
-                      <BiodiversityLayer 
-                        biodiversity_data={baseline?.biodiversity_data} 
-                        center={mapCenter}
-                        isVisible={layers.biodiversity} 
-                      />
-                      
-                      <AirQualityLayer 
-                        air_quality_baseline={baseline?.air_quality_baseline} 
-                        center={mapCenter}
-                        isVisible={layers.air_quality} 
-                      />
+                      <ProjectBoundaryLayer boundaryGeoJSON={boundaryGeoJSON} isVisible={layers.boundary} />
+                      <NDVILayer ndvi_score={baseline?.satellite_data?.ndvi} ndvi_tile_url={baseline?.satellite_data?.ndvi_tile_url} center={mapCenter} isVisible={layers.ndvi} />
+                      <HydrologyLayer hydrology_data={baseline?.hydrology_data} isVisible={layers.hydrology} />
+                      <BiodiversityLayer biodiversity_data={baseline?.biodiversity_data} center={mapCenter} isVisible={layers.biodiversity} />
+                      <AirQualityLayer air_quality_baseline={baseline?.air_quality_baseline} center={mapCenter} isVisible={layers.air_quality} />
+                      <ProtectedAreaLayer protected_areas={baseline?.satellite_data?.protected_area_status?.areas} isVisible={layers.protected_areas} />
+                      <WaterTowerLayer proximity_data={baseline?.satellite_data?.water_tower_proximity} isVisible={layers.water_towers} />
+                      <SettlementLayer settlement_data={baseline?.satellite_data?.settlement_geometries} isVisible={layers.settlements} />
 
-                      <ProtectedAreaLayer 
-                        protected_areas={baseline?.satellite_data?.protected_area_status?.areas}
-                        isVisible={layers.protected_areas}
-                      />
-
-                      <WaterTowerLayer 
-                        proximity_data={baseline?.satellite_data?.water_tower_proximity}
-                        isVisible={layers.water_towers}
-                      />
-
-                      <SettlementLayer 
-                        settlement_data={baseline?.satellite_data?.settlement_geometries}
-                        isVisible={layers.settlements}
-                      />
-
-                      {/* Dynamic Simulation Outputs */}
                       <DispersionLayer geoJSON={dispersionData} isVisible={layers.dispersion} />
                       <FloodLayer geoJSON={floodData} isVisible={layers.flood} />
-                      
                   </BaseMap>
               </MapProvider>
           )}
@@ -287,166 +301,118 @@ export default function GISPage() {
                   <div className="text-white font-black animate-pulse">Initializing Geospatial Engine...</div>
               </div>
           )}
-       </div>
-
-       {/* Floating Sidebar Left */}
-       <div className="absolute top-4 left-4 z-10 w-[380px] mt-12 bg-white rounded-xl shadow-2xl border border-gray-200 flex flex-col pointer-events-auto max-h-[90vh]">
-          
-          {/* Header */}
-          <div className="p-5 border-b border-gray-100">
-               <h2 className="text-xl font-black text-gray-900 tracking-tight">GIS Simulations</h2>
-               <p className="text-sm text-gray-500 mt-1">Real-time geospatial environmental bounding projections.</p>
-          </div>
-
-          {/* Toggles */}
-          <div className="flex border-b border-gray-100">
-              <button 
-                  onClick={() => setActiveTab('dispersion')}
-                  className={`flex-1 py-3 text-sm font-bold uppercase tracking-wider ${activeTab === 'dispersion' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:bg-gray-50'}`}
-              >
-                  Air Dispersion
-              </button>
-              <button 
-                  onClick={() => setActiveTab('flood')}
-                  className={`flex-1 py-3 text-sm font-bold uppercase tracking-wider ${activeTab === 'flood' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:bg-gray-50'}`}
-              >
-                  Flood Risk
-              </button>
-          </div>
-
-          {/* Body Content */}
-          <div className="p-6 flex-1 overflow-y-auto">
-               
-               {errorMsg && (
-                   <div className="bg-red-50 text-red-600 text-sm p-3 rounded mb-4 border border-red-100">
-                       {errorMsg}
-                   </div>
-               )}
-
-               {activeTab === 'dispersion' ? (
-                   <div className="space-y-6">
-                       
-                       <div>
-                           <div className="flex justify-between mb-1">
-                               <label className="text-sm font-semibold text-gray-800">Emission Rate</label>
-                               <span className="text-gray-500 text-sm font-mono">{dispersionParams.emission_rate} kg/h</span>
-                           </div>
-                           <input type="range" min="1" max="1000" step="10" 
-                               value={dispersionParams.emission_rate}
-                               onChange={e => setDispersionParams({...dispersionParams, emission_rate: e.target.value})}
-                               className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                           />
-                       </div>
-
-                       <div>
-                           <div className="flex justify-between mb-1">
-                               <label className="text-sm font-semibold text-gray-800">Wind Speed</label>
-                               <span className="text-gray-500 text-sm font-mono">{dispersionParams.wind_speed} m/s</span>
-                           </div>
-                           <input type="range" min="0.1" max="20" step="0.5" 
-                               value={dispersionParams.wind_speed}
-                               onChange={e => setDispersionParams({...dispersionParams, wind_speed: e.target.value})}
-                               className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                           />
-                       </div>
-
-                       <div>
-                           <div className="flex justify-between mb-1">
-                               <label className="text-sm font-semibold text-gray-800">Wind Direction</label>
-                               <span className="text-gray-500 text-sm font-mono">{dispersionParams.wind_direction}°</span>
-                           </div>
-                           <input type="range" min="0" max="360" step="5" 
-                               value={dispersionParams.wind_direction}
-                               onChange={e => setDispersionParams({...dispersionParams, wind_direction: e.target.value})}
-                               className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                           />
-                       </div>
-
-                       <div>
-                           <label className="text-sm font-semibold text-gray-800 mb-1 block">Pasquill Stability Class</label>
-                           <select 
-                               value={dispersionParams.stability_class}
-                               onChange={e => setDispersionParams({...dispersionParams, stability_class: e.target.value})}
-                               className="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 p-2 text-sm"
-                           >
-                               <option value="A">A - Very Unstable</option>
-                               <option value="B">B - Moderately Unstable</option>
-                               <option value="C">C - Slightly Unstable</option>
-                               <option value="D">D - Neutral</option>
-                               <option value="E">E - Slightly Stable</option>
-                               <option value="F">F - Stable</option>
-                           </select>
-                       </div>
-
-                       <div className="pt-2">
-                           <button 
-                               onClick={runDispersion}
-                               disabled={isSimulating}
-                               className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold py-3 rounded-lg shadow-md transition-colors"
-                           >
-                               {isSimulating ? 'Simulating Plume...' : 'Run Dispersion Simulation'}
-                           </button>
-                       </div>
-
-                       {dispersionData && !errorMsg && (
-                           <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-                               <h5 className="text-xs font-bold text-green-800 uppercase tracking-widest mb-2">Analysis Result</h5>
-                               <div className="flex items-center gap-3">
-                                   <div className="bg-green-100 p-2 rounded-full">💨</div>
-                                   <div>
-                                       <p className="text-sm font-bold text-gray-800">Dispersion Plume Generated</p>
-                                       <p className="text-xs text-gray-500">{dispersionData.features?.length || 0} concentration levels mapped.</p>
-                                   </div>
-                               </div>
-                           </div>
-                       )}
-                   </div>
-               ) : (
-                   <div className="space-y-6">
-                       <p className="text-sm text-gray-600 leading-relaxed border-l-4 border-blue-200 pl-3">
-                           Generates explicit convex bounds querying standard hydrological depths directly from local spatial elevation APIs simulating flooding constraints explicitly.
-                       </p>
-                       <div className="pt-4">
-                           <button 
-                               onClick={runFloodRisk}
-                               disabled={isSimulating}
-                               className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold py-3 rounded-lg shadow-md transition-colors"
-                           >
-                               {isSimulating ? 'Calculating Watersheds...' : 'Calculate Flood Risk Zones'}
-                           </button>
-                       </div>
-
-                       {floodData && !errorMsg && (
-                           <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                               <h5 className="text-xs font-bold text-blue-800 uppercase tracking-widest mb-2">Analysis Result</h5>
-                               <div className="flex items-center gap-3">
-                                   <div className="bg-blue-100 p-2 rounded-full">🌊</div>
-                                   <div>
-                                       <p className="text-sm font-bold text-gray-800">Flood Zones Calculated</p>
-                                       <p className="text-xs text-gray-500">{floodData.features?.length || 0} risk boundaries identified.</p>
-                                   </div>
-                               </div>
-                           </div>
-                       )}
-                   </div>
-               )}
-           </div>
-
-           {/* NEXT STAGE ACTION */}
-           <div className="p-4 border-t border-gray-100 bg-gray-50 rounded-b-xl">
-                <Link 
-                    to={`/dashboard/projects/${projectId}/community`}
-                    className="w-full bg-gray-900 hover:bg-black text-white font-bold py-4 px-4 rounded-xl flex items-center justify-between group transition-all shadow-lg active:scale-[0.98]"
-                >
-                    <div className="text-left">
-                        <p className="text-[9px] uppercase tracking-widest opacity-60">Next Stage</p>
-                        <p className="text-sm">Public Feedback</p>
-                    </div>
-                    <span className="text-xl group-hover:translate-x-1 transition-transform">→</span>
-                </Link>
-           </div>
         </div>
 
+        {/* Sidebar */}
+        <div className="absolute top-4 left-4 z-10 w-[380px] mt-12 bg-white rounded-xl shadow-2xl border border-gray-200 flex flex-col pointer-events-auto max-h-[90vh]">
+          <div className="p-5 border-b border-gray-100 flex justify-between items-center">
+               <div>
+                 <h2 className="text-xl font-black text-gray-900 tracking-tight">GIS Simulations</h2>
+                 <p className="text-sm text-gray-500 mt-1">Real-time geospatial projections.</p>
+               </div>
+               <div className="flex gap-2">
+                 <button onClick={handleLocateMe} title="Find my location" className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors">
+                   📍
+                 </button>
+                 <button 
+                  onClick={handleUpdateProjectLocation} 
+                  disabled={isUpdatingLocation}
+                  title="Update Project Center to current view" 
+                  className={`p-2 rounded-lg transition-colors ${isUpdatingLocation ? 'bg-gray-100 text-gray-400' : 'bg-red-50 text-red-600 hover:bg-red-100'}`}
+                 >
+                   🎯
+                 </button>
+               </div>
+          </div>
+
+          <div className="flex border-b border-gray-100">
+               <button onClick={() => setActiveTab('dispersion')} className={`flex-1 py-3 text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'dispersion' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/30' : 'text-gray-400 hover:text-gray-600'}`}>
+                   Air Dispersion
+               </button>
+               <button onClick={() => setActiveTab('flood')} className={`flex-1 py-3 text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'flood' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/30' : 'text-gray-400 hover:text-gray-600'}`}>
+                   Flood Risk
+               </button>
+          </div>
+
+          <div className="p-6 overflow-y-auto custom-scrollbar">
+              {activeTab === 'dispersion' && (
+                  <div className="space-y-6">
+                      <div className="space-y-4">
+                          <div className="flex justify-between items-center">
+                              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Emission Rate</label>
+                              <span className="text-sm font-black text-blue-600">{dispersionParams.emission_rate} kg/h</span>
+                          </div>
+                          <input type="range" min="1" max="500" value={dispersionParams.emission_rate} onChange={(e) => setDispersionParams({...dispersionParams, emission_rate: parseInt(e.target.value)})} className="w-full accent-blue-600 h-1.5 bg-gray-100 rounded-lg appearance-none cursor-pointer" />
+                      </div>
+
+                      <div className="space-y-4">
+                          <div className="flex justify-between items-center">
+                              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Wind Speed</label>
+                              <span className="text-sm font-black text-blue-600">{dispersionParams.wind_speed} m/s</span>
+                          </div>
+                          <input type="range" min="0.5" max="25" step="0.5" value={dispersionParams.wind_speed} onChange={(e) => setDispersionParams({...dispersionParams, wind_speed: parseFloat(e.target.value)})} className="w-full accent-blue-600 h-1.5 bg-gray-100 rounded-lg appearance-none cursor-pointer" />
+                      </div>
+
+                      <div className="space-y-4">
+                          <div className="flex justify-between items-center">
+                              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Wind Direction</label>
+                              <span className="text-sm font-black text-blue-600">{dispersionParams.wind_direction}°</span>
+                          </div>
+                          <input type="range" min="0" max="360" value={dispersionParams.wind_direction} onChange={(e) => setDispersionParams({...dispersionParams, wind_direction: parseInt(e.target.value)})} className="w-full accent-blue-600 h-1.5 bg-gray-100 rounded-lg appearance-none cursor-pointer" />
+                      </div>
+
+                      <div className="space-y-2">
+                          <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Pasquill Stability Class</label>
+                          <select value={dispersionParams.stability_class} onChange={(e) => setDispersionParams({...dispersionParams, stability_class: e.target.value})} className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold text-gray-700 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all">
+                              <option value="A">A - Very Unstable</option>
+                              <option value="B">B - Unstable</option>
+                              <option value="C">C - Slightly Unstable</option>
+                              <option value="D">D - Neutral</option>
+                              <option value="E">E - Slightly Stable</option>
+                              <option value="F">F - Stable</option>
+                          </select>
+                      </div>
+
+                      <button onClick={runDispersion} disabled={isSimulating} className="w-full py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white rounded-xl font-black text-sm uppercase tracking-widest shadow-lg shadow-blue-500/25 transition-all active:scale-[0.98] flex items-center justify-center gap-2">
+                          {isSimulating ? (
+                            <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Simulating...</>
+                          ) : "Run Dispersion Simulation"}
+                      </button>
+                  </div>
+              )}
+
+              {activeTab === 'flood' && (
+                  <div className="space-y-6">
+                      <div className="p-4 bg-blue-50 border border-blue-100 rounded-xl">
+                          <p className="text-xs text-blue-700 font-medium leading-relaxed">
+                              This simulation uses high-resolution SRTM digital elevation models to predict flood inundation pathways based on the project's local topography.
+                          </p>
+                      </div>
+                      <button onClick={runFloodRisk} disabled={isSimulating} className="w-full py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white rounded-xl font-black text-sm uppercase tracking-widest shadow-lg shadow-blue-500/25 transition-all active:scale-[0.98] flex items-center justify-center gap-2">
+                           {isSimulating ? (
+                            <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Processing...</>
+                          ) : "Analyze Flood Pathways"}
+                      </button>
+                  </div>
+              )}
+
+              {errorMsg && (
+                  <div className="mt-4 p-3 bg-red-50 border border-red-100 rounded-lg">
+                      <p className="text-xs text-red-600 font-bold tracking-tight">⚠️ {errorMsg}</p>
+                  </div>
+              )}
+          </div>
+          
+          <div className="p-4 mt-auto border-t border-gray-100 bg-slate-900 rounded-b-xl">
+               <Link to={`/dashboard/projects/${projectId}`} className="flex items-center justify-between group">
+                    <div>
+                        <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Next Stage</p>
+                        <p className="text-sm font-bold text-white group-hover:text-blue-400 transition-colors">Public Feedback</p>
+                    </div>
+                    <span className="text-white group-hover:translate-x-1 transition-transform">→</span>
+               </Link>
+          </div>
+        </div>
     </div>
   );
 }

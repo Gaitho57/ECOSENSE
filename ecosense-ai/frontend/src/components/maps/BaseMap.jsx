@@ -8,7 +8,7 @@ import { MapContainer, TileLayer, useMap as useLeafletMap } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css';
 
 // Component to capture leaflet map instance and share it via context
-const LeafletMapSync = ({ setMap, center, zoom }) => {
+const LeafletMapSync = ({ setMap, center, zoom, onMove }) => {
   const map = useLeafletMap();
   useEffect(() => {
     if (map) {
@@ -16,8 +16,18 @@ const LeafletMapSync = ({ setMap, center, zoom }) => {
       if (center) {
         map.setView([center[1], center[0]], zoom || map.getZoom());
       }
+      
+      const onMoveEnd = () => {
+        if (onMove) {
+          const c = map.getCenter();
+          onMove([c.lng, c.lat]);
+        }
+      };
+      
+      map.on('moveend', onMoveEnd);
+      return () => map.off('moveend', onMoveEnd);
     }
-  }, [map, setMap, center, zoom]);
+  }, [map, setMap, center, zoom, onMove]);
   return null;
 };
 
@@ -26,6 +36,7 @@ const BaseMap = forwardRef(({
   center = [36.8219, -1.2921], // Default Nairobi
   zoom = 12, 
   height = '100%', 
+  onMove,
   children 
 }, ref) => {
   const mapContainer = useRef(null);
@@ -142,6 +153,13 @@ const BaseMap = forwardRef(({
         mapInstance.addControl(nav, 'top-left');
       });
 
+      mapInstance.on('moveend', () => {
+        if (onMove) {
+          const c = mapInstance.getCenter();
+          onMove([c.lng, c.lat]);
+        }
+      });
+
       mapInstance.on('error', (e) => {
         console.error("MapLibre error:", e);
         if (e.error?.message?.includes("WebGL") || e.error?.message?.includes("context lost")) {
@@ -200,7 +218,7 @@ const BaseMap = forwardRef(({
             url={LEAFLET_TILES[currentStyle]}
             maxZoom={19}
           />
-          <LeafletMapSync setMap={setMap} center={center} zoom={zoom} />
+          <LeafletMapSync setMap={setMap} center={center} zoom={zoom} onMove={onMove} />
         </MapContainer>
       )}
       
