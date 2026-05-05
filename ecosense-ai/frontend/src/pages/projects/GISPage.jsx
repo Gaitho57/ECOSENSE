@@ -316,6 +316,13 @@ export default function GISPage() {
                    🎯
                  </button>
                  <button 
+                  onClick={() => setMapCenter([36.9741, -1.4678])} 
+                  title="Teleport to Athi River (Recovery)" 
+                  className="p-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors"
+                 >
+                   🇰🇪
+                 </button>
+                 <button 
                   onClick={handleUpdateProjectLocation} 
                   disabled={isUpdatingLocation}
                   title="Update Project Center to current view" 

@@ -148,6 +148,12 @@ const BaseMap = forwardRef(({
     }
   };
 
+  // Robust coordinate validation to prevent "ocean" bugs
+  const isValidCoord = (c) => c !== null && c !== undefined && !isNaN(c) && (Math.abs(c) > 0.0001);
+  const safeCenter = (isValidCoord(center[0]) && isValidCoord(center[1])) 
+    ? center 
+    : [36.8219, -1.2921]; // Default to Nairobi if invalid
+
   return (
     <div style={{ height: height, width: '100%', position: 'relative' }} className="bg-slate-900 overflow-hidden">
       {engine !== 'leaflet' ? (
@@ -158,20 +164,20 @@ const BaseMap = forwardRef(({
       ) : (
         <MapContainer 
           key={currentStyle}
-          center={[center[1], center[0]]} 
+          center={[safeCenter[1], safeCenter[0]]} 
           zoom={zoom} 
           style={{ height: '100%', width: '100%', background: '#0f172a' }}
           zoomControl={false}
         >
           <TileLayer
             key={currentStyle}
-            attribution='&copy; Google | Esri | EcoSense AI'
+            attribution='&copy; Esri | EcoSense AI'
             url={currentStyle === 'satellite' 
-              ? "https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}"
+              ? "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
               : LEAFLET_TILES[currentStyle]}
             maxZoom={20}
           />
-          <LeafletMapSync setMap={setMap} center={center} zoom={zoom} onMove={onMove} />
+          <LeafletMapSync setMap={setMap} center={safeCenter} zoom={zoom} onMove={onMove} />
           {map && children}
         </MapContainer>
       )}
