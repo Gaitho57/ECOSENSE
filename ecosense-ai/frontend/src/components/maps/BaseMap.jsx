@@ -93,9 +93,9 @@ const BaseMap = forwardRef(({
   };
 
   const LEAFLET_TILES = {
-    satellite: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}.jpg",
-    light: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-    dark: "https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+    satellite: "https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}",
+    light: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    dark: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
   };
 
   const [currentStyle, setCurrentStyle] = useState('satellite');
