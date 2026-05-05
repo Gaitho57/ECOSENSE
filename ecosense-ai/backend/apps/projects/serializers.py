@@ -96,6 +96,29 @@ class ProjectSerializer(serializers.ModelSerializer):
             
         return f"EcoSense AI has evaluated {obj.name} and determined all baseline impacts are within manageable thresholds under standard EMCA guidelines."
 
+    def update(self, instance, validated_data):
+        # Handle coordinates update
+        coords = self.initial_data.get('coordinates')
+        if coords and isinstance(coords, dict):
+            try:
+                lng = coords.get('lng')
+                lat = coords.get('lat')
+                if lng is not None and lat is not None:
+                    instance.location = Point(float(lng), float(lat))
+            except (ValueError, TypeError):
+                pass
+
+        # Handle boundary update
+        boundary_coords = self.initial_data.get('boundary_coordinates')
+        if boundary_coords:
+            try:
+                # Polygon expects a list of tuples: [((lng, lat), (lng, lat), ...)]
+                instance.boundary = Polygon(*boundary_coords)
+            except Exception as e:
+                print(f"Boundary update error: {e}")
+
+        return super().update(instance, validated_data)
+
     def create(self, validated_data):
         request = self.context.get('request')
         validated_data['tenant_id'] = request.user.tenant_id

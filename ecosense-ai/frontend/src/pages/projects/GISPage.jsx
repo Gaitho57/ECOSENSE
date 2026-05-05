@@ -235,6 +235,40 @@ export default function GISPage() {
     }
   };
 
+  const handleGenerateBoundary = async () => {
+    if (!projectData?.coordinates) {
+        alert("Please set a project center first.");
+        return;
+    }
+    
+    if (!window.confirm("Generate a default 10-hectare square boundary around the project center?")) return;
+
+    setIsUpdatingLocation(true);
+    try {
+        const { lng, lat } = projectData.coordinates;
+        const offset = 0.0015; 
+        const ring = [
+            [lng - offset, lat + offset],
+            [lng + offset, lat + offset],
+            [lng + offset, lat - offset],
+            [lng - offset, lat - offset],
+            [lng - offset, lat + offset]
+        ];
+        
+        await axiosInstance.patch(`/projects/${projectId}/`, {
+            boundary_coordinates: [ring]
+        });
+        
+        alert("✅ Boundary generated!");
+        fetchProject();
+    } catch (err) {
+        console.error(err);
+        alert("Failed to generate boundary.");
+    } finally {
+        setIsUpdatingLocation(false);
+    }
+  };
+
   const boundaryGeoJSON = baseline?.project_boundary
     ? {
         type: 'FeatureCollection',
@@ -363,9 +397,20 @@ export default function GISPage() {
                    </button>
                  </div>
                  {!projectData?.boundary_coordinates && (
-                   <p className="text-[9px] text-amber-600 italic font-medium leading-tight">
-                     ⚠️ Boundary polygon not detected. Simulations will run on a 500m radius around the site center.
-                   </p>
+                   <div className="mt-3 p-3 bg-amber-50 border border-amber-100 rounded-lg">
+                     <p className="text-[10px] text-amber-700 font-bold uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                       ⚠️ Boundary Missing
+                     </p>
+                     <p className="text-[10px] text-amber-600 leading-tight mb-3">
+                       No site extent defined. Simulations will default to a point-source. Generate a quick 10ha area below.
+                     </p>
+                     <button 
+                       onClick={handleGenerateBoundary}
+                       className="w-full py-2 bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-black uppercase tracking-widest rounded-lg shadow-sm transition-all active:scale-[0.98]"
+                     >
+                       ⬜ Generate Quick Boundary
+                     </button>
+                   </div>
                  )}
                </div>
           </div>
