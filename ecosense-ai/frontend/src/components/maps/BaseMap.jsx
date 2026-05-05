@@ -3,6 +3,19 @@ import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { useMap } from './MapContext';
 
+// Leaflet Fallback Imports
+import { MapContainer, TileLayer, useMap as useLeafletMap } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+
+// Component to capture leaflet map instance and share it via context
+const LeafletMapSync = ({ setMap }) => {
+  const map = useLeafletMap();
+  useEffect(() => {
+    if (map) setMap(map);
+  }, [map, setMap]);
+  return null;
+};
+
 // MapLibre doesn't require a commercial token for custom raster sources
 const BaseMap = forwardRef(({ 
   center = [36.8219, -1.2921], // Default Nairobi
@@ -74,6 +87,12 @@ const BaseMap = forwardRef(({
     }
   };
 
+  const LEAFLET_TILES = {
+    satellite: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}.jpg",
+    light: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+    dark: "https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+  };
+
   const [currentStyle, setCurrentStyle] = useState('satellite');
 
   useImperativeHandle(ref, () => map, [map]);
@@ -81,20 +100,22 @@ const BaseMap = forwardRef(({
   const [webglError, setWebglError] = useState(false);
 
   useEffect(() => {
-    if (!mapContainer.current) return;
+    // Check if we already decided to use fallback or if mapContainer is gone
+    if (webglError || !mapContainer.current) return;
 
     // Native WebGL support check (more robust than library-specific calls)
     const checkWebGL = () => {
       try {
         const canvas = document.createElement('canvas');
-        return !!(window.WebGLRenderingContext && (canvas.getContext('webgl') || canvas.getContext('experimental-webgl')));
+        const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+        return !!(window.WebGLRenderingContext && gl);
       } catch (e) {
         return false;
       }
     };
 
     if (!checkWebGL()) {
-      console.error("WebGL not supported in this browser/hardware environment.");
+      console.warn("WebGL not supported. Switching to Leaflet fallback.");
       setWebglError(true);
       return;
     }
@@ -106,7 +127,6 @@ const BaseMap = forwardRef(({
         style: STYLES[currentStyle],
         center: center,
         zoom: zoom,
-        // Performance tuning for software renderers (llvmpipe)
         failIfMajorPerformanceCaveat: false, 
         antialias: false,
       });
@@ -119,7 +139,7 @@ const BaseMap = forwardRef(({
 
       mapInstance.on('error', (e) => {
         console.error("MapLibre error:", e);
-        if (e.error?.message?.includes("WebGL")) {
+        if (e.error?.message?.includes("WebGL") || e.error?.message?.includes("context lost")) {
           setWebglError(true);
         }
       });
@@ -127,7 +147,6 @@ const BaseMap = forwardRef(({
     } catch (err) {
       console.error("Failed to initialize MapLibre GL:", err);
       setWebglError(true);
-      return;
     }
 
     return () => {
@@ -136,69 +155,82 @@ const BaseMap = forwardRef(({
         setMap(null);
       }
     };
-  }, []); // Run once on mount
+  }, [webglError]); // Dependency on webglError to allow retry logic if we reset it
   
-  // Watch for center/zoom prop changes and move map (Eco-Green logic fix)
+  // Watch for center/zoom prop changes and move map
   useEffect(() => {
     if (map) {
-      map.jumpTo({ center: center, zoom: zoom });
+      if (map.jumpTo) {
+        // MapLibre
+        map.jumpTo({ center: center, zoom: zoom });
+      } else if (map.setView) {
+        // Leaflet
+        map.setView([center[1], center[0]], zoom);
+      }
     }
   }, [map, center, zoom]);
 
   const handleStyleSwitch = (styleKey) => {
-    if (!map) return;
-    map.setStyle(STYLES[styleKey]);
     setCurrentStyle(styleKey);
+    if (!map) return;
+    if (map.setStyle) {
+      map.setStyle(STYLES[styleKey]);
+    }
   };
 
   return (
     <div style={{ height: height, width: '100%', position: 'relative' }} className="bg-slate-900 overflow-hidden">
-      <div ref={mapContainer} style={{ height: '100%', width: '100%' }} />
+      {!webglError ? (
+        <div ref={mapContainer} style={{ height: '100%', width: '100%' }} />
+      ) : (
+        <MapContainer 
+          center={[center[1], center[0]]} 
+          zoom={zoom} 
+          style={{ height: '100%', width: '100%' }}
+          zoomControl={false}
+        >
+          <TileLayer
+            attribution='&copy; EcoSense AI'
+            url={LEAFLET_TILES[currentStyle]}
+          />
+          <LeafletMapSync setMap={setMap} />
+        </MapContainer>
+      )}
       
+      {/* Fallback Notice Overlay (Subtle) */}
       {webglError && (
-        <div className="absolute inset-0 flex items-center justify-center bg-slate-900/80 backdrop-blur-sm p-8 text-center z-20">
-          <div className="max-w-md">
-            <div className="text-4xl mb-4">⚠️</div>
-            <h3 className="text-xl font-black text-white mb-2 tracking-tight">Environmental Visualization Blocked</h3>
-            <p className="text-sm text-slate-300 font-medium leading-relaxed mb-6">
-              WebGL is currently unavailable on your system. This is common when using software rendering (llvmpipe). 
-              Try enabling <b>"Override software rendering list"</b> in your browser flags.
-            </p>
-            <div className="flex gap-3 justify-center">
-               <button 
-                onClick={() => window.location.reload()}
-                className="px-6 py-3 bg-white text-slate-900 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-slate-100 transition-all"
-               >
-                 Retry Initialisation
-               </button>
-            </div>
-          </div>
+        <div className="absolute bottom-4 right-4 z-[1000] bg-amber-500/90 backdrop-blur-sm text-white px-3 py-1.5 rounded-lg text-[10px] font-bold shadow-lg flex items-center gap-2">
+          <span>⚠️ Low-Power Mode (2D Fallback)</span>
+          <button 
+            onClick={() => setWebglError(false)}
+            className="underline hover:text-amber-100"
+          >
+            Retry 3D
+          </button>
         </div>
       )}
 
-      {/* Map Style Switcher (Premium Open Logic) */}
-      {!webglError && (
-        <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-md rounded-xl shadow-lg border border-gray-100 p-1.5 z-10 flex text-[10px] font-black uppercase tracking-widest overflow-hidden transition-all hover:shadow-xl">
-          <button 
-            onClick={() => handleStyleSwitch('satellite')}
-            className={`px-4 py-2 rounded-lg transition-all ${currentStyle === 'satellite' ? 'bg-green-600 text-white shadow-sm' : 'hover:bg-gray-100 text-gray-400'}`}
-          >
-            Satellite
-          </button>
-          <button 
-            onClick={() => handleStyleSwitch('light')}
-            className={`px-4 py-2 rounded-lg transition-all ${currentStyle === 'light' ? 'bg-blue-600 text-white shadow-sm' : 'hover:bg-gray-100 text-gray-400'}`}
-          >
-            Light
-          </button>
-          <button 
-            onClick={() => handleStyleSwitch('dark')}
-            className={`px-4 py-2 rounded-lg transition-all ${currentStyle === 'dark' ? 'bg-slate-900 text-white shadow-sm' : 'hover:bg-gray-100 text-gray-400'}`}
-          >
-            Dark
-          </button>
-        </div>
-      )}
+      {/* Map Style Switcher */}
+      <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-md rounded-xl shadow-lg border border-gray-100 p-1.5 z-[1000] flex text-[10px] font-black uppercase tracking-widest overflow-hidden transition-all hover:shadow-xl">
+        <button 
+          onClick={() => handleStyleSwitch('satellite')}
+          className={`px-4 py-2 rounded-lg transition-all ${currentStyle === 'satellite' ? 'bg-green-600 text-white shadow-sm' : 'hover:bg-gray-100 text-gray-400'}`}
+        >
+          Satellite
+        </button>
+        <button 
+          onClick={() => handleStyleSwitch('light')}
+          className={`px-4 py-2 rounded-lg transition-all ${currentStyle === 'light' ? 'bg-blue-600 text-white shadow-sm' : 'hover:bg-gray-100 text-gray-400'}`}
+        >
+          Light
+        </button>
+        <button 
+          onClick={() => handleStyleSwitch('dark')}
+          className={`px-4 py-2 rounded-lg transition-all ${currentStyle === 'dark' ? 'bg-slate-900 text-white shadow-sm' : 'hover:bg-gray-100 text-gray-400'}`}
+        >
+          Dark
+        </button>
+      </div>
 
       {map && children}
     </div>
