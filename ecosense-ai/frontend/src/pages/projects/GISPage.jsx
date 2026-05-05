@@ -22,121 +22,108 @@ import ProtectedAreaLayer from '../../components/maps/layers/ProtectedAreaLayer'
 import WaterTowerLayer from '../../components/maps/layers/WaterTowerLayer';
 import SettlementLayer from '../../components/maps/layers/SettlementLayer';
 
+import { Marker, Popup, Circle } from 'react-leaflet';
+
 function ProjectCenterMarker({ center }) {
-  const { map } = useMap();
+  const { map, isLeaflet, isMapLibre } = useMap();
   const markerRef = useRef(null);
 
   useEffect(() => {
-    if (!map || !center) return;
-    const isMapLibre = !!map.addSource;
-    const isLeaflet = !!map.addLayer && !isMapLibre;
-
-    if (isMapLibre) {
-        if (!markerRef.current) {
-            // @ts-ignore
-            markerRef.current = new window.maplibregl.Marker({ color: "#FF0000" })
-                .setLngLat(center)
-                .setPopup(new window.maplibregl.Popup().setHTML("<b>Project Center</b>"))
-                .addTo(map);
-        } else {
-            markerRef.current.setLngLat(center);
-        }
-    } else if (isLeaflet) {
-        if (markerRef.current) map.removeLayer(markerRef.current);
-        markerRef.current = L.marker([center[1], center[0]], {
-            icon: L.divIcon({
-                html: '<div style="background-color: #ef4444; width: 16px; height: 16px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 15px rgba(239, 68, 68, 0.6); position: relative;"><div style="position: absolute; top: -25px; left: -20px; background: white; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 900; white-space: nowrap; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">SITE CENTER</div></div>',
-                className: 'project-center-marker',
-                iconSize: [16, 16],
-                iconAnchor: [8, 8]
-            })
-        }).addTo(map).bindPopup("<b>Project Center</b>");
+    if (!map || !center || !isMapLibre) return;
+    
+    if (!markerRef.current) {
+        // @ts-ignore
+        markerRef.current = new window.maplibregl.Marker({ color: "#FF0000" })
+            .setLngLat(center)
+            .setPopup(new window.maplibregl.Popup().setHTML("<b>Project Center</b>"))
+            .addTo(map);
+    } else {
+        markerRef.current.setLngLat(center);
     }
 
     return () => {
-        if (markerRef.current) markerRef.current.remove();
+        if (markerRef.current) {
+            markerRef.current.remove();
+            markerRef.current = null;
+        }
     };
-  }, [map, center]);
+  }, [map, center, isMapLibre]);
+
+  if (isLeaflet && center) {
+    const icon = L.divIcon({
+        html: '<div style="background-color: #ef4444; width: 16px; height: 16px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 15px rgba(239, 68, 68, 0.6); position: relative;"><div style="position: absolute; top: -25px; left: -20px; background: white; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 900; white-space: nowrap; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">SITE CENTER</div></div>',
+        className: 'project-center-marker',
+        iconSize: [16, 16],
+        iconAnchor: [8, 8]
+    });
+    return (
+        <Marker position={[center[1], center[0]]} icon={icon}>
+            <Popup><b>Project Center</b></Popup>
+        </Marker>
+    );
+  }
 
   return null;
 }
 
 function BufferRingsLayer({ center }) {
-  const { map } = useMap();
-  const leafletLayersRef = useRef([]);
+  const { map, isLeaflet, isMapLibre } = useMap();
 
   useEffect(() => {
-    if (!map || !center) return;
+    if (!map || !center || !isMapLibre) return;
+    if (!map.isStyleLoaded()) return;
 
-    const isMapLibre = !!map.addSource;
-    const isLeaflet = !!map.addLayer && !isMapLibre;
+    const sourceId = 'buffer-rings';
+    const pt = turf.point(center);
+    const ring500 = turf.circle(pt, 0.5, { steps: 64, units: 'kilometers' });
+    const ring2k = turf.circle(pt, 2.0, { steps: 64, units: 'kilometers' });
+    const fc = turf.featureCollection([ring500, ring2k]);
 
-    if (isMapLibre) {
-      if (!map.isStyleLoaded()) return;
+    const addLayer = () => {
+        if (!map.getSource(sourceId)) {
+            map.addSource(sourceId, { type: 'geojson', data: fc });
+            map.addLayer({
+                id: 'buffer-rings-line',
+                type: 'line',
+                source: sourceId,
+                paint: {
+                    'line-color': '#FFFFFF',
+                    'line-width': 1.5,
+                    'line-dasharray': [2, 2],
+                    'line-opacity': 0.7
+                }
+            });
+        }
+    };
 
-      const sourceId = 'buffer-rings';
-      const pt = turf.point(center);
-      const ring500 = turf.circle(pt, 0.5, { steps: 64, units: 'kilometers' });
-      const ring2k = turf.circle(pt, 2.0, { steps: 64, units: 'kilometers' });
-      const fc = turf.featureCollection([ring500, ring2k]);
+    addLayer();
+    map.on('style.load', addLayer);
+    
+    return () => {
+        map.off('style.load', addLayer);
+        if (map && map.getStyle()) {
+            if (map.getLayer('buffer-rings-line')) map.removeLayer('buffer-rings-line');
+            if (map.getSource(sourceId)) map.removeSource(sourceId);
+        }
+    };
+  }, [map, center, isMapLibre]);
 
-      const addLayer = () => {
-          if (!map.getSource(sourceId)) {
-              map.addSource(sourceId, { type: 'geojson', data: fc });
-              map.addLayer({
-                  id: 'buffer-rings-line',
-                  type: 'line',
-                  source: sourceId,
-                  paint: {
-                      'line-color': '#FFFFFF',
-                      'line-width': 1.5,
-                      'line-dasharray': [2, 2],
-                      'line-opacity': 0.7
-                  }
-              });
-          }
-      };
-
-      addLayer();
-      map.on('style.load', addLayer);
-      
-      return () => {
-          map.off('style.load', addLayer);
-          if (map && map.getStyle()) {
-              if (map.getLayer('buffer-rings-line')) map.removeLayer('buffer-rings-line');
-              if (map.getSource(sourceId)) map.removeSource(sourceId);
-          }
-      };
-    } else if (isLeaflet) {
-      // Clear old layers
-      leafletLayersRef.current.forEach(l => map.removeLayer(l));
-      leafletLayersRef.current = [];
-
-      const r500 = L.circle([center[1], center[0]], {
-        radius: 500,
-        color: '#FFFFFF',
-        weight: 1.5,
-        dashArray: '5, 5',
-        fill: false,
-        opacity: 0.7
-      }).addTo(map);
-
-      const r2k = L.circle([center[1], center[0]], {
-        radius: 2000,
-        color: '#FFFFFF',
-        weight: 1.5,
-        dashArray: '5, 5',
-        fill: false,
-        opacity: 0.7
-      }).addTo(map);
-
-      leafletLayersRef.current = [r500, r2k];
-
-      return () => {
-        leafletLayersRef.current.forEach(l => map.removeLayer(l));
-      };
-    }
-  }, [map, center]);
+  if (isLeaflet && center) {
+    return (
+        <>
+            <Circle 
+                center={[center[1], center[0]]}
+                radius={500}
+                pathOptions={{ color: '#FFFFFF', weight: 1.5, dashArray: '5, 5', fill: false, opacity: 0.7 }}
+            />
+            <Circle 
+                center={[center[1], center[0]]}
+                radius={2000}
+                pathOptions={{ color: '#FFFFFF', weight: 1.5, dashArray: '5, 5', fill: false, opacity: 0.7 }}
+            />
+        </>
+    );
+  }
 
   return null;
 }

@@ -40,7 +40,7 @@ const BaseMap = forwardRef(({
   children 
 }, ref) => {
   const mapContainer = useRef(null);
-  const { map, setMap } = useMap();
+  const { map, setMap, setEngine } = useMap();
   
   // Style Definition: Public Sources for END TO END VALIDATION (Eco-Green Logic)
   const STYLES = {
@@ -133,6 +133,7 @@ const BaseMap = forwardRef(({
     if (!checkWebGL()) {
       console.warn("WebGL not supported. Switching to Leaflet fallback.");
       setWebglError(true);
+      setEngine('leaflet');
       return;
     }
 
@@ -149,6 +150,7 @@ const BaseMap = forwardRef(({
 
       mapInstance.on('load', () => {
         setMap(mapInstance);
+        setEngine('maplibre');
         const nav = new maplibregl.NavigationControl();
         mapInstance.addControl(nav, 'top-left');
       });
@@ -180,15 +182,25 @@ const BaseMap = forwardRef(({
     };
   }, [webglError]); // Dependency on webglError to allow retry logic if we reset it
   
-  // Watch for center/zoom prop changes and move map
+  // Watch for center/zoom prop changes and move map only if difference is significant
   useEffect(() => {
     if (map) {
-      if (map.jumpTo) {
-        // MapLibre
-        map.jumpTo({ center: center, zoom: zoom });
-      } else if (map.setView) {
-        // Leaflet
-        map.setView([center[1], center[0]], zoom);
+      const currentMapCenter = map.getCenter();
+      const currentLng = currentMapCenter.lng || currentMapCenter.x;
+      const currentLat = currentMapCenter.lat || currentMapCenter.y;
+      
+      const dist = Math.sqrt(
+        Math.pow(currentLng - center[0], 2) + 
+        Math.pow(currentLat - center[1], 2)
+      );
+
+      // Only move if significantly different (> 0.001 degrees ~100m) or zoom changed
+      if (dist > 0.001 || Math.abs((map.getZoom()) - zoom) > 0.1) {
+        if (map.jumpTo) {
+          map.jumpTo({ center: center, zoom: zoom });
+        } else if (map.setView) {
+          map.setView([center[1], center[0]], zoom);
+        }
       }
     }
   }, [map, center, zoom]);
@@ -204,21 +216,28 @@ const BaseMap = forwardRef(({
   return (
     <div style={{ height: height, width: '100%', position: 'relative' }} className="bg-slate-900 overflow-hidden">
       {!webglError ? (
-        <div ref={mapContainer} style={{ height: '100%', width: '100%' }} />
+        <>
+          <div ref={mapContainer} style={{ height: '100%', width: '100%' }} />
+          {children}
+        </>
       ) : (
         <MapContainer 
-          key={`${center[0]}-${center[1]}-${currentStyle}`}
+          key={currentStyle}
           center={[center[1], center[0]]} 
           zoom={zoom} 
           style={{ height: '100%', width: '100%', background: '#0f172a' }}
           zoomControl={false}
         >
           <TileLayer
-            attribution='&copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
-            url={LEAFLET_TILES[currentStyle]}
-            maxZoom={19}
+            key={currentStyle}
+            attribution='&copy; Google | Esri | EcoSense AI'
+            url={currentStyle === 'satellite' 
+              ? "https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}"
+              : LEAFLET_TILES[currentStyle]}
+            maxZoom={20}
           />
           <LeafletMapSync setMap={setMap} center={center} zoom={zoom} onMove={onMove} />
+          {map && children}
         </MapContainer>
       )}
       

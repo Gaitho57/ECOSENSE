@@ -1,102 +1,69 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect } from 'react';
 import { useMap } from '../MapContext';
-import L from 'leaflet';
+import { GeoJSON } from 'react-leaflet';
 
 export default function DispersionLayer({ geoJSON, isVisible = true }) {
-  const { map } = useMap();
-  const leafletLayerRef = useRef(null);
+  const { map, isLeaflet, isMapLibre } = useMap();
 
   useEffect(() => {
-    if (!map || !geoJSON) return;
+    if (!map || !geoJSON || !isMapLibre || !isVisible) return;
+    if (!map.isStyleLoaded()) return;
 
-    const isMapLibre = !!map.addSource;
-    const isLeaflet = !!map.addLayer && !isMapLibre;
+    const sourceId = 'dispersion-source';
+    const fillLayerId = 'dispersion-fill';
+    const outlineLayerId = 'dispersion-outline';
 
-    if (isMapLibre) {
-      if (!map.isStyleLoaded()) return;
+    const addLayer = () => {
+      if (!map.getSource(sourceId)) {
+        map.addSource(sourceId, { type: 'geojson', data: geoJSON });
+      }
 
-      const sourceId = 'dispersion-source';
-      const fillLayerId = 'dispersion-fill';
-      const outlineLayerId = 'dispersion-outline';
+      if (!map.getLayer(fillLayerId)) {
+        map.addLayer({
+          id: fillLayerId,
+          type: 'fill',
+          source: sourceId,
+          paint: { 'fill-color': ['get', 'color'], 'fill-opacity': 0.6 }
+        });
 
-      const addLayer = () => {
-        if (!map.getSource(sourceId)) {
-          map.addSource(sourceId, {
-            type: 'geojson',
-            data: geoJSON
-          });
-        } else {
-          map.getSource(sourceId).setData(geoJSON);
-        }
+        map.addLayer({
+          id: outlineLayerId,
+          type: 'line',
+          source: sourceId,
+          paint: { 'line-color': ['get', 'color'], 'line-width': 1, 'line-opacity': 0.8 }
+        });
+      }
+    };
 
-        if (!map.getLayer(fillLayerId)) {
-          map.addLayer({
-            id: fillLayerId,
-            type: 'fill',
-            source: sourceId,
-            paint: {
-              'fill-color': ['get', 'color'],
-              'fill-opacity': 0.6
-            }
-          });
-        }
-
-        if (!map.getLayer(outlineLayerId)) {
-          map.addLayer({
-            id: outlineLayerId,
-            type: 'line',
-            source: sourceId,
-            paint: {
-              'line-color': ['get', 'color'],
-              'line-width': 1,
-              'line-opacity': 0.8
-            }
-          });
-        }
-      };
-
-      if (isVisible) {
-        addLayer();
-        map.on('style.load', addLayer);
-      } else {
+    addLayer();
+    map.on('style.load', addLayer);
+    
+    return () => {
+      map.off('style.load', addLayer);
+      if (map && map.getStyle()) {
         if (map.getLayer(fillLayerId)) map.removeLayer(fillLayerId);
         if (map.getLayer(outlineLayerId)) map.removeLayer(outlineLayerId);
+        if (map.getSource(sourceId)) map.removeSource(sourceId);
       }
-
-      return () => {
-        map.off('style.load', addLayer);
-        if (map && map.getStyle()) {
-          if (map.getLayer(fillLayerId)) map.removeLayer(fillLayerId);
-          if (map.getLayer(outlineLayerId)) map.removeLayer(outlineLayerId);
-          if (map.getSource(sourceId)) map.removeSource(sourceId);
-        }
-      };
-    } else if (isLeaflet) {
-      if (isVisible) {
-        if (leafletLayerRef.current) map.removeLayer(leafletLayerRef.current);
-
-        leafletLayerRef.current = L.geoJSON(geoJSON, {
-          style: (feature) => ({
-            color: feature.properties.color,
-            weight: 1,
-            fillColor: feature.properties.color,
-            fillOpacity: 0.6
-          })
-        }).addTo(map);
-      } else if (leafletLayerRef.current) {
-        map.removeLayer(leafletLayerRef.current);
-        leafletLayerRef.current = null;
-      }
-
-      return () => {
-        if (leafletLayerRef.current) map.removeLayer(leafletLayerRef.current);
-      };
-    }
-  }, [map, geoJSON, isVisible]);
+    };
+  }, [map, geoJSON, isMapLibre, isVisible]);
 
   if (!isVisible || !geoJSON) return null;
 
   return (
+    <>
+      {isLeaflet && (
+        <GeoJSON 
+          key={JSON.stringify(geoJSON)}
+          data={geoJSON}
+          style={(feature) => ({
+            color: feature.properties.color,
+            weight: 1,
+            fillColor: feature.properties.color,
+            fillOpacity: 0.6
+          })}
+        />
+      )}
       <div className="absolute bottom-6 right-6 bg-white p-3 rounded-lg shadow-lg border border-gray-100 z-[1000] w-48 pointer-events-auto">
           <h4 className="text-xs font-bold text-gray-800 uppercase tracking-widest mb-2 border-b pb-1">Con. limits (µg/m³)</h4>
           <div className="space-y-1.5 text-xs">
@@ -108,5 +75,6 @@ export default function DispersionLayer({ geoJSON, isVisible = true }) {
               <div className="flex items-center"><span className="w-3 h-3 rounded-sm bg-[#fef08a] mr-2"></span> &lt; 5 Trace</div>
           </div>
       </div>
+    </>
   );
 }
