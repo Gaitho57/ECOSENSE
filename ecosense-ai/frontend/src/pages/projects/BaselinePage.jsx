@@ -4,7 +4,7 @@ import { useBaseline, useGenerateBaseline, useTaskStatus } from '../../hooks/use
 import axiosInstance from '../../api/axiosInstance';
 
 // Components
-import { MapProvider } from '../../components/maps/MapContext';
+
 import BaseMap from '../../components/maps/BaseMap';
 import LayerControl from '../../components/maps/LayerControl';
 import BaselineSummaryCards from '../../components/baseline/BaselineSummaryCards';
@@ -401,7 +401,6 @@ export default function BaselinePage() {
 
         {/* Map — 60% */}
         <div className="lg:w-3/5 h-1/2 lg:h-full relative border-r border-gray-200">
-          <MapProvider>
             <BaseMap center={mapCenter} zoom={13}>
               <LayerControl layers={layers} setLayers={setLayers} />
               {baseline && (
@@ -414,7 +413,6 @@ export default function BaselinePage() {
                 </>
               )}
             </BaseMap>
-          </MapProvider>
         </div>
 
         {/* Data Panel — 40% */}
