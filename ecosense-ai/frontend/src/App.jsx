@@ -1,35 +1,43 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import axios from 'axios';
 
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import AppLayout from './components/layout/AppLayout';
 
-import LandingPage from './pages/landing/LandingPage';
-import LoginPage from './pages/auth/LoginPage';
-import RegisterPage from './pages/auth/RegisterPage';
-import AcceptInvitePage from './pages/auth/AcceptInvitePage';
+// Lazy load pages for better initial footprint mapping and performance
+const LandingPage = lazy(() => import('./pages/landing/LandingPage'));
+const LoginPage = lazy(() => import('./pages/auth/LoginPage'));
+const RegisterPage = lazy(() => import('./pages/auth/RegisterPage'));
+const AcceptInvitePage = lazy(() => import('./pages/auth/AcceptInvitePage'));
 
-import DashboardPage from './pages/dashboard/DashboardPage';
-import ProjectsPage from './pages/projects/ProjectsPage';
-import ProjectOverviewPage from './pages/projects/ProjectOverviewPage';
-import MonitoringPage from './pages/projects/MonitoringPage';
-import ESGPage from './pages/projects/ESGPage';
-import AnalyticsPage from './pages/dashboard/AnalyticsPage';
+const DashboardPage = lazy(() => import('./pages/dashboard/DashboardPage'));
+const ProjectsPage = lazy(() => import('./pages/projects/ProjectsPage'));
+const ProjectOverviewPage = lazy(() => import('./pages/projects/ProjectOverviewPage'));
+const MonitoringPage = lazy(() => import('./pages/projects/MonitoringPage'));
+const ESGPage = lazy(() => import('./pages/projects/ESGPage'));
+const AnalyticsPage = lazy(() => import('./pages/dashboard/AnalyticsPage'));
 
 // Sub-Module Activations
-import BaselinePage from './pages/projects/BaselinePage';
-import PredictionsPage from './pages/projects/PredictionsPage';
-import GISPage from './pages/projects/GISPage';
-import CommunityPage from './pages/projects/CommunityPage';
-import ReportPage from './pages/projects/ReportPage';
-import ReportEditorPage from './pages/projects/ReportEditorPage';
-import CompliancePage from './pages/projects/CompliancePage';
+const BaselinePage = lazy(() => import('./pages/projects/BaselinePage'));
+const PredictionsPage = lazy(() => import('./pages/projects/PredictionsPage'));
+const GISPage = lazy(() => import('./pages/projects/GISPage'));
+const CommunityPage = lazy(() => import('./pages/projects/CommunityPage'));
+const ReportPage = lazy(() => import('./pages/projects/ReportPage'));
+const ReportEditorPage = lazy(() => import('./pages/projects/ReportEditorPage'));
+const CompliancePage = lazy(() => import('./pages/projects/CompliancePage'));
 
-import SettingsPage from './pages/settings/SettingsPage';
-import BillingPage from './pages/billing/BillingPage';
-import VerificationPage from './pages/public/VerificationPage';
-import ParticipationPortal from './pages/public/ParticipationPortal';
+const SettingsPage = lazy(() => import('./pages/settings/SettingsPage'));
+const BillingPage = lazy(() => import('./pages/billing/BillingPage'));
+const VerificationPage = lazy(() => import('./pages/public/VerificationPage'));
+const ParticipationPortal = lazy(() => import('./pages/public/ParticipationPortal'));
+
+const LoadingFallback = () => (
+  <div className="h-screen w-full bg-[#0f172a] flex flex-col items-center justify-center">
+    <div className="w-12 h-12 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin mb-4" />
+    <div className="text-white font-black text-sm uppercase tracking-widest animate-pulse">Initializing EcoSense...</div>
+  </div>
+);
 
 const KeepAlive = () => {
   useEffect(() => {
@@ -59,46 +67,47 @@ function App() {
     <BrowserRouter>
       <MapProvider>
         <KeepAlive />
-        <Routes>
-        {/* Unauthenticated Marketing Footprints */}
-        <Route path="/" element={<LandingPage />} />
-        
-        {/* Auth Pipes */}
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
-        <Route path="/accept-invite/:token" element={<AcceptInvitePage />} />
+        <Suspense fallback={<LoadingFallback />}>
+          <Routes>
+            {/* Unauthenticated Marketing Footprints */}
+            <Route path="/" element={<LandingPage />} />
+            
+            {/* Auth Pipes */}
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+            <Route path="/accept-invite/:token" element={<AcceptInvitePage />} />
 
-        {/* Public pages — no authentication required */}
-        <Route path="/verify/:projectToken" element={<VerificationPage />} />
-        <Route path="/public/participate/:projectToken" element={<ParticipationPortal />} />
+            {/* Public pages — no authentication required */}
+            <Route path="/verify/:projectToken" element={<VerificationPage />} />
+            <Route path="/public/participate/:projectToken" element={<ParticipationPortal />} />
 
-        {/* Authenticated Application Architecture */}
-        <Route path="/dashboard" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
-             <Route index element={<DashboardPage />} />
-             <Route path="projects" element={<ProjectsPage />} />
-             <Route path="projects/:projectId" element={<ProjectOverviewPage />} />
-             
-             {/* Sub Module Endpoints natively integrated and actively spanning layout limits smoothly */}
-             <Route path="projects/:projectId/monitoring" element={<MonitoringPage />} />
-             <Route path="projects/:projectId/esg" element={<ESGPage />} />
-             
-             <Route path="projects/:projectId/baseline" element={<BaselinePage />} />
-             <Route path="projects/:projectId/predictions" element={<PredictionsPage />} />
-             <Route path="projects/:projectId/map" element={<GISPage />} />
-             <Route path="projects/:projectId/community" element={<CommunityPage />} />
-             <Route path="projects/:projectId/report" element={<ReportPage />} />
-             <Route path="projects/:projectId/report-editor" element={<ReportEditorPage />} />
-             <Route path="projects/:projectId/compliance" element={<CompliancePage />} />
-             
-             <Route path="settings" element={<SettingsPage />} />
-             <Route path="billing" element={<BillingPage />} />
-             {/* Sprint 4C — Firm-wide analytics */}
-             <Route path="analytics" element={<AnalyticsPage />} />
-        </Route>
+            {/* Authenticated Application Architecture */}
+            <Route path="/dashboard" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+                 <Route index element={<DashboardPage />} />
+                 <Route path="projects" element={<ProjectsPage />} />
+                 <Route path="projects/:projectId" element={<ProjectOverviewPage />} />
+                 
+                 {/* Sub Module Endpoints natively integrated and actively spanning layout limits smoothly */}
+                 <Route path="projects/:projectId/monitoring" element={<MonitoringPage />} />
+                 <Route path="projects/:projectId/esg" element={<ESGPage />} />
+                 
+                 <Route path="projects/:projectId/baseline" element={<BaselinePage />} />
+                 <Route path="projects/:projectId/predictions" element={<PredictionsPage />} />
+                 <Route path="projects/:projectId/map" element={<GISPage />} />
+                 <Route path="projects/:projectId/community" element={<CommunityPage />} />
+                 <Route path="projects/:projectId/report" element={<ReportPage />} />
+                 <Route path="projects/:projectId/report-editor" element={<ReportEditorPage />} />
+                 <Route path="projects/:projectId/compliance" element={<CompliancePage />} />
+                 
+                 <Route path="settings" element={<SettingsPage />} />
+                 <Route path="billing" element={<BillingPage />} />
+                 {/* Sprint 4C — Firm-wide analytics */}
+                 <Route path="analytics" element={<AnalyticsPage />} />
+            </Route>
 
-        
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
       </MapProvider>
     </BrowserRouter>
   );

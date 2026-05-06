@@ -54,7 +54,7 @@ export default function FloodLayer({ geoJSON, isVisible = true }) {
     <>
       {isLeaflet && (
         <GeoJSON 
-          key={JSON.stringify(geoJSON)}
+          key={geoJSON.features?.[0]?.id || 'flood-layer'}
           data={geoJSON}
           style={(feature) => ({
             color: feature.properties.color,

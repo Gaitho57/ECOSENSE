@@ -36,23 +36,26 @@ export default function NDVILayer({ ndvi_score, ndvi_tile_url, center, isVisible
           });
         }
       } 
-      else if (typeof ndvi_score === 'number') {
+      else if (typeof ndvi_score === 'number' && center) {
         const fallbackSourceId = 'ndvi-source-fallback';
         const fallbackLayerId = 'ndvi-layer-fallback';
         
         if (!map.getSource(fallbackSourceId)) {
           const points = [];
-          const [lng, lat] = center;
-          for (let i = -5; i <= 5; i++) {
-            for (let j = -5; j <= 5; j++) {
+          // Use rounded center to prevent jittering during movement
+          const rLng = Math.round(center[0] * 100) / 100;
+          const rLat = Math.round(center[1] * 100) / 100;
+          
+          for (let i = -3; i <= 3; i++) {
+            for (let j = -3; j <= 3; j++) {
               points.push({
                 type: 'Feature',
                 geometry: { 
                   type: 'Point', 
-                  coordinates: [lng + (i * 0.002), lat + (j * 0.002)] 
+                  coordinates: [rLng + (i * 0.005), rLat + (j * 0.005)] 
                 },
                 properties: { 
-                  ndvi: Math.max(0, Math.min(1, ndvi_score + (Math.random() * 0.2 - 0.1))) 
+                  ndvi: Math.max(0, Math.min(1, ndvi_score + (Math.sin(i * j) * 0.1))) 
                 }
               });
             }
@@ -82,7 +85,7 @@ export default function NDVILayer({ ndvi_score, ndvi_tile_url, center, isVisible
                 0.6, 'rgb(16, 185, 129)',
                 0.8, 'rgb(5, 150, 105)'
               ],
-              'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 0, 2, 15, 40],
+              'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 0, 5, 15, 50],
               'heatmap-opacity': 0.6
             }
           });
@@ -102,7 +105,7 @@ export default function NDVILayer({ ndvi_score, ndvi_tile_url, center, isVisible
           if (map.getSource('ndvi-source-fallback')) map.removeSource('ndvi-source-fallback');
       }
     };
-  }, [map, ndvi_score, ndvi_tile_url, center, isMapLibre, isVisible]);
+  }, [map, ndvi_score, ndvi_tile_url, Math.round(center?.[0] * 100), Math.round(center?.[1] * 100), isMapLibre, isVisible]);
 
   if (isLeaflet && isVisible) {
     if (ndvi_tile_url) {

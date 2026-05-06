@@ -460,69 +460,50 @@ SEV_REVERSE_MAPPING = {0: "low", 1: "medium", 2: "high", 3: "critical"}
 
 
 class PredictionEngine:
+    _instance = None
+
+    def __new__(cls, *args, **kwargs):
+        if not cls._instance:
+            cls._instance = super(PredictionEngine, cls).__new__(cls)
+            cls._instance._initialized = False
+        return cls._instance
+
     def __init__(self):
         """
         Validates and loads machine learning binaries securely into memory exactly once.
         """
+        if self._initialized:
+            return
+
         self.models = {}
         self.scaler = None
         self.llm = None
-        
-        # Load scaler
-        scaler_path = MODELS_DIR / "scaler.pkl"
-        if scaler_path.exists():
-            self.scaler = joblib.load(scaler_path)
-            
-        # Load XGBoost arrays
-        for cat in CATEGORIES:
-            clf_path = MODELS_DIR / f"{cat}_severity.pkl"
-            reg_path = MODELS_DIR / f"{cat}_probability.pkl"
-            
-            if clf_path.exists() and reg_path.exists():
-                self.models[cat] = {
-                    "clf": joblib.load(clf_path),
-                    "reg": joblib.load(reg_path),
-                }
-
-        # Initialize Local LLM via HuggingFace
-        if HuggingFacePipeline:
-            try:
-                logger.info("Initializing local HuggingFace LLM (google/flan-t5-small)...")
-                # Using a small, fast model for local generation without API keys
-                hf_pipeline = pipeline("text2text-generation", model="google/flan-t5-small", max_new_tokens=100)
-                self.llm = HuggingFacePipeline(pipeline=hf_pipeline)
-            except Exception as e:
-                logger.warning(f"Local LLM initialization failed: {e}")
-                self.llm = None
-
-        # Initialize RAG Vector Store with Local Embeddings
         self.vector_store = None
         self.lite_retriever = None
-        
-        persist_dir = os.path.join(settings.BASE_DIR, 'chroma_db')
-        lite_path = os.path.join(settings.BASE_DIR, 'rag_lite.pkl')
-
-        if Chroma and HuggingFaceEmbeddings and os.path.exists(persist_dir):
-            try:
-                logger.info("Loading ChromaDB with local HuggingFace embeddings...")
-                embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
-                self.vector_store = Chroma(persist_directory=persist_dir, embedding_function=embeddings)
-                logger.info("Successfully loaded ChromaDB RAG store.")
-            except Exception as e:
-                logger.warning(f"Failed to load ChromaDB RAG store: {e}")
-
-        if not self.vector_store and os.path.exists(lite_path):
-            try:
-                import pickle
-                logger.info("Loading Lite RAG (TF-IDF)...")
-                with open(lite_path, 'rb') as f:
-                    self.lite_retriever = pickle.load(f)
-                logger.info("Successfully loaded Lite RAG store.")
-            except Exception as e:
-                logger.warning(f"Failed to load Lite RAG store: {e}")
-
-        # Load Style Guide
         self.style_guide = {}
+        
+        # 1. Load basic ML models (Fast)
+        try:
+            scaler_path = MODELS_DIR / "scaler.pkl"
+            if scaler_path.exists():
+                self.scaler = joblib.load(scaler_path)
+                
+            for cat in CATEGORIES:
+                clf_path = MODELS_DIR / f"{cat}_severity.pkl"
+                reg_path = MODELS_DIR / f"{cat}_probability.pkl"
+                
+                if clf_path.exists() and reg_path.exists():
+                    self.models[cat] = {
+                        "clf": joblib.load(clf_path),
+                        "reg": joblib.load(reg_path),
+                    }
+            logger.info("Successfully loaded ML models into memory.")
+        except Exception as e:
+            logger.error(f"Failed to load ML models: {e}")
+
+        # 2. AI Components are now lazily initialized on demand
+
+        # 3. Load Style Guide
         guide_path = Path(settings.BASE_DIR) / "data" / "style_guide.json"
         if guide_path.exists():
             try:
@@ -532,6 +513,47 @@ class PredictionEngine:
                 logger.info(f"Loaded Style Guide with {self.style_guide.get('report_count', 0)} reference reports.")
             except Exception as e:
                 logger.warning(f"Failed to load Style Guide: {e}")
+
+        self._initialized = True
+
+    def _ensure_ai_initialized(self):
+        """
+        Loads the LLM and Vector Store only if they haven't been loaded yet.
+        """
+        # Initialize Local LLM via HuggingFace
+        if HuggingFacePipeline and not self.llm:
+            try:
+                logger.info("Initializing local HuggingFace LLM (google/flan-t5-small)...")
+                # Using a small, fast model for local generation without API keys
+                hf_pipeline = pipeline("text2text-generation", model="google/flan-t5-small", max_new_tokens=100)
+                self.llm = HuggingFacePipeline(pipeline=hf_pipeline)
+                logger.info("Successfully initialized Local LLM.")
+            except Exception as e:
+                logger.warning(f"Local LLM initialization failed: {e}")
+                self.llm = None
+
+        # Initialize RAG Vector Store with Local Embeddings
+        persist_dir = os.path.join(settings.BASE_DIR, 'chroma_db')
+        lite_path = os.path.join(settings.BASE_DIR, 'rag_lite.pkl')
+
+        if Chroma and HuggingFaceEmbeddings and os.path.exists(persist_dir) and not self.vector_store:
+            try:
+                logger.info("Loading ChromaDB with local HuggingFace embeddings...")
+                embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+                self.vector_store = Chroma(persist_directory=persist_dir, embedding_function=embeddings)
+                logger.info("Successfully loaded ChromaDB RAG store.")
+            except Exception as e:
+                logger.warning(f"Failed to load ChromaDB RAG store: {e}")
+
+        if not self.vector_store and os.path.exists(lite_path) and not self.lite_retriever:
+            try:
+                import pickle
+                logger.info("Loading Lite RAG (TF-IDF)...")
+                with open(lite_path, 'rb') as f:
+                    self.lite_retriever = pickle.load(f)
+                logger.info("Successfully loaded Lite RAG store.")
+            except Exception as e:
+                logger.warning(f"Failed to load Lite RAG store: {e}")
 
     def extract_features(self, baseline_data: dict) -> dict:
         """
@@ -853,13 +875,14 @@ class PredictionEngine:
 
             
         # 3. Handle OpenAI if key is actually present (Secondary Augmentation)
+        self._ensure_ai_initialized()
         if self.llm:
             try:
                 # context synthesis
                 soil = baseline.get("soil", {}).get("soil_type", "Unknown")
                 hydro = baseline.get("hydrology", {}).get("source", "Unknown local hydrology")
                 
-                historical_context = self._query_historical_context(category, project_type, baseline)
+                historical_context = self._retrieve_context(category, project_type, baseline)
                 
                 prompt = (
                     f"You are a NEMA Lead Expert. Augment this EIA impact analysis for {category} in a {project_type} project.\n"
@@ -878,7 +901,8 @@ class PredictionEngine:
 
         return desc, mitigations
 
-    def _query_historical_context(self, category: str, project_type: str, baseline: dict) -> str:
+    def _retrieve_context(self, category: str, project_type: str, baseline: dict) -> str:
+        self._ensure_ai_initialized()
         if not self.vector_store:
             return ""
             
@@ -912,6 +936,7 @@ class PredictionEngine:
 
     def get_historical_baseline_context(self, county_name: str) -> str:
         """Queries the vectorstore or lite retriever for general baseline information regarding the specific region."""
+        self._ensure_ai_initialized()
         docs = []
         region = str(county_name).lower()
         query = f"Baseline environmental conditions, climate, soil, biodiversity, and hydrology in {region}."
@@ -1192,18 +1217,6 @@ class PredictionEngine:
         )
         return self._call_expert_llm(prompt, "You are a Civil Engineer and ESIA Consultant.", baseline_data=baseline_data)
 
-    def generate_decommissioning_plan(self, project_type: str) -> str:
-        """Generates Hazard Management and Disaster Preparedness chapter."""
-        prompt = (
-            f"Write a 1000-word 'Hazard Management and Emergency Response Plan' for a {project_type} project.\n"
-            f"Include:\n"
-            f"1. Risk Identification (Fire, Chemical Spill, Structural Failure).\n"
-            f"2. Emergency Response Procedures (Communication, Evacuation, Containment).\n"
-            f"3. Occupational Health and Safety (OHS) metrics.\n"
-            f"4. Equipment requirements (PPE, Fire suppression)."
-        )
-        return self._call_expert_llm(prompt, "You are a Safety Engineer and Risk Auditor.")
-
     def generate_decommissioning_plan(self, project_type: str, baseline_data: dict = None) -> str:
         """Generates the Decommissioning and Site Restoration chapter."""
         prompt = (
@@ -1242,6 +1255,7 @@ class PredictionEngine:
 
     def _call_expert_llm(self, prompt: str, system_role: str, baseline_data: dict = None) -> str:
         """Helper for expert technical calls with rich Kenyan internal fallback."""
+        self._ensure_ai_initialized()
         if not self.llm:
              # Internal AI Knowledge Retrieval (Expert Calibration V10)
              p_lower = prompt.lower()
@@ -1387,6 +1401,9 @@ class PredictionEngine:
         suggested = []
         project_type = project_type.lower().replace(" ", "_")
         
+        if not baseline:
+            baseline = {}
+            
         for pred in predictions:
             cat = pred.get("category", "").lower()
             severity = pred.get("severity", "").lower()
@@ -1397,11 +1414,12 @@ class PredictionEngine:
             # 2. Critical/Hippo Escalation
             if cat == "biodiversity" and severity in ("high", "critical"):
                 # Maasai Mara / Savanna Logic
-                if "narok" in str(baseline.get("county_name", "")).lower():
+                county_name = str(baseline.get("county_name", "")).lower()
+                if "narok" in county_name:
                     mitigations.append("MANDATORY KWS CLEARANCE: Project within Maasai Mara ecosystem; 24/7 predator monitoring required.")
                     mitigations.append("Installation of predator-proof solar perimeter lighting (Amber Spectrum) to minimize ecological disruption.")
                 # Lamu / Marine Logic
-                elif "lamu" in str(baseline.get("county_name", "")).lower():
+                elif "lamu" in county_name:
                     mitigations.append("MARINE PROTOCOL: Silt curtains required during dredging; daily monitoring of sea turtle nesting sites.")
                     mitigations.append("KFS Mangrove Conservation: 3:1 replanting ratio for any unavoidable mangrove clearance.")
                 else:
@@ -1410,7 +1428,8 @@ class PredictionEngine:
             
             if cat == "water" and severity in ("high", "critical"):
                 # Mt. Kenya / Water Tower Logic
-                if baseline.get("water_tower", {}).get("is_sensitive", False):
+                is_sensitive = baseline.get("water_tower", {}).get("is_sensitive", False) if isinstance(baseline.get("water_tower"), dict) else False
+                if is_sensitive:
                     mitigations.append("KWTA PROTECTION: Zero-siltation discharge protocol; daily turbidity testing at downstream receptors.")
                     mitigations.append("High-gradient slope stabilization (Gabions/Vetiver) to prevent landslide risks in mountain catchments.")
                 

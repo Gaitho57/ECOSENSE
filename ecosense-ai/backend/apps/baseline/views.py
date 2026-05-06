@@ -197,13 +197,15 @@ class BaselineDetailView(APIView):
 
         self.check_object_permissions(request, project)
 
-        try:
-            baseline = project.baseline
-        except BaselineReport.DoesNotExist:
-            return envelope(
-                error={"code": 404, "message": "No baseline exists yet. Generate one first.", "details": {}},
-                status_code=status.HTTP_404_NOT_FOUND
-            )
+        # Ensure baseline exists or create a stub for it
+        baseline, created = BaselineReport.objects.get_or_create(
+            project=project,
+            defaults={
+                "status": "complete", # Marking as complete since manual entry makes it 'done'
+                "generated_at": timezone.now(),
+                "data_sources": [{"source": "Manual Initialize", "at": timezone.now().isoformat()}]
+            }
+        )
 
         overrides = request.data
         unknown = set(overrides.keys()) - OVERRIDEABLE_FIELDS

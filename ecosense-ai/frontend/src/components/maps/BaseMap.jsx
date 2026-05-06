@@ -48,9 +48,28 @@ const BaseMap = forwardRef(({
   const mapContainer = useRef(null);
   
   const STYLES = {
-    satellite: 'https://api.maptiler.com/maps/hybrid/style.json?key=get_your_own_key', // Still needs a key, but others are public
+    satellite: 'https://api.maptiler.com/maps/hybrid/style.json?key=get_your_own_key',
     light: 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json',
     dark: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json'
+  };
+
+  const SATELLITE_FALLBACK = {
+    "version": 8,
+    "sources": {
+      "esri-satellite": {
+        "type": "raster",
+        "tiles": ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"],
+        "tileSize": 256,
+        "attribution": "Esri"
+      }
+    },
+    "layers": [
+      {
+        "id": "esri-satellite-layer",
+        "type": "raster",
+        "source": "esri-satellite"
+      }
+    ]
   };
 
   const LEAFLET_TILES = {
@@ -82,9 +101,10 @@ const BaseMap = forwardRef(({
 
     let mapInstance;
     try {
+      const style = currentStyle === 'satellite' ? SATELLITE_FALLBACK : STYLES[currentStyle];
       mapInstance = new maplibregl.Map({
         container: mapContainer.current,
-        style: STYLES[currentStyle],
+        style: style,
         center: center,
         zoom: zoom,
         failIfMajorPerformanceCaveat: false, 
@@ -126,19 +146,22 @@ const BaseMap = forwardRef(({
   }, [engine, setEngine, setMap]); // Dependency on engine to allow fallback
   
   useEffect(() => {
-    if (!map || engine !== 'maplibre') return;
+    if (!map || engine !== 'maplibre' || !center) return;
     
     const current = map.getCenter();
     const dist = Math.sqrt(Math.pow(current.lng - center[0], 2) + Math.pow(current.lat - center[1], 2));
     
-    if (dist > 0.001) {
+    // Only fly if distance is significant to avoid "fighting" with user interaction
+    if (dist > 0.01) {
       map.flyTo({
         center: center,
         zoom: zoom,
-        essential: true
+        essential: true,
+        speed: 1.2,
+        curve: 1.4
       });
     }
-  }, [center, zoom, map, engine]);
+  }, [center?.[0], center?.[1], zoom, map, engine]);
 
   const handleStyleChange = (styleKey) => {
     setCurrentStyle(styleKey);

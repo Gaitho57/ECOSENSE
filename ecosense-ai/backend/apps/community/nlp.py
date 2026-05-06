@@ -11,20 +11,19 @@ from apps.community.models import CommunityFeedback
 
 logger = logging.getLogger(__name__)
 
-# Native external structures mapped safely isolating errors securely 
-try:
-    from langdetect import detect
-except ImportError:
-    # Basic fallback simulating structural detection 
-    def detect(text): return 'en'
+_sentiment_analyzer = None
 
-try:
-    from transformers import pipeline
-    # Cache HuggingFace logic dynamically loading safely
-    sentiment_analyzer = pipeline("sentiment-analysis", model="cardiffnlp/twitter-xlm-roberta-base-sentiment", truncation=True, max_length=512)
-except Exception as e:
-    sentiment_analyzer = None
-    logger.warning(f"Transformer pipeline skipped logically cleanly: {e}")
+def get_sentiment_analyzer():
+    global _sentiment_analyzer
+    if _sentiment_analyzer is None:
+        try:
+            from transformers import pipeline
+            # Cache HuggingFace logic dynamically loading safely
+            _sentiment_analyzer = pipeline("sentiment-analysis", model="cardiffnlp/twitter-xlm-roberta-base-sentiment", truncation=True, max_length=512)
+        except Exception as e:
+            logger.warning(f"Transformer pipeline failed to load: {e}")
+            _sentiment_analyzer = False # Mark as failed to avoid retrying
+    return _sentiment_analyzer if _sentiment_analyzer is not False else None
 
 try:
     from langchain.chat_models import ChatOpenAI
@@ -86,10 +85,11 @@ def analyse_feedback(feedback_text: str) -> dict:
              res["categories"].append(c)
              
     # 2. Sentiment
-    if sentiment_analyzer:
+    analyzer = get_sentiment_analyzer()
+    if analyzer:
         try:
             # cardiffnlp uses labels: LABEL_0 (neg), LABEL_1 (neu), LABEL_2 (pos) logically
-            out = sentiment_analyzer(feedback_text[:512])[0]
+            out = analyzer(feedback_text[:512])[0]
             label = out['label']
             if label == 'LABEL_0' or 'negative' in label.lower():
                 res['sentiment'] = 'negative'
@@ -139,6 +139,7 @@ def process_feedback_nlp(self, feedback_id: str):
     raw = feedback.raw_text
     lang = 'en'
     try:
+         from langdetect import detect
          lang = detect(raw)
          feedback.language = lang[:10]
     except Exception:

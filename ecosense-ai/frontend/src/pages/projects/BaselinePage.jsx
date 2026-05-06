@@ -7,6 +7,7 @@ import axiosInstance from '../../api/axiosInstance';
 
 import BaseMap from '../../components/maps/BaseMap';
 import LayerControl from '../../components/maps/LayerControl';
+import ProjectCenterMarker from '../../components/maps/ProjectCenterMarker';
 import BaselineSummaryCards from '../../components/baseline/BaselineSummaryCards';
 
 // Layers
@@ -344,20 +345,7 @@ export default function BaselinePage() {
     return <div className="p-8 text-center text-gray-500">Loading project data...</div>;
   }
 
-  if ((!baseline && !isGenerating) || (baseline && Object.keys(baseline).length === 0 && !isGenerating)) {
-    return (
-      <div className="h-full flex flex-col items-center justify-center p-8 bg-gray-50 min-h-screen">
-        <div className="bg-white p-8 rounded-xl shadow-sm text-center max-w-lg border border-gray-100">
-          <div className="text-4xl mb-4">🌍</div>
-          <h2 className="text-xl font-bold text-gray-800">No Environmental Baseline Generated</h2>
-          <p className="text-gray-500 mt-2 mb-6 tracking-tight">Aggregate planetary data, satellite health metrics, and biodiversity indices remotely to establish valid impact bounds.</p>
-          <button onClick={handleGenerate} className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-6 rounded-lg transition-colors">
-            Generate Baseline Now
-          </button>
-        </div>
-      </div>
-    );
-  }
+  // Empty state logic removed to keep map visible for manual entry
 
   return (
     <div className="h-screen flex flex-col overflow-hidden bg-gray-50">
@@ -374,7 +362,7 @@ export default function BaselinePage() {
               {baseline.data_sources.length} data sources
             </span>
           )}
-          {baseline && !isGenerating && (
+          {!isGenerating && (
             <>
               <button
                 onClick={() => setShowOverrideModal(true)}
@@ -387,7 +375,7 @@ export default function BaselinePage() {
                 onClick={handleGenerate}
                 className="text-sm font-medium text-green-600 border border-green-200 bg-green-50 hover:bg-green-100 px-4 py-2 rounded-lg transition-colors"
               >
-                Regenerate API Data
+                {baseline ? 'Regenerate API Data' : 'Generate Baseline'}
               </button>
             </>
           )}
@@ -415,6 +403,7 @@ export default function BaselinePage() {
               <LayerControl layers={layers} setLayers={setLayers} />
               {baseline && (
                 <>
+                  <ProjectCenterMarker center={mapCenter} />
                   <ProjectBoundaryLayer boundaryGeoJSON={boundaryGeoJSON} isVisible={layers.boundary} />
                   <NDVILayer ndvi_score={baseline.satellite_data?.ndvi} center={mapCenter} isVisible={layers.ndvi} />
                   <HydrologyLayer hydrology_data={hydrologyGeoJSON} isVisible={layers.hydrology} />
