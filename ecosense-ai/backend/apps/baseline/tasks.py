@@ -48,7 +48,7 @@ def generate_baseline(self, project_id: str):
     except Project.DoesNotExist:
         raise ValueError(f"Project {project_id} not found.")
 
-    # Initialize state
+    # Initialize baseline object early so it's available in the except block
     baseline, _ = BaselineReport.objects.update_or_create(
         project=project,
         defaults={

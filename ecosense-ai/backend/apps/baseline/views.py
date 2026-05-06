@@ -73,10 +73,19 @@ class GenerateBaselineView(APIView):
         # Check existing state
         baseline = getattr(project, "baseline", None)
         if baseline and baseline.status == "running":
-            return envelope(
-                error={"code": 409, "message": "Baseline generation is already running.", "details": {}},
-                status_code=status.HTTP_409_CONFLICT
-            )
+            # If it's been running for more than 10 minutes, consider it stale/crashed and allow restart
+            from datetime import timedelta
+            if baseline.updated_at > timezone.now() - timedelta(minutes=10):
+                return envelope(
+                    error={
+                        "code": 409, 
+                        "message": "Baseline generation is already running. Please wait or try again in a few minutes.", 
+                        "details": {"started_at": baseline.updated_at}
+                    },
+                    status_code=status.HTTP_409_CONFLICT
+                )
+            else:
+                logger.warning(f"Baseline for project {project_id} was stuck in 'running' since {baseline.updated_at}. Overriding.")
 
         # Try async (Celery) first, fall back to synchronous if no broker available
         local_task_id = f"local-{uuid.uuid4()}"
