@@ -29,8 +29,11 @@ export default function ProtectedAreaLayer({ protected_areas = [], isVisible = t
     const fillLayerId = 'pa-fill';
     const lineLayerId = 'pa-line';
 
-    const addLayer = () => {
-      if (!map.getSource(sourceId)) {
+    const updateOrAddSource = () => {
+      const source = map.getSource(sourceId);
+      if (source) {
+        source.setData(geoJsonData);
+      } else {
         map.addSource(sourceId, { type: 'geojson', data: geoJsonData });
       }
 
@@ -51,11 +54,11 @@ export default function ProtectedAreaLayer({ protected_areas = [], isVisible = t
       }
     };
 
-    addLayer();
-    map.on('style.load', addLayer);
+    updateOrAddSource();
+    map.on('style.load', updateOrAddSource);
     
     return () => {
-      map.off('style.load', addLayer);
+      map.off('style.load', updateOrAddSource);
       if (map && map.getStyle()) {
           if (map.getLayer(fillLayerId)) map.removeLayer(fillLayerId);
           if (map.getLayer(lineLayerId)) map.removeLayer(lineLayerId);

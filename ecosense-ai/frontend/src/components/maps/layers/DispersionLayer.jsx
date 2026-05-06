@@ -13,8 +13,11 @@ export default function DispersionLayer({ geoJSON, isVisible = true }) {
     const fillLayerId = 'dispersion-fill';
     const outlineLayerId = 'dispersion-outline';
 
-    const addLayer = () => {
-      if (!map.getSource(sourceId)) {
+    const updateOrAddSource = () => {
+      const source = map.getSource(sourceId);
+      if (source) {
+        source.setData(geoJSON);
+      } else {
         map.addSource(sourceId, { type: 'geojson', data: geoJSON });
       }
 
@@ -35,11 +38,11 @@ export default function DispersionLayer({ geoJSON, isVisible = true }) {
       }
     };
 
-    addLayer();
-    map.on('style.load', addLayer);
+    updateOrAddSource();
+    map.on('style.load', updateOrAddSource);
     
     return () => {
-      map.off('style.load', addLayer);
+      map.off('style.load', updateOrAddSource);
       if (map && map.getStyle()) {
         if (map.getLayer(fillLayerId)) map.removeLayer(fillLayerId);
         if (map.getLayer(outlineLayerId)) map.removeLayer(outlineLayerId);
@@ -54,7 +57,7 @@ export default function DispersionLayer({ geoJSON, isVisible = true }) {
     <>
       {isLeaflet && (
         <GeoJSON 
-          key={geoJSON.features?.[0]?.id || 'dispersion-layer'}
+          key={JSON.stringify(geoJSON.features?.[0]?.geometry || 'dispersion-layer')}
           data={geoJSON}
           style={(feature) => ({
             color: feature.properties.color,

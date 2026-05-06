@@ -44,6 +44,11 @@ export default function AirQualityLayer({ air_quality_baseline, center, isVisibl
             .addTo(map);
     } else {
         markerRef.current.setLngLat(center);
+        const element = markerRef.current.getElement();
+        if (element) {
+          element.innerHTML = el.innerHTML;
+          element.style.borderColor = badgeColor;
+        }
     }
 
     return () => {

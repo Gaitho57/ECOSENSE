@@ -13,8 +13,11 @@ export default function SettlementLayer({ settlement_data, isVisible = true }) {
     const fillLayerId = 'settlement-fill';
     const borderLayerId = 'settlement-border';
 
-    const addLayer = () => {
-      if (!map.getSource(sourceId)) {
+    const updateOrAddSource = () => {
+      const source = map.getSource(sourceId);
+      if (source) {
+        source.setData(settlement_data);
+      } else {
         map.addSource(sourceId, {
           type: 'geojson',
           data: settlement_data
@@ -40,11 +43,11 @@ export default function SettlementLayer({ settlement_data, isVisible = true }) {
       }
     };
 
-    addLayer();
-    map.on('style.load', addLayer);
+    updateOrAddSource();
+    map.on('style.load', updateOrAddSource);
     
     return () => {
-      map.off('style.load', addLayer);
+      map.off('style.load', updateOrAddSource);
       if (map && map.getStyle()) {
         if (map.getLayer(fillLayerId)) map.removeLayer(fillLayerId);
         if (map.getLayer(borderLayerId)) map.removeLayer(borderLayerId);

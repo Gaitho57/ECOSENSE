@@ -26,19 +26,21 @@ export default function WaterTowerLayer({ proximity_data, isVisible = true }) {
     const pointLayerId = 'tower-point';
     const towerLabelId = 'tower-label';
 
-    const addLayer = () => {
-      if (!map.getSource(sourceId)) {
-        map.addSource(sourceId, { 
-            type: 'geojson', 
-            data: {
-                type: 'FeatureCollection',
-                features: [{
-                    type: 'Feature',
-                    geometry: { type: 'Point', coordinates: [towerCoords[0], towerCoords[1]] },
-                    properties: { name: proximity_data.nearest_tower }
-                }]
-            }
-        });
+    const updateOrAddSource = () => {
+      const geojson = {
+          type: 'FeatureCollection',
+          features: [{
+              type: 'Feature',
+              geometry: { type: 'Point', coordinates: [towerCoords[0], towerCoords[1]] },
+              properties: { name: proximity_data.nearest_tower }
+          }]
+      };
+
+      const source = map.getSource(sourceId);
+      if (source) {
+        source.setData(geojson);
+      } else {
+        map.addSource(sourceId, { type: 'geojson', data: geojson });
       }
 
       if (!map.getLayer(pointLayerId)) {
@@ -64,11 +66,11 @@ export default function WaterTowerLayer({ proximity_data, isVisible = true }) {
       }
     };
 
-    addLayer();
-    map.on('style.load', addLayer);
+    updateOrAddSource();
+    map.on('style.load', updateOrAddSource);
     
     return () => {
-      map.off('style.load', addLayer);
+      map.off('style.load', updateOrAddSource);
       if (map && map.getStyle()) {
           if (map.getLayer(pointLayerId)) map.removeLayer(pointLayerId);
           if (map.getLayer(towerLabelId)) map.removeLayer(towerLabelId);

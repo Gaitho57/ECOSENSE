@@ -38,7 +38,7 @@ export default function BiodiversityLayer({ biodiversity_data, center, isVisible
     const layerId = 'bio-layer';
     const highlightLayerId = 'bio-layer-highlight';
 
-    const addLayer = () => {
+    const updateOrAddSource = () => {
       const source = map.getSource(sourceId);
       if (!source) {
         map.addSource(sourceId, { type: 'geojson', data: geoJsonData, generateId: true });
@@ -83,11 +83,11 @@ export default function BiodiversityLayer({ biodiversity_data, center, isVisible
       }
     };
 
-    addLayer();
-    map.on('style.load', addLayer);
+    updateOrAddSource();
+    map.on('style.load', updateOrAddSource);
     
     return () => {
-      map.off('style.load', addLayer);
+      map.off('style.load', updateOrAddSource);
       if (map && map.getStyle()) {
           if (map.getLayer(layerId)) map.removeLayer(layerId);
           if (map.getLayer(highlightLayerId)) map.removeLayer(highlightLayerId);
