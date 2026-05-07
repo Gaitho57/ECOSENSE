@@ -40,13 +40,46 @@ class PublicParticipationView(APIView):
         
         # Load simplistic maps extracting bounding logic 
         summary = getattr(project, "simplified_summary", "A public consultation is ongoing regarding explicit impact boundaries on this project. Share your feedback.")
+        
+        # Fetch participation data
+        from apps.community.models import ParticipationWorkflow, BarazaEvent
+        workflow = ParticipationWorkflow.objects.filter(project=project).first()
+        
+        events_data = []
+        notices_data = {
+            "newspaper": "pending",
+            "radio": "pending",
+            "clipping_url": None
+        }
+        
+        if workflow:
+            notices_data = {
+                "newspaper": workflow.newspaper_notice_status,
+                "radio": workflow.radio_announcement_status,
+                "clipping_url": workflow.newspaper_clipping_url if workflow.newspaper_clipping_url else None
+            }
+            events = BarazaEvent.objects.filter(workflow=workflow).order_by('date_scheduled')
+            for e in events:
+                events_data.append({
+                    "id": str(e.id),
+                    "date": e.date_scheduled.isoformat(),
+                    "location": e.location_name,
+                    "chief": e.chief_name,
+                    "status": "completed" if e.actual_attendance and e.actual_attendance > 0 else "scheduled"
+                })
+
         return envelope(data={
             "project_name": project.name,
             "project_type": getattr(project, 'project_type', 'infrastructure'),
+            "nema_category": project.get_nema_category_display(),
             "summary": summary,
             "location": {
                  "lat": project.location.y if project.location else -1.2921,
                  "lng": project.location.x if project.location else 36.8219
+            },
+            "participation": {
+                "events": events_data,
+                "notices": notices_data
             }
         })
 

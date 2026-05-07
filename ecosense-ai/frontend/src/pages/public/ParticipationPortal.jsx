@@ -100,21 +100,78 @@ export default function ParticipationPortal() {
        <main className="max-w-3xl mx-auto px-4 py-12">
             
             <div className="mb-10 text-center">
-                 <p className="text-xs uppercase tracking-widest font-black text-blue-600 mb-2">Targeted Consultation Boundary</p>
-                 <h1 className="text-4xl font-extrabold tracking-tight mb-4">{projectData?.project_name}</h1>
-                 
-                 <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6 md:p-8 text-left relative overflow-hidden">
-                      <div className="absolute top-0 left-0 w-2 h-full bg-blue-500"></div>
-                      <h3 className="text-sm uppercase tracking-wider font-bold text-gray-500 mb-2 border-b border-gray-100 pb-2">Proposed Structure Summary</h3>
-                      <p className="text-gray-700 leading-relaxed text-lg italic">
-                           "{projectData?.summary}"
-                      </p>
-                 </div>
-            </div>
+                  <p className="text-xs uppercase tracking-widest font-black text-blue-600 mb-2">Targeted Consultation Boundary</p>
+                  <h1 className="text-4xl font-extrabold tracking-tight mb-4">{projectData?.project_name}</h1>
+                  
+                  <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6 md:p-8 text-left relative overflow-hidden mb-6">
+                       <div className="absolute top-0 left-0 w-2 h-full bg-blue-500"></div>
+                       <h3 className="text-sm uppercase tracking-wider font-bold text-gray-500 mb-2 border-b border-gray-100 pb-2">Proposed Structure Summary</h3>
+                       <p className="text-gray-700 leading-relaxed text-lg italic">
+                            "{projectData?.summary}"
+                       </p>
+                       <div className="mt-4 flex items-center gap-4 text-xs font-bold uppercase tracking-tight text-gray-400">
+                            <span>Project Type: {projectData?.project_type}</span>
+                            <span>•</span>
+                            <span>Category: {projectData?.nema_category}</span>
+                       </div>
+                  </div>
 
-            <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 md:p-10">
-                 
-                 <h2 className="text-2xl font-bold border-b border-gray-100 pb-4 mb-6">Have Your Say</h2>
+                  {/* Public Meeting Schedule Section */}
+                  {projectData?.participation?.events?.length > 0 && (
+                      <div className="mb-8 text-left">
+                           <h3 className="text-sm uppercase tracking-widest font-black text-gray-500 mb-4 flex items-center gap-2">
+                                <span className="bg-blue-100 text-blue-600 p-1 rounded">📅</span> Public Meeting Schedule (Barazas)
+                           </h3>
+                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {projectData.participation.events.map(event => (
+                                     <div key={event.id} className="bg-white border border-gray-100 rounded-lg p-4 shadow-sm hover:border-blue-200 transition-colors">
+                                          <div className="flex justify-between items-start mb-2">
+                                               <span className="text-sm font-bold text-gray-900">{new Date(event.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+                                               <span className={`text-[10px] uppercase font-black px-2 py-0.5 rounded ${event.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
+                                                    {event.status}
+                                               </span>
+                                          </div>
+                                          <p className="text-sm text-gray-600 mb-1 font-medium">{event.location}</p>
+                                          <p className="text-[11px] text-gray-400">Chaired by: {event.chief || 'Area Chief'}</p>
+                                     </div>
+                                ))}
+                           </div>
+                      </div>
+                  )}
+
+                  {/* Regulatory Notices Section */}
+                  <div className="mb-10 text-left">
+                       <h3 className="text-sm uppercase tracking-widest font-black text-gray-500 mb-4 flex items-center gap-2">
+                            <span className="bg-blue-100 text-blue-600 p-1 rounded">📢</span> Regulatory Disclosure Notices
+                       </h3>
+                       <div className="flex flex-col md:flex-row gap-4">
+                            <div className="flex-1 bg-white border border-gray-100 rounded-lg p-4 flex items-center gap-4">
+                                 <div className="text-2xl opacity-40">📰</div>
+                                 <div>
+                                      <p className="text-xs font-bold text-gray-400 uppercase tracking-tighter">Newspaper Notice</p>
+                                      <p className="text-sm font-bold text-gray-700">{projectData?.participation?.notices?.newspaper === 'published' ? '✅ Published' : '⏳ Pending'}</p>
+                                 </div>
+                                 {projectData?.participation?.notices?.clipping_url && (
+                                     <a href={projectData.participation.notices.clipping_url} target="_blank" className="ml-auto text-blue-600 text-xs font-bold hover:underline">View Clipping</a>
+                                 )}
+                            </div>
+                            <div className="flex-1 bg-white border border-gray-100 rounded-lg p-4 flex items-center gap-4">
+                                 <div className="text-2xl opacity-40">📻</div>
+                                 <div>
+                                      <p className="text-xs font-bold text-gray-400 uppercase tracking-tighter">Radio Announcement</p>
+                                      <p className="text-sm font-bold text-gray-700">{projectData?.participation?.notices?.radio === 'aired' ? '✅ Aired' : '⏳ Pending'}</p>
+                                 </div>
+                            </div>
+                       </div>
+                  </div>
+             </div>
+
+             <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 md:p-10 mb-12 relative">
+                  <div className="absolute -top-4 right-6 bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow-lg">
+                       Submit Official Comment
+                  </div>
+                  
+                  <h2 className="text-2xl font-bold border-b border-gray-100 pb-4 mb-6">Stakeholder Feedback Form</h2>
                  
                  {errorMsg && <div className="bg-red-50 text-red-600 p-4 rounded mb-6 text-sm">{errorMsg}</div>}
 
