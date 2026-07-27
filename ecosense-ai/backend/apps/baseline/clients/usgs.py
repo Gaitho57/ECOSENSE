@@ -150,7 +150,7 @@ class USGSClient:
                 "value": "mean",
             }
 
-            resp = requests.get(self.properties_url, params=params, timeout=5)
+            resp = requests.get(self.properties_url, params=params, timeout=15)
             resp.raise_for_status()
 
             layers = resp.json().get("properties", {}).get("layers", [])
@@ -210,7 +210,7 @@ class USGSClient:
         """Fetch WRB soil classification."""
         try:
             params = {"lat": lat, "lon": lng, "number_classes": 3}
-            resp = requests.get(self.classification_url, params=params, timeout=5)
+            resp = requests.get(self.classification_url, params=params, timeout=15)
             resp.raise_for_status()
 
             wrb_data = resp.json().get("wrb_class_name", "")

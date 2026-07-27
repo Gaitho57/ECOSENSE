@@ -52,7 +52,7 @@ class OpenWeatherClient:
         }
 
         # ---- 1. Air Pollution Data ----
-        air_resp = requests.get(self.base_url_air, params=params_air, timeout=10)
+        air_resp = requests.get(self.base_url_air, params=params_air, timeout=15)
         air_resp.raise_for_status()
         air_json = air_resp.json()
 
@@ -76,7 +76,7 @@ class OpenWeatherClient:
             "longitude": lng,
             "current": "temperature_2m,relative_humidity_2m,apparent_temperature,surface_pressure,wind_speed_10m,wind_direction_10m,wind_gusts_10m,weather_code"
         }
-        wx_resp = requests.get(self.base_url_weather, params=params_wx, timeout=10)
+        wx_resp = requests.get(self.base_url_weather, params=params_wx, timeout=15)
         wx_resp.raise_for_status()
         wx_json = wx_resp.json()
 

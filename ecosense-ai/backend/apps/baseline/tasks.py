@@ -76,20 +76,26 @@ def generate_baseline(self, project_id: str):
             future_climate = executor.submit(ClimateClient().get_data, lat, lng)
             future_hydrogeo = executor.submit(HydrogeologyClient().get_data, lat, lng)
 
-        def safe_result(future, default_val=None):
+        def safe_result(future, name="unknown", default_val=None):
             try:
-                return future.result()
+                res = future.result()
+                # retry_api_call wraps failures as {"data": None, "error": ...}
+                if isinstance(res, dict) and res.get("data") is None and res.get("error"):
+                    logger.warning("Baseline source '%s' returned no data: %s", name, res.get("error"))
+                return res
             except Exception as exc:
-                logger.error(f"API Client failed: {exc}")
+                logger.error("Baseline source '%s' failed: %s", name, exc)
                 return default_val or {}
 
-        gee_data = safe_result(future_gee)
-        wx_data = safe_result(future_wx)
-        gbif_data = safe_result(future_gbif)
-        usgs_data = safe_result(future_usgs)
-        hydro_data = safe_result(future_hydro)
-        climate_data = safe_result(future_climate)
-        hydrogeo_data = safe_result(future_hydrogeo)
+        UNAVAILABLE = {"status": "unavailable", "note": "Live data source did not respond; not measured."}
+
+        gee_data = safe_result(future_gee, "GoogleEarthEngine")
+        wx_data = safe_result(future_wx, "OpenWeather")
+        gbif_data = safe_result(future_gbif, "GBIF")
+        usgs_data = safe_result(future_usgs, "SoilGrids")
+        hydro_data = safe_result(future_hydro, "Hydrology")
+        climate_data = safe_result(future_climate, "Climate")
+        hydrogeo_data = safe_result(future_hydrogeo, "Hydrogeology")
 
         # ---- Compile data sources ----
         active_sources = []
@@ -104,7 +110,7 @@ def generate_baseline(self, project_id: str):
             baseline.ndvi_score = baseline.satellite_data.get("ndvi")
 
         air_blob = wx_data.get("data") if wx_data else {}
-        baseline.air_quality_baseline = air_blob or {}
+        baseline.air_quality_baseline = air_blob or dict(UNAVAILABLE)
         if air_blob:
             active_sources.append("OpenWeatherMap")
 
@@ -142,7 +148,7 @@ def generate_baseline(self, project_id: str):
             active_sources.append("Africa Groundwater Atlas Heuristics")
 
         climate_blob = climate_data.get("data") if climate_data else {}
-        baseline.climate_data = climate_blob or {}
+        baseline.climate_data = climate_blob or dict(UNAVAILABLE)
         if climate_blob:
             active_sources.append("Open-Meteo")
 

@@ -281,6 +281,47 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # (Celery execution mode is configured once, above, near CELERY_BROKER_URL.)
 
 # ===========================================
+# Logging — send tracebacks and warnings to stdout so they appear in the
+# hosting platform's logs (Render, etc.). Without this, Django suppresses
+# unhandled-exception tracebacks in production, making errors invisible.
+# ===========================================
+LOG_LEVEL = env("LOG_LEVEL", default="INFO")
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "format": "[{asctime}] {levelname} {name}: {message}",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "verbose",
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": LOG_LEVEL,
+    },
+    "loggers": {
+        # Always surface unhandled request exceptions (500s) with tracebacks.
+        "django.request": {
+            "handlers": ["console"],
+            "level": "ERROR",
+            "propagate": False,
+        },
+        # Our apps (baseline clients, engines, etc.).
+        "apps": {
+            "handlers": ["console"],
+            "level": LOG_LEVEL,
+            "propagate": False,
+        },
+    },
+}
+
+# ===========================================
 # Email Backend
 # ===========================================
 EMAIL_BACKEND = env('EMAIL_BACKEND', default='django.core.mail.backends.console.EmailBackend')

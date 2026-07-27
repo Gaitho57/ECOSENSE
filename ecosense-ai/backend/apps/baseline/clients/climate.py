@@ -87,7 +87,7 @@ class ClimateClient:
         }
 
         try:
-            resp = requests.get(self.base_url, params=params, timeout=5)
+            resp = requests.get(self.base_url, params=params, timeout=15)
             resp.raise_for_status()
             data = resp.json()
 
@@ -166,7 +166,7 @@ class ClimateClient:
             resp = requests.get(
                 self.elevation_url,
                 params={"latitude": lat, "longitude": lng},
-                timeout=5,
+                timeout=15,
             )
             resp.raise_for_status()
             elevations = resp.json().get("elevation", [0])

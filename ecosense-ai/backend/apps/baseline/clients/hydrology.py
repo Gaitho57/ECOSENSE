@@ -63,6 +63,10 @@ class HydrologyClient:
           // Springs, wells, and boreholes
           node["natural"="spring"](around:{radius_m},{lat},{lng});
           node["man_made"~"water_well|borehole|pumping_station"](around:{radius_m},{lat},{lng});
+
+          // Coastline / sea (so coastal sites are not reported as "no water")
+          way["natural"="coastline"](around:{radius_m},{lat},{lng});
+          way["natural"="beach"](around:{radius_m},{lat},{lng});
         );
         out body geom;
         """
@@ -88,6 +92,7 @@ class HydrologyClient:
             "spring": 0,
             "canal": 0,
             "pond": 0,
+            "coastline": 0,
             "other": 0,
         }
 
@@ -131,9 +136,14 @@ class HydrologyClient:
 
         # Determine proximity classification for scoring
         if nearest_distance_km <= 0.5:
-            proximity = "wetland" if nearest_type == "wetland" else "river"
+            if nearest_type == "wetland":
+                proximity = "wetland"
+            elif nearest_type == "coastline":
+                proximity = "coastal"
+            else:
+                proximity = "river"
         elif nearest_distance_km <= 2.0:
-            proximity = "river"
+            proximity = "coastal" if nearest_type == "coastline" else "river"
         elif nearest_distance_km <= 5.0:
             proximity = "moderate"
         else:
@@ -162,7 +172,9 @@ class HydrologyClient:
         natural = tags.get("natural", "")
         water = tags.get("water", "")
 
-        if waterway == "river":
+        if natural in ("coastline", "beach"):
+            return "Coastline"
+        elif waterway == "river":
             return "River"
         elif waterway == "stream":
             return "Stream"

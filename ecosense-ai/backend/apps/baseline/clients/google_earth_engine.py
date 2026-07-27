@@ -382,7 +382,7 @@ class GoogleEarthEngineClient:
         try:
             url = "https://api.open-meteo.com/v1/elevation"
             params = {"latitude": lat, "longitude": lng}
-            resp = requests.get(url, params=params, timeout=5)
+            resp = requests.get(url, params=params, timeout=15)
             resp.raise_for_status()
             return resp.json().get("elevation", [0])[0]
         except Exception:
@@ -408,7 +408,7 @@ class GoogleEarthEngineClient:
                 "format": "JSON",
             }
             headers = {"User-Agent": "EcoSenseAI/1.0 (environmental impact assessment tool)"}
-            resp = requests.get(url, params=params, headers=headers, timeout=5)
+            resp = requests.get(url, params=params, headers=headers, timeout=15)
             resp.raise_for_status()
             data = resp.json()
 
@@ -455,7 +455,7 @@ class GoogleEarthEngineClient:
             out tags;
             """
             headers = {"User-Agent": "EcoSenseAI/1.0 (environmental impact assessment tool)"}
-            resp = requests.post(overpass_url, data={"data": query}, headers=headers, timeout=5)
+            resp = requests.post(overpass_url, data={"data": query}, headers=headers, timeout=15)
             resp.raise_for_status()
             elements = resp.json().get("elements", [])
 

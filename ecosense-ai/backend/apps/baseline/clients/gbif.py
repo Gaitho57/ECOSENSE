@@ -69,7 +69,7 @@ class GBIFClient:
             "hasGeospatialIssue": "false",
         }
 
-        resp = requests.get(self.occurrence_url, params=params, timeout=5)
+        resp = requests.get(self.occurrence_url, params=params, timeout=15)
         resp.raise_for_status()
         result = resp.json()
         occurrences = result.get("results", [])
@@ -190,7 +190,7 @@ class GBIFClient:
         try:
             resp = requests.get(
                 f"{self.species_url}/{species_key}",
-                timeout=5,
+                timeout=15,
             )
             if resp.status_code == 200:
                 data = resp.json()
@@ -201,7 +201,7 @@ class GBIFClient:
                 # Also check threat statuses via the species/iucnRedListCategory endpoint
                 iucn_resp = requests.get(
                     f"{self.species_url}/{species_key}/iucnRedListCategory",
-                    timeout=5,
+                    timeout=15,
                 )
                 if iucn_resp.status_code == 200:
                     iucn_data = iucn_resp.json()
