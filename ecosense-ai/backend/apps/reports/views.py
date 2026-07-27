@@ -77,6 +77,41 @@ class GenerateReportView(APIView):
             str(project_id), fmt, jurisdiction, language, report_id=str(report.id)
         )
 
+        # When running without a Celery worker (CELERY_TASK_ALWAYS_EAGER), the
+        # task has already executed synchronously above. Surface any failure to
+        # the client with the real error message instead of an opaque 500, and
+        # return the finished status rather than "started".
+        if getattr(settings, "CELERY_TASK_ALWAYS_EAGER", False):
+            try:
+                result = async_result.get(propagate=True)
+            except Exception as exc:  # noqa: BLE001 - report the real cause
+                logger.exception("Report generation failed for project %s", project_id)
+                return envelope(
+                    error={"code": 500, "message": f"Report generation failed: {exc}", "details": {}},
+                    status_code=500,
+                )
+
+            if result == "PAYMENT_REQUIRED":
+                return envelope(
+                    error={"code": 402, "message": "No report credits remaining.", "details": {}},
+                    status_code=status.HTTP_402_PAYMENT_REQUIRED,
+                )
+
+            report.refresh_from_db()
+            if report.status == "failed":
+                return envelope(
+                    error={"code": 500, "message": report.error_message or "Report generation failed.", "details": {}},
+                    status_code=500,
+                )
+            return envelope(
+                data={
+                    "report_id": str(report.id),
+                    "task_id": async_result.id,
+                    "status": report.status,
+                    "message": "Report generated.",
+                },
+            )
+
         return envelope(
             data={
                 "report_id": str(report.id),
