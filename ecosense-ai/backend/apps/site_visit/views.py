@@ -19,8 +19,32 @@ from apps.site_visit.models import (
 logger = logging.getLogger(__name__)
 
 
+from rest_framework.exceptions import NotFound
+
+
 def envelope(data=None, meta=None, error=None, status_code=status.HTTP_200_OK):
     return Response({"data": data, "meta": meta or {}, "error": error}, status=status_code)
+
+
+def _tenant_project_or_404(request, project_id):
+    """Return the project scoped to the caller's tenant, else raise 404.
+
+    For authenticated requests the TenantMiddleware ensures Project.objects is
+    filtered by tenant, so this both enforces isolation and returns a clean 404
+    (instead of a 500) when the id belongs to another tenant.
+    """
+    try:
+        return Project.objects.get(id=project_id)
+    except Project.DoesNotExist:
+        raise NotFound("Project not found.")
+
+
+def _tenant_visit_or_404(request, project_id, visit_id):
+    """Return a site visit scoped to the caller's tenant, else raise 404."""
+    try:
+        return SiteVisit.objects.get(id=visit_id, project_id=project_id)
+    except SiteVisit.DoesNotExist:
+        raise NotFound("Site visit not found.")
 
 
 # ── Site Visit ────────────────────────────────────────────────────────────────
@@ -29,7 +53,7 @@ class SiteVisitView(APIView):
     permission_classes = [IsAuthenticated, IsSameTenant]
 
     def get(self, request, project_id):
-        project = Project.objects.get(id=project_id)
+        project = _tenant_project_or_404(request, project_id)
         self.check_object_permissions(request, project)
         visits = SiteVisit.objects.filter(project=project)
         data = [{
@@ -45,7 +69,7 @@ class SiteVisitView(APIView):
         return envelope(data=data, meta={"total": len(data)})
 
     def post(self, request, project_id):
-        project = Project.objects.get(id=project_id)
+        project = _tenant_project_or_404(request, project_id)
         self.check_object_permissions(request, project)
         visit = SiteVisit.objects.create(
             project=project,
@@ -62,7 +86,7 @@ class FieldMeasurementView(APIView):
     permission_classes = [IsAuthenticated, IsSameTenant]
 
     def get(self, request, project_id, visit_id):
-        visit = SiteVisit.objects.get(id=visit_id, project_id=project_id)
+        visit = _tenant_visit_or_404(request, project_id, visit_id)
         data = [{
             "id": str(m.id),
             "category": m.category,
@@ -79,7 +103,7 @@ class FieldMeasurementView(APIView):
         return envelope(data=data)
 
     def post(self, request, project_id, visit_id):
-        visit = SiteVisit.objects.get(id=visit_id, project_id=project_id)
+        visit = _tenant_visit_or_404(request, project_id, visit_id)
         measurement = FieldMeasurement.objects.create(
             site_visit=visit,
             category=request.data.get("category"),
@@ -103,7 +127,7 @@ class SitePhotoView(APIView):
     permission_classes = [IsAuthenticated, IsSameTenant]
 
     def get(self, request, project_id, visit_id):
-        visit = SiteVisit.objects.get(id=visit_id, project_id=project_id)
+        visit = _tenant_visit_or_404(request, project_id, visit_id)
         data = [{
             "id": str(p.id),
             "url": p.file.url if p.file else None,
@@ -116,7 +140,7 @@ class SitePhotoView(APIView):
         return envelope(data=data)
 
     def post(self, request, project_id, visit_id):
-        visit = SiteVisit.objects.get(id=visit_id, project_id=project_id)
+        visit = _tenant_visit_or_404(request, project_id, visit_id)
         file = request.FILES.get("file")
         if not file:
             return envelope(error={"code": 400, "message": "No file provided."}, status_code=400)
@@ -235,7 +259,9 @@ class PublicSubmissionView(APIView):
         return [AllowAny()]
 
     def get(self, request, project_id):
-        project = Project.objects.get(id=project_id)
+        # Authenticated, tenant-scoped: prevents leaking submitter PII across tenants.
+        project = _tenant_project_or_404(request, project_id)
+        self.check_object_permissions(request, project)
         subs = PublicSubmission.objects.filter(project=project)
 
         sentiment_breakdown = {"support": 0, "neutral": 0, "oppose": 0, "concern": 0}
@@ -307,7 +333,8 @@ class PublicNoticeView(APIView):
     permission_classes = [IsAuthenticated, IsSameTenant]
 
     def get(self, request, project_id):
-        project = Project.objects.get(id=project_id)
+        project = _tenant_project_or_404(request, project_id)
+        self.check_object_permissions(request, project)
         try:
             notice = project.public_notice
             return envelope(data={
@@ -326,7 +353,8 @@ class PublicNoticeView(APIView):
             return envelope(data={"status": "not_created", "message": "Public notice not yet issued."})
 
     def post(self, request, project_id):
-        project = Project.objects.get(id=project_id)
+        project = _tenant_project_or_404(request, project_id)
+        self.check_object_permissions(request, project)
         notice, created = PublicNotice.objects.get_or_create(project=project)
 
         if created or not notice.public_code:
@@ -363,6 +391,11 @@ class SMSWebhookView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
+        # Verify the provider shared secret before accepting spoofable input.
+        from core.security import verify_shared_secret
+        if not verify_shared_secret(request, "SMS_WEBHOOK_SECRET"):
+            return envelope(error={"code": 401, "message": "Unauthorized webhook."}, status_code=401)
+
         from_phone = request.data.get("from", "")
         text = request.data.get("text", "").strip()
 

@@ -53,6 +53,17 @@ class ComplianceEngine:
         feedbacks = CommunityFeedback.objects.filter(project=project)
         reports = EIAReport.objects.filter(project=project)
 
+        # Drafted report sections (used to verify a rule's evidence actually
+        # exists in the document rather than assuming it).
+        try:
+            from apps.reports.models import ReportSection
+            sections = {
+                s.section_id: (s.content or "")
+                for s in ReportSection.objects.filter(project=project)
+            }
+        except Exception:
+            sections = {}
+
         county = self._get_county_at_point(project.location.y, project.location.x) if project.location else "Unknown"
 
         context = {
@@ -61,6 +72,7 @@ class ComplianceEngine:
              "predictions": predictions,
              "feedbacks": feedbacks,
              "reports": reports,
+             "sections": sections,
              "county": county
         }
 
@@ -115,9 +127,40 @@ class ComplianceEngine:
             "grade": grade
         }
 
+    # ------------------------------------------------------------------ #
+    # Evidence helpers — verify a rule against real data, not assumptions.
+    # ------------------------------------------------------------------ #
+    @staticmethod
+    def _has_section(context, *section_ids, min_len=80):
+        """True if any of the named report sections exists with real content."""
+        sections = context.get("sections", {})
+        return any(len(sections.get(sid, "").strip()) >= min_len for sid in section_ids)
+
+    @staticmethod
+    def _expert_certified(project):
+        """True if the project's lead expert has NEMA registration + a stamp."""
+        expert = getattr(project, "lead_consultant", None)
+        if not expert:
+            return False
+        return bool(getattr(expert, "nema_registration_no", "") and getattr(expert, "digital_stamp", ""))
+
+    @staticmethod
+    def _baseline_has(context, *keys):
+        """True if the baseline report carries non-empty data for any given field."""
+        b = context.get("baseline")
+        if not b:
+            return False
+        return any(bool(getattr(b, k, None)) for k in keys)
+
     def _check_regulation(self, context: dict, reg: dict) -> dict:
         """
-        Structural parsing rules verifying active metadata tracking deeply nested Django objects seamlessly.
+        Evaluate a single regulation against the project's ACTUAL data.
+
+        Rules resolve to 'passed' only when the supporting evidence genuinely
+        exists (a drafted section, a baseline field, prediction coverage, expert
+        certification, or configured monitoring). When the evidence is not yet
+        present the rule returns 'warning' with a clear remedy — it is never an
+        unconditional pass.
         """
         project = context["project"]
         p_type = getattr(project, "project_type", "infrastructure").lower()
@@ -185,16 +228,32 @@ class ComplianceEngine:
                                evidence = "Digital engagement verified, but physical consultation baraza remains PENDING."
 
             elif reg["id"] == "EMCA-003":
-                status = "passed"
-                evidence = "NEMA Lead Expert stamp required — not valid for submission without original physical stamp (see final certification page)."
+                # Requires a NEMA-registered lead expert with a valid stamp.
+                if self._expert_certified(project):
+                    status = "passed"
+                    evidence = "Report assigned to a NEMA-registered Lead Expert with a valid registration number and certification stamp on file."
+                else:
+                    status = "warning"
+                    evidence = "No NEMA-registered Lead Expert with a certification stamp is assigned. A registered expert's stamp is mandatory before submission."
 
             elif reg["id"] == "EMCA-005":
-                status = "passed"
-                evidence = "Waste Management Plan embedded in Section 11.6 (Soil) and 11.7 (Water); secondary containment for hazardous liquids committed."
-                
+                # Waste management must be substantiated by soil/water baseline
+                # or a drafted waste/soil/water section.
+                if self._baseline_has(context, "soil_data") or self._has_section(context, "waste", "soil", "water"):
+                    status = "passed"
+                    evidence = "Waste Management Plan substantiated by soil/water baseline data and the drafted ESMP; secondary containment for hazardous liquids committed."
+                else:
+                    status = "warning"
+                    evidence = "Waste Management Plan not yet substantiated: no soil/water baseline or waste-management section content found."
+
             elif reg["id"] == "EMCA-006":
-                status = "passed"
-                evidence = f"WRA permit application committed in Section 11.7 before any water abstraction; required riparian buffer verified against {context.get('county', 'National')} regional hydrology."
+                # WRA / water abstraction — needs hydrology baseline evidence.
+                if self._baseline_has(context, "hydrology_data") or self._has_section(context, "water", "hydrology"):
+                    status = "passed"
+                    evidence = f"WRA permit pathway and riparian buffer substantiated by hydrology baseline for {context.get('county', 'the project area')}."
+                else:
+                    status = "warning"
+                    evidence = "Water/WRA compliance not yet substantiated: hydrology baseline or water section missing."
 
             elif reg["id"] == "EMCA-007":
                 noise_criticals = context["predictions"].filter(category__icontains="noise", severity="critical").exists()
@@ -216,33 +275,67 @@ class ComplianceEngine:
                           evidence = "Water Quality compliance verified via Section 11.7: 100m chemical setback and silt trap installation protocols."
 
             elif reg["id"] == "EMCA-008":
-                status = "passed"
-                evidence = f"Section 11.1: Stack emissions monitored monthly against NEMA 2014 Air Quality Regulations Schedule 2; PM10 ≤ 50 µg/m³ enforced at {context.get('county', 'regional')} receptors."
+                # Air quality — substantiated by air-quality baseline.
+                if self._baseline_has(context, "air_quality_baseline") or self._has_section(context, "air"):
+                    status = "passed"
+                    evidence = f"Air quality monitoring substantiated by baseline AQI data; PM10 ≤ 50 µg/m³ committed at {context.get('county', 'regional')} receptors (NEMA 2014 Air Quality Regs)."
+                else:
+                    status = "warning"
+                    evidence = "Air quality compliance not yet substantiated: no air-quality baseline recorded."
 
             elif reg["id"] == "EMCA-013" or reg["id"] == "NEMA-010":
-                status = "passed"
-                evidence = "ESMP table in Section 12 covers all 4 project phases, 7 impact categories, and 30+ rows with named responsibility, KES budget, and measurable KPIs."
+                # ESMP must reflect real predicted impacts across the VECs.
+                cats = set(context["predictions"].values_list("category", flat=True))
+                if len(cats) >= 5 or self._has_section(context, "esmp", "management_plan"):
+                    status = "passed"
+                    evidence = f"ESMP covers {len(cats)} impact categories derived from the project's predicted impacts, with responsibilities, budget lines and KPIs."
+                else:
+                    status = "warning"
+                    evidence = f"ESMP not yet substantiated: only {len(cats)} predicted impact categories available. Run impact prediction across the VECs first."
 
             elif reg["id"] == "EMCA-014":
-                status = "passed"
-                evidence = f"Decommissioning Bond framework described in Section 14; formal bond amount to be calculated against site-specific restoration costs in {context.get('county', 'the project area')} before final licensing."
+                if self._has_section(context, "decommissioning"):
+                    status = "passed"
+                    evidence = f"Decommissioning & site-restoration plan drafted (Section 14) for {context.get('county', 'the project area')}; bond to be finalised before licensing."
+                else:
+                    status = "warning"
+                    evidence = "Decommissioning plan section not yet drafted. Required before final licensing."
 
             elif reg["id"] == "EMCA-015":
-                status = "passed"
-                evidence = "Spill response procedure verified in Section 13: MSDS identification → containment → absorbent cleanup → NEMA-licensed waste disposal."
+                if self._has_section(context, "hazards", "emergency", "spill"):
+                    status = "passed"
+                    evidence = "Spill/hazard response procedure drafted: identification → containment → absorbent cleanup → NEMA-licensed disposal."
+                else:
+                    status = "warning"
+                    evidence = "Hazard/emergency-response section not yet drafted."
 
             elif reg["id"] == "EMCA-016":
-                status = "passed"
-                evidence = f"Section 11.5: Community rights upheld via grievance mechanism (SMS shortcode + {context.get('county', 'regional')} localized channels); community health investment plans committed."
+                # Community rights — evidenced by recorded feedback/engagement.
+                if context["feedbacks"].exists() or self._has_section(context, "community", "social"):
+                    status = "passed"
+                    evidence = f"Community rights upheld via a grievance mechanism and {context['feedbacks'].count()} recorded engagement entries in {context.get('county', 'the area')}."
+                else:
+                    status = "warning"
+                    evidence = "No community engagement recorded yet; grievance mechanism and consultation required."
 
             elif reg["id"] == "NEMA-001":
-                status = "passed"
-                schedule = "Second Schedule" if project.nema_category == 'high' else "First Schedule"
-                evidence = f"Project classified as {project.get_nema_category_display()} under {schedule} — {p_type} facility (Scale: {project.scale_ha}ha); confirmed by official classification."
+                if getattr(project, "nema_category", None):
+                    status = "passed"
+                    schedule = "Second Schedule" if project.nema_category == 'high' else "First Schedule"
+                    evidence = f"Project classified as {project.get_nema_category_display()} under {schedule} — {p_type} facility (Scale: {project.scale_ha}ha)."
+                else:
+                    status = "failed"
+                    evidence = "Project has no NEMA category/schedule classification. Classification is mandatory before assessment."
 
             elif reg["id"] == "NEMA-002":
-                status = "passed"
-                evidence = "Scoping Report ToR covers 7 VECs (Air, Biodiversity, Climate, Noise, Social, Soil, Water) as documented in Section 4 methodology."
+                # Scoping must cover the Valued Environmental Components (VECs).
+                cats = set(context["predictions"].values_list("category", flat=True))
+                if len(cats) >= 5:
+                    status = "passed"
+                    evidence = f"Scoping covers {len(cats)} VECs ({', '.join(sorted(cats))}) evidenced by the impact-prediction inventory."
+                else:
+                    status = "warning"
+                    evidence = f"Scoping incomplete: only {len(cats)} VECs assessed. Run the full impact prediction (Air, Biodiversity, Climate, Noise, Social, Soil, Water)."
 
             elif reg["id"] == "NEMA-003":
                 if context["baseline"]:
@@ -268,8 +361,23 @@ class ComplianceEngine:
                          evidence = f"Statutory 30-day public review period successfully completed ({days_elapsed} days elapsed since initiation)."
 
             elif reg["id"] == "NEMA-008":
-                status = "passed"
-                evidence = "Annual environmental audit protocol committed per Section 12 ESMP; EcoSense IoT monitoring dashboard provides continuous deviation tracking from EIA predictions."
+                # Self-audit / monitoring — evidenced by configured EMP tasks or
+                # live IoT sensors, else the plan is committed but not yet active.
+                monitoring = False
+                try:
+                    from apps.emp.models import IoTSensor, EMPTask
+                    monitoring = (
+                        IoTSensor.objects.filter(project=project).exists()
+                        or EMPTask.objects.filter(project=project).exists()
+                    )
+                except Exception:
+                    monitoring = False
+                if monitoring:
+                    status = "passed"
+                    evidence = "Annual audit protocol active: EMP monitoring tasks / IoT sensors are configured for continuous deviation tracking against EIA predictions."
+                else:
+                    status = "warning"
+                    evidence = "Monitoring plan committed in the ESMP, but no EMP tasks or IoT sensors are configured yet for post-approval self-audit."
 
             elif reg["id"] == "NEMA-013":
                 lang_found = False
@@ -314,11 +422,21 @@ class ComplianceEngine:
 
     def _get_county_at_point(self, lat, lng) -> str:
         """
-        Determine the Kenyan county for a (lat, lng) coordinate using Shapely
-        point-in-polygon against all 47 counties.
+        Determine the Kenyan county for a (lat, lng) coordinate.
 
-        Falls back to bounding-box approximation if Shapely is unavailable.
+        Uses the shared 47-county resolver (point-in-polygon when an official
+        boundary GeoJSON is configured, otherwise nearest administrative
+        centroid) so compliance and the narrative engine agree on the county.
         """
+        try:
+            from apps.baseline.utils.county_profiles import resolve_county
+            county = resolve_county(lat, lng)
+            if county:
+                return county
+        except Exception:
+            pass
+
+        # Legacy fallback: coarse bounding boxes (kept for resilience).
         try:
             from shapely.geometry import Point, shape
 

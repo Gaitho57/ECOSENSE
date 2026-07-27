@@ -123,10 +123,13 @@ class PublicParticipationView(APIView):
 @method_decorator(csrf_exempt, name='dispatch')
 class IncomingSMSWebhookView(APIView):
     permission_classes = [AllowAny]
-    
+
     def post(self, request):
-         # Validates Africas Talking signature natively projecting bounds securely if header attached
-         # For execution we bypass strictly 
+         # Verify the provider shared secret before accepting spoofable input.
+         from core.security import verify_shared_secret
+         if not verify_shared_secret(request, "SMS_WEBHOOK_SECRET"):
+              return envelope(error={"code": 401, "message": "Unauthorized webhook."}, status_code=401)
+
          project_id = request.query_params.get("project_id")
          if not project_id:
               # Fallback extracting shortcode maps returning dummy routing sequentially

@@ -4,11 +4,14 @@ EcoSense AI — EMP & IoT Views.
 Exposes nested matrices capturing telemetry logs actively validating constraints over spatial boundaries securely natively.
 """
 
+import hmac
+
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 
+from django.conf import settings
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.gis.geos import Point
@@ -24,18 +27,35 @@ def envelope(data=None, meta=None, error=None, status_code=status.HTTP_200_OK):
 @method_decorator(csrf_exempt, name='dispatch')
 class IoTReadingsIngestionView(APIView):
     """
-    Open ingestion executing strict headers explicitly isolating bounds matching IoT keys securely.
+    Device telemetry ingestion.
+
+    Requires a shared ingestion secret in the ``X-Device-Secret`` header,
+    matched (in constant time) against settings.IOT_INGESTION_SECRET. Fails
+    closed if the secret is not configured, so the endpoint is never anonymously
+    writable (previously anyone could POST forged readings, triggering false
+    breach alerts / SMS / audit writes).
     """
-    permission_classes = [AllowAny]
+    permission_classes = [AllowAny]  # authenticated instead by the device secret
+
+    def _authenticate_device(self, request):
+        expected = getattr(settings, "IOT_INGESTION_SECRET", "") or ""
+        provided = request.headers.get("X-Device-Secret", "")
+        if not expected or not provided:
+            return False
+        return hmac.compare_digest(str(expected), str(provided))
 
     def post(self, request):
+         if not self._authenticate_device(request):
+              return envelope(
+                  error={"code": 401, "message": "Unauthorized device."},
+                  status_code=401,
+              )
+
          device_id = request.data.get("device_id")
          value = request.data.get("value")
          unit = request.data.get("unit")
          recorded_at = request.data.get("recorded_at")
 
-         # Simulate Native explicit hardware authentication 
-         # In a real environment, this utilizes AWS IoT Core rules securely executing MQTT loops directly natively!
          if not all([device_id, value, unit, recorded_at]):
               return envelope(error={"code": 400, "message": "Missing telemetry variables."}, status_code=400)
               

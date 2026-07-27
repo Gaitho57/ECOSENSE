@@ -42,7 +42,20 @@ class UserSerializer(serializers.ModelSerializer):
             "is_active",
             "date_joined",
         ]
-        read_only_fields = ["id", "email", "tenant_id", "tenant_name", "date_joined"]
+        # SECURITY: role / is_active / NEMA credentials must never be settable
+        # via the self-service profile endpoint, or any user could escalate to
+        # admin/regulator or forge a NEMA registration. Role changes go through
+        # an admin-guarded flow only.
+        read_only_fields = [
+            "id",
+            "email",
+            "tenant_id",
+            "tenant_name",
+            "date_joined",
+            "role",
+            "is_active",
+            "nema_registration_no",
+        ]
 
 
 class RegisterSerializer(serializers.Serializer):

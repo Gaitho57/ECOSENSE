@@ -12,7 +12,7 @@ export default function ReportPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [format, setFormat]           = useState('pdf');
   const [jurisdiction, setJurisdiction] = useState('NEMA_Kenya');
-  const [activeTaskId, setActiveTaskId] = useState(null);
+  const [activeReportId, setActiveReportId] = useState(null);
   const [showReviewer, setShowReviewer] = useState(false);
   const [submitting, setSubmitting]     = useState(false);
 
@@ -28,35 +28,51 @@ export default function ReportPage() {
 
   useEffect(() => { loadReports(); }, [projectId]);
 
-  // Poll for task completion
+  // Poll the report status endpoint until generation finishes.
   useEffect(() => {
-    let interval;
-    if (activeTaskId) {
-      interval = setInterval(async () => {
-        try {
-          const res = await axiosInstance.get(`/tasks/${activeTaskId}/`);
-          const st = res.data.data.status;
-          if (st === 'complete' || st === 'SUCCESS') {
-            setActiveTaskId(null); setIsGenerating(false); setShowModal(false); loadReports();
-          } else if (st === 'failed' || st === 'FAILURE') {
-            setActiveTaskId(null); setIsGenerating(false);
-            alert('Report generation failed. Check backend logs.');
-          }
-        } catch { clearInterval(interval); }
-      }, 2500);
-    }
+    if (!activeReportId) return undefined;
+    let failures = 0;
+    const interval = setInterval(async () => {
+      try {
+        const res = await axiosInstance.get(
+          `/reports/${projectId}/reports/${activeReportId}/status/`
+        );
+        const st = res.data.data.status;
+        failures = 0;
+        if (st === 'failed') {
+          setActiveReportId(null); setIsGenerating(false);
+          alert('Report generation failed: ' + (res.data.data.error_message || 'see logs.'));
+        } else if (st !== 'generating') {
+          // Any terminal, non-failed state (e.g. pending_expert_review) = done.
+          setActiveReportId(null); setIsGenerating(false); setShowModal(false); loadReports();
+        }
+        // else still 'generating' — keep polling.
+      } catch {
+        // Tolerate transient network errors; give up only after several misses
+        // so a blip doesn't freeze the UI in "Generating…" forever.
+        if (++failures >= 5) {
+          setActiveReportId(null); setIsGenerating(false);
+          alert('Lost connection while checking report status. Please refresh.');
+        }
+      }
+    }, 2500);
     return () => clearInterval(interval);
-  }, [activeTaskId]);
+  }, [activeReportId, projectId]);
 
   const handleGenerate = async (e) => {
     e.preventDefault();
     setIsGenerating(true);
     try {
       const res = await axiosInstance.post(`/reports/${projectId}/generate-report/`, { format, jurisdiction });
-      setActiveTaskId(res.data.data.task_id);
+      setActiveReportId(res.data.data.report_id);
     } catch (e) {
       setIsGenerating(false);
-      alert('Generation failed: ' + (e.response?.data?.error?.message || e.message));
+      const status = e.response?.status;
+      if (status === 402) {
+        alert('No report credits remaining. Please purchase credits to generate a report.');
+      } else {
+        alert('Generation failed: ' + (e.response?.data?.error?.message || e.message));
+      }
     }
   };
 
@@ -73,9 +89,19 @@ export default function ReportPage() {
   };
 
   const handlePreview = async () => {
-    // Open in a new tab — the backend serves HTML directly
-    const token = axiosInstance.defaults.headers.common['Authorization']?.replace('Bearer ', '');
-    window.open(`/api/v1/reports/${projectId}/preview/?token=${token}`, '_blank');
+    // Fetch the preview with the Authorization header (via axiosInstance) and
+    // open it as a blob URL. Never put the JWT in the URL — it would leak into
+    // browser history, server logs, and the Referer header.
+    try {
+      const res = await axiosInstance.get(`/reports/${projectId}/preview/`, { responseType: 'blob' });
+      const blob = new Blob([res.data], { type: res.headers['content-type'] || 'text/html' });
+      const url = window.URL.createObjectURL(blob);
+      window.open(url, '_blank');
+      // Revoke shortly after so the new tab has time to load it.
+      setTimeout(() => window.URL.revokeObjectURL(url), 60000);
+    } catch (e) {
+      alert('Preview failed. Please try again.');
+    }
   };
 
   const handleSubmit = async () => {
@@ -137,7 +163,7 @@ export default function ReportPage() {
               </button>
               <button
                 onClick={() => setShowModal(true)}
-                disabled={isGenerating || !!activeTaskId}
+                disabled={isGenerating || !!activeReportId}
                 className="bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white font-bold py-2 px-6 rounded-lg transition-colors shadow-md flex items-center gap-2"
               >
                 📄 Generate Report
@@ -303,9 +329,9 @@ export default function ReportPage() {
                   ))}
                 </div>
               </div>
-              <button type="submit" disabled={isGenerating || !!activeTaskId}
+              <button type="submit" disabled={isGenerating || !!activeReportId}
                 className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-black py-4 rounded-xl transition-colors shadow-lg">
-                {isGenerating || !!activeTaskId ? '⏳ Orchestrating AI Pipeline…' : 'Generate Compliance Report'}
+                {isGenerating || !!activeReportId ? '⏳ Orchestrating AI Pipeline…' : 'Generate Compliance Report'}
               </button>
             </form>
           </div>

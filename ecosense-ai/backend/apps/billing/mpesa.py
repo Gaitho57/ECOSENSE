@@ -42,7 +42,26 @@ class MpesaClient:
 
     def verify_payment(self, checkout_request_id):
         """
-        Verifies if a payment was actually completed.
+        Verify with Safaricom that a payment actually completed.
+
+        FAILS CLOSED: until the real Daraja transaction-status query is
+        implemented, this returns False so credits are never granted for an
+        unverified callback. Previously it unconditionally returned True, which
+        (together with an unauthenticated callback) would let anyone mint credits.
+
+        For local/demo testing only, set MPESA_ALLOW_MOCK_COMPLETION=True in a
+        NON-production environment to accept mock completions.
         """
-        # Simulated verification
-        return True
+        allow_mock = getattr(settings, "MPESA_ALLOW_MOCK_COMPLETION", False)
+        if allow_mock and getattr(settings, "DEBUG", False):
+            logger.warning("M-Pesa: accepting MOCK completion (dev only) for %s", checkout_request_id)
+            return True
+
+        if self.consumer_key == "dummy" or self.consumer_secret == "dummy":
+            logger.warning("M-Pesa verify_payment called without real credentials; failing closed.")
+            return False
+
+        # TODO: implement the real Daraja `stkpushquery` / transaction status API
+        # call here and return the verified result. Until then, fail closed.
+        logger.error("M-Pesa verify_payment not implemented against Daraja; failing closed.")
+        return False

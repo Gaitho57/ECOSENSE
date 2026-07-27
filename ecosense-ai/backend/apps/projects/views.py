@@ -1,4 +1,5 @@
 from rest_framework import generics, status, viewsets
+from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from apps.accounts.permissions import IsSameTenant
@@ -8,6 +9,18 @@ from apps.projects.utils.media import process_field_image
 from apps.projects.utils.screening import screen_project
 from rest_framework import viewsets
 
+
+def _get_tenant_project(request, project_id):
+    """Return the project only if it belongs to the caller's tenant, else 404.
+
+    Prevents cross-tenant IDOR when a URL supplies an arbitrary project_id.
+    """
+    try:
+        return Project.objects.get(id=project_id, tenant_id=request.user.tenant_id)
+    except Project.DoesNotExist:
+        raise NotFound("Project not found.")
+
+
 class ProjectDocumentViewSet(viewsets.ModelViewSet):
     """
     Handles statutory document storage (Title Deeds, Licenses, etc.)
@@ -16,10 +29,15 @@ class ProjectDocumentViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, IsSameTenant]
 
     def get_queryset(self):
-        return ProjectDocument.objects.filter(project_id=self.kwargs['project_id'])
+        # Scope to the caller's tenant so one tenant cannot read another's docs.
+        return ProjectDocument.objects.filter(
+            project_id=self.kwargs['project_id'],
+            project__tenant_id=self.request.user.tenant_id,
+        )
 
     def perform_create(self, serializer):
-        serializer.save(project_id=self.kwargs['project_id'])
+        project = _get_tenant_project(self.request, self.kwargs['project_id'])
+        serializer.save(project_id=project.id, tenant_id=self.request.user.tenant_id)
 
 class ProjectMediaViewSet(viewsets.ModelViewSet):
     """
@@ -30,22 +48,28 @@ class ProjectMediaViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, IsSameTenant]
 
     def get_queryset(self):
-        return ProjectMedia.objects.filter(project_id=self.kwargs['project_id'])
+        return ProjectMedia.objects.filter(
+            project_id=self.kwargs['project_id'],
+            project__tenant_id=self.request.user.tenant_id,
+        )
 
     def perform_create(self, serializer):
+        project = _get_tenant_project(self.request, self.kwargs['project_id'])
+
         # Extract metadata from request if present, or fallback to model defaults
         lat = self.request.data.get('latitude')
         lng = self.request.data.get('longitude')
-        
+
         # Trigger watermarking and compression utility
         processed_file = process_field_image(
             self.request.FILES['file'],
             latitude=lat,
             longitude=lng
         )
-        
+
         serializer.save(
-            project_id=self.kwargs['project_id'],
+            project_id=project.id,
+            tenant_id=self.request.user.tenant_id,
             file=processed_file,
             latitude=lat,
             longitude=lng

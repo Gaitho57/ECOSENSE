@@ -436,6 +436,11 @@ class AcceptInviteView(APIView):
         invitation.is_used = True
         invitation.save(update_fields=["is_used"])
 
+        # Issue tokens and serialize the new user (previously referenced
+        # undefined names, which returned a 500 on every invite acceptance).
+        tokens = get_tokens_for_user(user)
+        user_data = UserSerializer(user).data
+
         return envelope(
             data={
                 "user": user_data,
@@ -443,23 +448,3 @@ class AcceptInviteView(APIView):
             },
             status_code=status.HTTP_201_CREATED,
         )
-
-class UpdateProfileView(generics.UpdateAPIView):
-    """
-    PATCH /api/v1/auth/me/update/
-    
-    Update user profile including certification assets (stamps/signatures).
-    """
-    serializer_class = UserSerializer
-    permission_classes = [IsAuthenticated]
-
-    def get_object(self):
-        return self.request.user
-
-    def patch(self, request, *args, **kwargs):
-        user = self.get_object()
-        serializer = self.get_serializer(user, data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        
-        return envelope(data={"user": serializer.data})

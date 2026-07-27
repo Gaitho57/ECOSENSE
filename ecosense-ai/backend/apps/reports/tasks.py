@@ -19,24 +19,54 @@ from apps.esg.tasks import record_audit_event
 logger = logging.getLogger(__name__)
 
 
-def perform_report_generation(project_id: str, format: str = 'pdf', jurisdiction: str = 'NEMA_Kenya', language: str = 'en'):
+def perform_report_generation(project_id: str, format: str = 'pdf', jurisdiction: str = 'NEMA_Kenya', language: str = 'en', report_id: str = None):
     """
-    Core generation logic decoupled from task binding for synchronous execution support.
+    Core generation logic.
+
+    When ``report_id`` is provided (the async path), an EIAReport record has
+    already been created in 'generating' state by the view; this fills it in.
+    When it is None (legacy/synchronous callers), a record is created here.
     """
     try:
-         project = Project.objects.get(id=project_id)
+         # all_objects: this runs in a Celery worker with no request/tenant context.
+         project = Project.all_objects.get(id=project_id)
          # 💳 Commercial Credit Guard
          from apps.accounts.models import Tenant
          tenant = Tenant.objects.get(id=project.tenant_id)
-         
+
          if not tenant.is_premium and tenant.credits_remaining <= 0:
              logger.warning(f"Commercial Block: Tenant {tenant.name} has 0 credits. Generation rejected.")
-             # Update any existing report records to 'PAYMENT_REQUIRED' status if necessary
+             if report_id:
+                 EIAReport.all_objects.filter(id=report_id).update(
+                     status='failed', error_message='Payment required: no report credits remaining.'
+                 )
              return "PAYMENT_REQUIRED"
-             
+
     except Project.DoesNotExist:
          logger.error(f"Generate Report Failed: Project {project_id} not mapped.")
          return None
+
+    # Resolve or create the report record.
+    if report_id:
+         try:
+             report = EIAReport.all_objects.get(id=report_id)
+             new_v = report.version
+         except EIAReport.DoesNotExist:
+             logger.error(f"Generate Report Failed: report {report_id} not found.")
+             return None
+    else:
+         with transaction.atomic():
+             max_v = EIAReport.all_objects.filter(project=project).aggregate(Max('version'))['version__max'] or 0
+             new_v = max_v + 1
+             report = EIAReport.objects.create(
+                 project=project,
+                 tenant_id=project.tenant_id,
+                 version=new_v,
+                 format=format,
+                 jurisdiction=jurisdiction,
+                 language=language,
+                 status='generating'
+             )
 
     # Compile Array
     try:
@@ -44,22 +74,10 @@ def perform_report_generation(project_id: str, format: str = 'pdf', jurisdiction
     except Exception as e:
          traceback.print_exc()
          logger.error(f"Compilation pipeline failed: {e}")
+         report.status = 'failed'
+         report.error_message = f"Compilation failed: {e}"
+         report.save(update_fields=['status', 'error_message'])
          return None
-
-    # Version Incrementation locking atomically safely
-    with transaction.atomic():
-         max_v = EIAReport.objects.filter(project=project).aggregate(Max('version'))['version__max'] or 0
-         new_v = max_v + 1
-         
-         report = EIAReport.objects.create(
-             project=project,
-             tenant_id=project.tenant_id,
-             version=new_v,
-             format=format,
-             jurisdiction=jurisdiction,
-             language=language,
-             status='generating'
-         )
 
     # Generators
     try:
@@ -113,5 +131,5 @@ def perform_report_generation(project_id: str, format: str = 'pdf', jurisdiction
         return None
 
 @shared_task(bind=True)
-def generate_report(self, project_id: str, format: str = 'pdf', jurisdiction: str = 'NEMA_Kenya', language: str = 'en'):
-    return perform_report_generation(project_id, format, jurisdiction, language)
+def generate_report(self, project_id: str, format: str = 'pdf', jurisdiction: str = 'NEMA_Kenya', language: str = 'en', report_id: str = None):
+    return perform_report_generation(project_id, format, jurisdiction, language, report_id=report_id)

@@ -31,6 +31,11 @@ class GenerateReportView(APIView):
     permission_classes = [IsAuthenticated, IsSameTenant]
 
     def post(self, request, project_id):
+        from django.db import transaction
+        from django.db.models import Max
+        from apps.accounts.models import Tenant
+        from apps.reports.tasks import generate_report
+
         try:
              project = Project.objects.get(id=project_id)
              self.check_object_permissions(request, project)
@@ -39,17 +44,71 @@ class GenerateReportView(APIView):
 
         fmt = request.data.get("format", "pdf")
         jurisdiction = request.data.get("jurisdiction", "NEMA_Kenya")
+        language = request.data.get("language", "en")
 
         if fmt not in ["pdf", "docx"]:
              return envelope(error={"code": 400, "message": "Unsupported format."}, status_code=400)
 
-        from apps.reports.tasks import perform_report_generation
-        report_id = perform_report_generation(str(project_id), fmt, jurisdiction)
-        
-        if report_id:
-             return envelope(data={"task_id": "local-success", "message": "Report generated successfully."}, status_code=status.HTTP_200_OK)
-        else:
-             return envelope(error={"code": 500, "message": "Generation failed. Check logs."}, status_code=500)
+        # Credit guard up front so we can reject immediately (HTTP 402) rather
+        # than queueing a job that will fail.
+        tenant = Tenant.objects.get(id=project.tenant_id)
+        if not tenant.is_premium and tenant.credits_remaining <= 0:
+             return envelope(
+                 error={"code": 402, "message": "No report credits remaining. Please purchase credits."},
+                 status_code=status.HTTP_402_PAYMENT_REQUIRED,
+             )
+
+        # Create the report record synchronously (status 'generating') so the
+        # client immediately gets an id to poll, then offload the heavy work
+        # (compilation, ML, WeasyPrint, S3 upload) to a Celery worker.
+        with transaction.atomic():
+             max_v = EIAReport.objects.filter(project=project).aggregate(Max('version'))['version__max'] or 0
+             report = EIAReport.objects.create(
+                 project=project,
+                 tenant_id=project.tenant_id,
+                 version=max_v + 1,
+                 format=fmt,
+                 jurisdiction=jurisdiction,
+                 language=language,
+                 status='generating',
+             )
+
+        async_result = generate_report.delay(
+            str(project_id), fmt, jurisdiction, language, report_id=str(report.id)
+        )
+
+        return envelope(
+            data={
+                "report_id": str(report.id),
+                "task_id": async_result.id,
+                "status": report.status,
+                "message": "Report generation started.",
+            },
+            status_code=status.HTTP_202_ACCEPTED,
+        )
+
+
+class ReportStatusView(APIView):
+    """Poll the status of a report by id (tenant-scoped)."""
+    permission_classes = [IsAuthenticated, IsSameTenant]
+
+    def get(self, request, project_id, report_id):
+        try:
+             report = EIAReport.objects.get(id=report_id, project_id=project_id)
+        except EIAReport.DoesNotExist:
+             return envelope(error={"code": 404, "message": "Report not found."}, status_code=404)
+
+        return envelope(data={
+            "report_id": str(report.id),
+            "status": report.status,
+            "version": report.version,
+            "format": report.format,
+            "download_url": f"reports/{project_id}/reports/{report.id}/download/" if report.status != 'failed' else None,
+            "compliance_score": report.compliance_score,
+            "compliance_grade": report.compliance_grade,
+            "error_message": report.error_message if report.status == 'failed' else None,
+            "generated_at": report.generated_at.isoformat() if report.generated_at else None,
+        })
 
 
 class ProjectReportsView(APIView):
@@ -92,43 +151,26 @@ class ProjectReportsView(APIView):
 
 
 class ReportPreviewView(APIView):
-    """Sprint 3B: Render the report as HTML in the browser — no PDF download needed."""
-    permission_classes = []  # AllowAny to handle manual token auth in GET
+    """Render the report as HTML in the browser.
+
+    Requires standard JWT auth via the Authorization header. The previous
+    ``?token=<JWT>`` query-string fallback was removed: it leaked access tokens
+    into browser history, server logs, and Referer headers. The frontend now
+    fetches this with the auth header and opens the result as a blob URL.
+    """
+    permission_classes = [IsAuthenticated]
 
     def get(self, request, project_id):
         from django.template.loader import render_to_string
         from django.http import HttpResponse
         from apps.reports.compiler import compile_report_data
-        from rest_framework_simplejwt.tokens import AccessToken
-        from django.contrib.auth import get_user_model
-
-        # ---- SMART AUTH FALLBACK FOR BROWSER TABS ----
-        # Browser tabs cannot send custom headers easily. 
-        # We allow ?token=... for the preview URL.
-        token_str = request.query_params.get('token')
-        if token_str:
-            try:
-                from rest_framework_simplejwt.authentication import JWTAuthentication
-                jwt_auth = JWTAuthentication()
-                validated_token = jwt_auth.get_validated_token(token_str)
-                user = jwt_auth.get_user(validated_token)
-                if user:
-                    request.user = user
-                    logger.info(f"Authenticated preview user {user.email} via query token.")
-            except Exception as auth_err:
-                logger.warning(f"Query token auth failed: {auth_err}")
 
         try:
+            # Tenant-scoped (TenantMiddleware filters Project.objects for the
+            # authenticated user), so another tenant's id yields a clean 404.
             project = Project.objects.get(id=project_id)
-            # Manually enforce authentication and tenant check
-            if not request.user.is_authenticated:
-                 return HttpResponse("Authentication required. Please log in again.", status=401)
-            
-            if hasattr(project, "tenant_id") and hasattr(request.user, "tenant_id"):
-                 if project.tenant_id != request.user.tenant_id:
-                      return HttpResponse("Access Denied: Tenant mismatch.", status=403)
-        except Exception as e:
-            return HttpResponse(f"Unauthorized or Project not found: {e}", status=401)
+        except Project.DoesNotExist:
+            return HttpResponse("Project not found.", status=404)
 
         try:
             report_data = compile_report_data(project_id)
@@ -492,11 +534,29 @@ class ReportSectionViewSet(viewsets.ModelViewSet):
     serializer_class = ReportSectionSerializer
     permission_classes = [IsAuthenticated, IsSameTenant]
 
+    def _tenant_project(self, project_id):
+        """Fetch the project only if it belongs to the caller's tenant (else 404)."""
+        from rest_framework.exceptions import NotFound
+        from apps.projects.models import Project
+        try:
+            return Project.objects.get(id=project_id, tenant_id=self.request.user.tenant_id)
+        except Project.DoesNotExist:
+            raise NotFound("Project not found.")
+
     def get_queryset(self):
-        return ReportSection.objects.filter(project_id=self.kwargs['project_id'])
+        # Scope sections to projects owned by the caller's tenant.
+        return ReportSection.objects.filter(
+            project_id=self.kwargs['project_id'],
+            project__tenant_id=self.request.user.tenant_id,
+        )
 
     def perform_create(self, serializer):
-        serializer.save(last_modified_by=self.request.user, project_id=self.kwargs['project_id'])
+        project = self._tenant_project(self.kwargs['project_id'])
+        serializer.save(
+            last_modified_by=self.request.user,
+            project_id=project.id,
+            tenant_id=self.request.user.tenant_id,
+        )
 
     def perform_update(self, serializer):
         serializer.save(last_modified_by=self.request.user, status='expert_manual')
@@ -507,11 +567,10 @@ class ReportSectionViewSet(viewsets.ModelViewSet):
         Triggers AI generation for a specific section only.
         """
         from apps.predictions.ml.engine import PredictionEngine
-        from apps.projects.models import Project
-        
+
         section = self.get_object()
-        project = Project.objects.get(id=project_id)
-        
+        project = self._tenant_project(project_id)
+
         # Determine generation logic based on section_id
         engine = PredictionEngine()
         baseline = compile_report_data(project_id) # Reuse data gatherer
@@ -542,12 +601,11 @@ class ReportSectionViewSet(viewsets.ModelViewSet):
         Safe: Only overwrites 'ai_suggested' or empty sections.
         """
         from apps.predictions.ml.engine import PredictionEngine
-        from apps.projects.models import Project
-        
-        project = Project.objects.get(id=project_id)
+
+        project = self._tenant_project(project_id)
         engine = PredictionEngine()
         baseline = compile_report_data(project_id)
-        
+
         # Define the chapters we want to auto-fill
         SECTIONS = [
             ('methodology', '4. Study Methodology'),

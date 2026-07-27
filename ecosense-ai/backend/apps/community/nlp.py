@@ -1,13 +1,18 @@
 """
-EcoSense AI — Natural Language Processing Boundaries.
+EcoSense AI — Natural Language Processing for community feedback.
 
-Simplifies heavy technical arrays parsing sentiment safely via transformers mapping LLM capabilities iteratively.
+Runs entirely on self-hosted models (no external paid API):
+  * Sentiment  — a local multilingual transformers classifier.
+  * Simplification / translation — the self-hosted local LLM (core.ai), with a
+    deterministic extractive summary as a guaranteed fallback.
 """
 
 import logging
+import re
+
 from celery import shared_task
-from django.conf import settings
 from apps.community.models import CommunityFeedback
+from core.ai import get_local_llm
 
 logger = logging.getLogger(__name__)
 
@@ -25,41 +30,56 @@ def get_sentiment_analyzer():
             _sentiment_analyzer = False # Mark as failed to avoid retrying
     return _sentiment_analyzer if _sentiment_analyzer is not False else None
 
-try:
-    from langchain.chat_models import ChatOpenAI
-    from langchain.schema import HumanMessage, SystemMessage
-except ImportError:
-    ChatOpenAI = None
+_LANG_NAMES = {"en": "English", "sw": "Swahili"}
 
 
 def simplify_document(technical_text: str, target_language: str = 'en') -> str:
     """
-    Condenses arrays mapping strictly to non-technical endpoints translating securely.
-    """
-    key = getattr(settings, "OPENAI_API_KEY", None)
-    if not ChatOpenAI or not key:
-        return "Simplicity translations are paused. System requires OpenAI bindings."
+    Summarise technical EIA text into plain language for community members.
 
-    try:
-        llm = ChatOpenAI(temperature=0.3, openai_api_key=key)
-        prompt = f"Summarise the following technical EIA text in simple language a non-expert can understand. Use short sentences. Avoid jargon. Language: {target_language}. Text: {technical_text}"
-        
-        messages = [
-            SystemMessage(content="You are helping a community member understand an environmental project."),
-            HumanMessage(content=prompt)
-        ]
-        
-        resp = llm(messages).content
-        
-        # Word limit explicitly bound around prompt requests limiting overheads
-        words = resp.split()
-        if len(words) > 300:
-            return " ".join(words[:300]) + "..."
-            
-        return resp
-    except Exception as e:
-         logger.warning(f"LLM reduction error natively: {e}")
-         return "Summary temporarily unavailable."
+    Uses the self-hosted local LLM when available; otherwise falls back to a
+    deterministic extractive summary so the feature never hard-fails and never
+    depends on an external paid API.
+    """
+    text = (technical_text or "").strip()
+    if not text:
+        return ""
+
+    llm = get_local_llm()
+    if llm.available:
+        lang_name = _LANG_NAMES.get(target_language, target_language)
+        prompt = (
+            f"Summarise the following technical EIA text in simple {lang_name} that a "
+            f"non-expert community member can understand. Use short sentences and avoid "
+            f"jargon.\n\nTEXT:\n{text}"
+        )
+        resp = llm.generate(
+            prompt,
+            system_role="You are helping a community member understand an environmental project.",
+            max_tokens=400,
+        )
+        if resp:
+            words = resp.split()
+            return " ".join(words[:300]) + ("..." if len(words) > 300 else "")
+
+    # Deterministic fallback: extractive summary (first sentences, capped).
+    return _extractive_summary(text)
+
+
+def _extractive_summary(text: str, max_words: int = 120) -> str:
+    """Return the leading sentences of ``text`` up to ``max_words`` words."""
+    sentences = re.split(r"(?<=[.!?])\s+", text.strip())
+    out, count = [], 0
+    for sentence in sentences:
+        words = sentence.split()
+        if not words:
+            continue
+        out.append(sentence)
+        count += len(words)
+        if count >= max_words:
+            break
+    summary = " ".join(out).strip()
+    return summary or text[:600]
 
 
 def analyse_feedback(feedback_text: str) -> dict:
@@ -145,12 +165,13 @@ def process_feedback_nlp(self, feedback_id: str):
     except Exception:
          pass 
 
-    # 2. Translate structures dynamically translating explicitly limiting boundaries natively
+    # 2. For non-English feedback, produce a plain-English rendering to feed the
+    #    downstream keyword classifier. The sentiment model is multilingual, so
+    #    this only needs to be best-effort.
     target_text = raw
     if lang != 'en':
-         # Simplifies bounds pulling exact english arrays directly mapping NLP tools expecting english natively
          feedback.translated_text = simplify_document(raw, target_language='en')
-         if not feedback.translated_text.startswith("Simplicity"):
+         if feedback.translated_text:
              target_text = feedback.translated_text
 
     # 3. Analyze iteratively

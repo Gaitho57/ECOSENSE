@@ -38,9 +38,14 @@ environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
 
 SECRET_KEY = env("SECRET_KEY")
 DEBUG = env("DEBUG")
-ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["*"])
+# Fail closed: in production ALLOWED_HOSTS must be set explicitly. Only localhost
+# is permitted by default (never a wildcard, which enables Host-header attacks).
+ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1"])
 CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS")
-CORS_ALLOW_ALL_ORIGINS = True  # Fallback to ensure production connectivity
+# Only the explicit allowlist above may send credentialed cross-origin requests.
+# (Previously CORS_ALLOW_ALL_ORIGINS=True defeated this and, combined with
+# CORS_ALLOW_CREDENTIALS, let any origin make authenticated requests.)
+CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOW_CREDENTIALS = True
 
 # ===========================================
@@ -86,6 +91,8 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    # Sets the per-request tenant_id so TenantManager actually isolates data.
+    "core.middleware.TenantMiddleware",
 ]
 
 ROOT_URLCONF = "core.urls"
@@ -203,7 +210,10 @@ CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = "Africa/Nairobi"
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
-CELERY_TASK_ALWAYS_EAGER = True
+# Production runs tasks on real Celery workers (async). For local development
+# without a Redis/worker, use core.settings_dev which sets this True.
+CELERY_TASK_ALWAYS_EAGER = env.bool("CELERY_TASK_ALWAYS_EAGER", default=False)
+CELERY_TASK_EAGER_PROPAGATES = True
 
 # ===========================================
 # AWS / S3
@@ -221,8 +231,12 @@ AWS_S3_OBJECT_PARAMETERS = {"CacheControl": "max-age=86400"}
 # ===========================================
 
 MAPBOX_TOKEN = env("MAPBOX_TOKEN", default="")
-OPENAI_API_KEY = env("OPENAI_API_KEY", default="")
 GEE_SERVICE_ACCOUNT = env("GEE_SERVICE_ACCOUNT", default="")
+# Path to the GEE service-account JSON key (enables real satellite everywhere).
+GEE_KEY_PATH = env("GEE_KEY_PATH", default="")
+# Optional: official 47-county boundary GeoJSON for sub-county-precise county
+# resolution. If unset, EcoSense resolves by nearest administrative centroid.
+COUNTY_GEOJSON_PATH = env("COUNTY_GEOJSON_PATH", default="")
 OPENWEATHER_API_KEY = env("OPENWEATHER_API_KEY", default="")
 AFRICAS_TALKING_API_KEY = env("AFRICAS_TALKING_API_KEY", default="")
 AFRICAS_TALKING_USERNAME = env("AFRICAS_TALKING_USERNAME", default="")
@@ -234,17 +248,37 @@ POLYGON_PRIVATE_KEY = env("POLYGON_PRIVATE_KEY", default="")
 FRONTEND_URL = env("FRONTEND_URL")
 
 # ===========================================
+# Webhook / Device Authentication Secrets
+# ===========================================
+# Shared secrets that authenticate otherwise-public webhooks. Fail closed:
+# if unset, the corresponding endpoint rejects all requests.
+IOT_INGESTION_SECRET = env("IOT_INGESTION_SECRET", default="")
+SMS_WEBHOOK_SECRET = env("SMS_WEBHOOK_SECRET", default="")
+# Dev-only: allow mock M-Pesa completions (never honoured when DEBUG=False).
+MPESA_ALLOW_MOCK_COMPLETION = env.bool("MPESA_ALLOW_MOCK_COMPLETION", default=False)
+
+# ===========================================
+# Self-Hosted Local LLM (no external paid API)
+# ===========================================
+# EcoSense generates all narrative text on infrastructure you control.
+# Recommended for a CPU-only server: run Ollama and point OLLAMA_HOST at it.
+#   OLLAMA_HOST=http://localhost:11434
+#   LOCAL_LLM_MODEL=llama3.2:1b        # small, CPU-friendly; try qwen2.5:1.5b too
+# If OLLAMA_HOST is unset, EcoSense tries a local transformers model, and if
+# that is unavailable it uses deterministic expert templates (always works).
+OLLAMA_HOST = env("OLLAMA_HOST", default="")
+LOCAL_LLM_MODEL = env("LOCAL_LLM_MODEL", default="llama3.2:1b")
+LOCAL_LLM_HF_MODEL = env("LOCAL_LLM_HF_MODEL", default="google/flan-t5-base")
+LOCAL_LLM_ENABLE_TRANSFORMERS = env.bool("LOCAL_LLM_ENABLE_TRANSFORMERS", default=True)
+LOCAL_LLM_TIMEOUT = env.int("LOCAL_LLM_TIMEOUT", default=120)
+
+# ===========================================
 # Default primary key field type
 # ===========================================
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# ===========================================
-# Celery Production Mode
-# For local dev with synchronous execution, use core.settings_dev
-# ===========================================
-CELERY_TASK_ALWAYS_EAGER = True
-CELERY_TASK_EAGER_PROPAGATES = True
+# (Celery execution mode is configured once, above, near CELERY_BROKER_URL.)
 
 # ===========================================
 # Email Backend

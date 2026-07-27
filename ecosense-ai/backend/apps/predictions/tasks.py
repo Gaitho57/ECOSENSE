@@ -29,30 +29,47 @@ def run_predictions(self, project_id: str, scenario_params: dict = None):
     # 2. Cleanup existing predictions matching constraints
     ImpactPrediction.objects.filter(project=project, scenario_name=scenario_name).delete()
 
-    # 3. Compile dictionary inputs securely
+    # Derive real coordinates + county from the project's geometry.
+    loc = project.location
+    lat = float(loc.y) if hasattr(loc, "y") else (float(project.latitude) if project.latitude else None)
+    lng = float(loc.x) if hasattr(loc, "x") else (float(project.longitude) if project.longitude else None)
+
+    county_name = None
+    if lat is not None and lng is not None:
+        try:
+            from apps.baseline.clients.historical_archive import HistoricalArchiveClient
+            county_name, _ = HistoricalArchiveClient().detect_nearest_county(lat, lng)
+        except Exception:
+            county_name = None
+
+    # 3. Compile dictionary inputs securely — now including real location,
+    #    county, and climate so predictions and narrative reflect the actual site.
     baseline_data = {
         "satellite": baseline.satellite_data,
         "hydrology": baseline.hydrology_data,
         "biodiversity": baseline.biodiversity_data,
         "air_quality": baseline.air_quality_baseline,
-        "soil": baseline.soil_data
+        "soil": baseline.soil_data,
+        "climate": baseline.climate_data,
+        "topography": baseline.topography_data,
+        "county_name": county_name,
+        "latitude": lat,
+        "longitude": lng,
     }
-    
+
     ptype = getattr(project, "project_type", "infrastructure")
     scale = getattr(project, "scale_ha", 500.0)
 
     # 4. Extract
     engine = PredictionEngine()
-    
-    # Deriving location context from project name or coordinates (simplified logic)
-    location_ctx = "Athi River" if "athi" in project.name.lower() else "the specified site"
-    if "turkana" in project.name.lower():
-         location_ctx = "Turkana"
+
+    # Use the real resolved county as the location context.
+    location_ctx = county_name or "the specified site"
 
     predictions = engine.predict(
-        ptype, 
-        scale, 
-        baseline_data, 
+        ptype,
+        scale,
+        baseline_data,
         scenario_name=scenario_name,
         project_name=project.name,
         location_name=location_ctx

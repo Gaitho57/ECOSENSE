@@ -16,15 +16,16 @@ import uuid
 from django.conf import settings
 from apps.predictions.training.sample_data import PROJECT_TYPES
 
-# Langchain integration
+# Self-hosted local language model (no external paid API).
+from core.ai import get_local_llm
+# Accurate 47-county regional profiles (replaces the old 7-county default).
+from apps.baseline.utils.county_profiles import get_county_profile
+
+# Optional local RAG vector store (also fully self-hosted; no paid API).
 try:
-    from langchain_community.llms import HuggingFacePipeline
-    from langchain.schema import HumanMessage, SystemMessage
     from langchain_community.vectorstores import Chroma
     from langchain_huggingface import HuggingFaceEmbeddings
-    from transformers import pipeline
 except ImportError:
-    HuggingFacePipeline = None
     Chroma = None
     HuggingFaceEmbeddings = None
 
@@ -520,17 +521,11 @@ class PredictionEngine:
         """
         Loads the LLM and Vector Store only if they haven't been loaded yet.
         """
-        # Initialize Local LLM via HuggingFace
-        if HuggingFacePipeline and not self.llm:
-            try:
-                logger.info("Initializing local HuggingFace LLM (google/flan-t5-small)...")
-                # Using a small, fast model for local generation without API keys
-                hf_pipeline = pipeline("text2text-generation", model="google/flan-t5-small", max_new_tokens=100)
-                self.llm = HuggingFacePipeline(pipeline=hf_pipeline)
-                logger.info("Successfully initialized Local LLM.")
-            except Exception as e:
-                logger.warning(f"Local LLM initialization failed: {e}")
-                self.llm = None
+        # Initialize the self-hosted local LLM client (Ollama / transformers / none).
+        # It resolves its own backend once; if none is available it stays in
+        # "unavailable" mode and callers fall back to deterministic templates.
+        if self.llm is None:
+            self.llm = get_local_llm()
 
         # Initialize RAG Vector Store with Local Embeddings
         persist_dir = os.path.join(settings.BASE_DIR, 'chroma_db')
@@ -568,17 +563,50 @@ class PredictionEngine:
         # OpenWeather Air/Hydrology Proxies
         aqi = baseline_data.get("air_quality", {}).get("aqi", 2)
         
-        # Water/Urban logic proxies depending heavily on coordinates usually, we'll dummy static boundaries
-        # M3-T2 hydrological bounds mapped logic to textual. Here we assume static properties generically.
-        water_km = 5.0
-        if baseline_data.get("hydrology", {}).get("proximity") == "river":
-            water_km = 0.5
-        elif baseline_data.get("hydrology", {}).get("proximity") == "wetland":
-             water_km = 0.1
-             
-        urban_km = 10.0 # Approximation 
-        rainfall = 1000.0 # Default structural payload mapping
-        
+        # --- Distance to water: use the real nearest-feature distance from the
+        #     hydrology client when available, else the categorical proximity. ---
+        hydro = baseline_data.get("hydrology", {}) or {}
+        water_km = None
+        for key in ("nearest_water_km", "nearest_distance_km", "distance_to_water_km", "min_distance_km"):
+            if isinstance(hydro.get(key), (int, float)):
+                water_km = float(hydro[key])
+                break
+        if water_km is None:
+            proximity = hydro.get("proximity")
+            if proximity == "wetland":
+                water_km = 0.1
+            elif proximity == "river":
+                water_km = 0.5
+            else:
+                water_km = 5.0  # conservative default when no hydrology data
+
+        # --- Rainfall: real annual precipitation from the climate baseline. ---
+        climate = baseline_data.get("climate", {}) or {}
+        rainfall = None
+        for key in ("rainfall_annual", "annual_rainfall_mm", "rainfall_mm", "precipitation_annual", "rainfall"):
+            val = climate.get(key)
+            if isinstance(val, (int, float)):
+                rainfall = float(val)
+                break
+        if rainfall is None:
+            rainfall = 1000.0  # national-average fallback when climate data missing
+
+        # --- Urban proximity: derive from population density / settlement signal. ---
+        urban_km = None
+        pop_density = baseline_data.get("population_density")
+        if isinstance(pop_density, (int, float)):
+            # Denser surroundings ⇒ closer to urban receptors.
+            if pop_density >= 800:
+                urban_km = 0.5
+            elif pop_density >= 400:
+                urban_km = 2.0
+            elif pop_density >= 150:
+                urban_km = 6.0
+            else:
+                urban_km = 15.0
+        if urban_km is None:
+            urban_km = float(baseline_data.get("urban_proximity_km", 10.0))
+
         return {
             "ndvi_score": ndvi,
             "threatened_species_count": threats,
@@ -621,9 +649,14 @@ class PredictionEngine:
                  pred_cls_idx = int(self.models[cat]["clf"].predict(X_array)[0])
                  base_severity = SEV_REVERSE_MAPPING.get(pred_cls_idx, "medium")
                  base_prob = float(self.models[cat]["reg"].predict(X_array)[0])
+                 pred_method = "ml_model"
+                 confidence = 0.85
             else:
-                 # Local expert system fallback for non-ML mapped categories
+                 # Deterministic expert-rules fallback (used when no trained
+                 # model is present for this category). Reported transparently.
                  base_severity, base_prob = self._get_heuristic_prediction(cat, features, scale_ha, effective_type)
+                 pred_method = "expert_rules"
+                 confidence = 0.6
             
             # 2. Expert Significance Matrix calculation (Baseline)
             significance = self._calculate_significance(base_severity, base_prob, scale_ha, cat, baseline_data)
@@ -641,7 +674,8 @@ class PredictionEngine:
                 "category": cat,
                 "severity": base_severity.lower(),
                 "probability": round(base_prob, 3),
-                "confidence": 0.85, # Default confidence bound
+                "confidence": confidence,
+                "prediction_method": pred_method,
                 "significance_score": significance["score"],
                 "significance_label": significance["label"],
                 "impact_pathway": significance["pathway"],
@@ -874,30 +908,38 @@ class PredictionEngine:
             ]
 
             
-        # 3. Handle OpenAI if key is actually present (Secondary Augmentation)
+        # 3. Optional narrative augmentation via the self-hosted local LLM.
+        #    HYBRID DESIGN: the deterministic `desc` and rule-based `mitigations`
+        #    above are always used as-is. The local model, when available, only
+        #    rewrites the free-text description into richer prose. Regulated
+        #    content (laws, mitigation hierarchy) is never left to the model.
         self._ensure_ai_initialized()
-        if self.llm:
-            try:
-                # context synthesis
-                soil = baseline.get("soil", {}).get("soil_type", "Unknown")
-                hydro = baseline.get("hydrology", {}).get("source", "Unknown local hydrology")
-                
-                historical_context = self._retrieve_context(category, project_type, baseline)
-                
-                prompt = (
-                    f"You are a NEMA Lead Expert. Augment this EIA impact analysis for {category} in a {project_type} project.\n"
-                    f"BASE DATA: Significance Score: {significance['score']}. Soil: {soil}. Hydro: {hydro}.\n"
+        if self.llm and self.llm.available:
+            soil = baseline.get("soil", {}).get("soil_type", "Unknown")
+            hydro = baseline.get("hydrology", {}).get("source", "Unknown local hydrology")
+
+            historical_context = self._retrieve_context(category, project_type, baseline)
+
+            prompt = (
+                f"Rewrite the following EIA impact analysis for '{category}' in a "
+                f"{project_type} project as a professional paragraph. Keep every fact; "
+                f"do not add new legal citations.\n\n"
+                f"DRAFT: {desc}\n"
+                f"Significance score: {significance['score']}. Soil: {soil}. Hydrology: {hydro}.\n"
+            )
+            if historical_context:
+                prompt += (
+                    f"\nRelevant historical EIA context (blend in factually):\n"
+                    f"{historical_context}\n"
                 )
-                if historical_context:
-                    prompt += f"\nHISTORICAL EIA CONTEXT (seamlessly blend this into your analysis):\n{historical_context}\n"
-                    
-                prompt += f"Maintain the professional tone of {laws.get('EMCA')}."
-                
-                messages = [SystemMessage(content="Professional EIA Auditor"), HumanMessage(content=prompt)]
-                res = self.llm(messages).content
+
+            res = self.llm.generate(
+                prompt,
+                system_role="You are a professional EIA auditor writing for NEMA Kenya.",
+                max_tokens=400,
+            )
+            if res:
                 return res[:800], mitigations
-            except Exception:
-                pass
 
         return desc, mitigations
 
@@ -964,24 +1006,23 @@ class PredictionEngine:
         context = "\n\n".join([f"Source: {d.metadata.get('filename', 'Historical EIA')}\n{d.page_content}" for d in docs])
         
         # If we have a local LLM, synthesize it. Otherwise, return the raw snippets.
-        if self.llm:
-            try:
-                prompt = (
-                    f"You are an Environmental Expert. Summarize the following historical baseline data for {county_name}.\n"
-                    f"Focus only on physical, biological, and climatic facts. Keep it under 100 words.\n\n"
-                    f"HISTORICAL DATA:\n{context}"
-                )
-                messages = [SystemMessage(content="EIA Baseline Synthesizer"), HumanMessage(content=prompt)]
-                res = self.llm(messages).content
+        if self.llm and self.llm.available:
+            prompt = (
+                f"Summarize the following historical baseline data for {county_name}. "
+                f"Focus only on physical, biological, and climatic facts. Keep it under 100 words.\n\n"
+                f"HISTORICAL DATA:\n{context}"
+            )
+            res = self.llm.generate(
+                prompt, system_role="EIA baseline synthesizer.", max_tokens=200
+            )
+            if res:
                 return res.strip()
-            except Exception as llm_e:
-                logger.warning(f"Failed to synthesize baseline with LLM: {llm_e}")
         
         # Fallback if LLM fails or is absent
         summary = docs[0].page_content[:300]
         if "sgr" in summary.lower() and "rail" not in str(county_name).lower():
             # If it's a generic SGR snippet but we aren't a rail project, use a more geographic regional snippet
-            rd = KENYAN_REGIONAL_DATABASE.get(county_name, KENYAN_REGIONAL_DATABASE["Nairobi"])
+            rd = get_county_profile(county_name=county_name)
             summary = f"Geographical data for {county_name} indicates a {rd['basin']} influence with {rd['soil']} soil profiles. " \
                       f"Historical regional assessments (e.g., {docs[0].metadata.get('filename', 'NEMA Archive')}) confirm {rd['common_flora']} as dominant flora."
         
@@ -1254,16 +1295,28 @@ class PredictionEngine:
         return severity, probability
 
     def _call_expert_llm(self, prompt: str, system_role: str, baseline_data: dict = None) -> str:
-        """Helper for expert technical calls with rich Kenyan internal fallback."""
+        """Helper for expert technical calls with rich Kenyan internal fallback.
+
+        HYBRID DESIGN: when no self-hosted model is available, returns a
+        deterministic, domain-specific template so report chapters are always
+        produced. When a local model is available it is used for the prose.
+        """
         self._ensure_ai_initialized()
-        if not self.llm:
+        if not (self.llm and self.llm.available):
              # Internal AI Knowledge Retrieval (Expert Calibration V10)
              p_lower = prompt.lower()
              
-             # Context extraction via RKB
-             county = (baseline_data or {}).get("county_name", "Nairobi")
-             region_data = KENYAN_REGIONAL_DATABASE.get(county, KENYAN_REGIONAL_DATABASE["Nairobi"])
-             
+             # Accurate regional context for ANY of the 47 counties, resolved
+             # by name or by coordinates (no more silent Nairobi default).
+             bd = baseline_data or {}
+             county = bd.get("county_name")
+             region_data = get_county_profile(
+                 county_name=county,
+                 lat=bd.get("latitude") or bd.get("lat"),
+                 lng=bd.get("longitude") or bd.get("lng"),
+             )
+             county = region_data["county"]
+
              basin = region_data["basin"]
              board = region_data["board"]
              road = region_data["major_road"]
@@ -1354,12 +1407,8 @@ class PredictionEngine:
                   )
              return "Technical chapter is under formulation based on EMCA guidelines and domain expert knowledge."
 
-        try:
-             messages = [SystemMessage(content=system_role), HumanMessage(content=prompt)]
-             return self.llm(messages).content
-        except Exception as e:
-             logger.error(f"Expert LLM call failed: {e}")
-             return "Technical chapter is under formulation based on EMCA guidelines."
+        res = self.llm.generate(prompt, system_role=system_role, max_tokens=800)
+        return res or "Technical chapter is under formulation based on EMCA guidelines."
 
     def classify_project_risk(self, project_type: str, scale_ha: float, baseline: dict) -> str:
         """

@@ -41,8 +41,8 @@ EcoSense AI is a multi-tenant platform that digitises the full Environmental Imp
 - djangorestframework-simplejwt (JWT authentication)
 - Celery + Redis (task queue)
 - GeoPandas + Shapely + GDAL (geospatial)
-- LangChain (AI orchestration)
-- XGBoost + scikit-learn (ML models)
+- Self-hosted local LLM — Ollama / local transformers, no external paid API ([details](docs/SELF_HOSTED_AI.md))
+- XGBoost + scikit-learn (in-system ML impact models)
 - WeasyPrint + python-docx (report generation)
 - web3.py (blockchain integration)
 

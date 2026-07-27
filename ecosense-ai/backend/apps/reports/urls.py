@@ -6,6 +6,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from apps.reports.views import (
     GenerateReportView,
+    ReportStatusView,
     ProjectReportsView,
     DownloadReportView,
     ExpertApproveReportView,
@@ -28,6 +29,7 @@ urlpatterns = [
     path('', include(router.urls)),
     # Core report management
     path('<uuid:project_id>/generate-report/', GenerateReportView.as_view(), name='generate_report'),
+    path('<uuid:project_id>/reports/<uuid:report_id>/status/', ReportStatusView.as_view(), name='report_status'),
     path('<uuid:project_id>/reports/', ProjectReportsView.as_view(), name='project_reports'),
     path('<uuid:project_id>/reports/<uuid:report_id>/download/', DownloadReportView.as_view(), name='download_report'),
     path('<uuid:project_id>/reports/<uuid:report_id>/expert-approve/', ExpertApproveReportView.as_view(), name='expert_approve_report'),

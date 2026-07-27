@@ -85,9 +85,11 @@ axiosInstance.interceptors.response.use(
       const rawRefreshToken = localStorage.getItem('refresh_token');
 
       try {
-        const { data } = await axios.post(`${baseURL}/auth/refresh/`, {
-          refresh_token: rawRefreshToken // passing exactly expecting native explicitly Django bounds securely
-        });
+        // baseURL already ends with "/api/v1/"; no leading slash here or the
+        // request becomes ".../api/v1//auth/refresh/" (double slash → 404).
+        const { data } = await axios.post(`${baseURL}auth/refresh/`, {
+          refresh_token: rawRefreshToken
+        }, { withCredentials: true });
 
         const newAccessToken = data.data?.access_token || data.access_token;
         const newRefreshToken = data.data?.refresh_token || data.refresh_token;

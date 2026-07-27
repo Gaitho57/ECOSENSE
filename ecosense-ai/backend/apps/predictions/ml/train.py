@@ -1,15 +1,27 @@
 """
 EcoSense AI — ML Training Script.
 
-Compiles baseline datasets modeling XGBoost Classifier and Regressors.
-Must be run sequentially before engine execution to guarantee mapped .pkl scopes.
+Trains the per-category XGBoost severity classifiers and probability regressors
+used by the prediction engine, and writes them to ``ml/models/``.
+
+DATA SOURCES (in priority order):
+  1. A real labelled dataset — set the environment variable ``EIA_TRAINING_CSV``
+     to the path of a CSV with the same columns as ``sample_data`` plus the
+     ``<category>_severity`` label columns. USE THIS FOR PRODUCTION.
+  2. A rules-bootstrapped synthetic set (the default) — deterministic, seeded,
+     and derived from documented Kenyan EIA heuristics. This lets the pipeline
+     run end-to-end before you have a labelled corpus, but the resulting model
+     only approximates the built-in expert rules. It is NOT a substitute for a
+     model trained on real assessment outcomes.
+
+Probability targets are derived DETERMINISTICALLY from severity + feature
+intensity (never random), so the regressor learns a real, reproducible signal.
 """
 
 import os
 import json
 import joblib
 import pandas as pd
-import numpy as np
 from datetime import datetime
 
 import xgboost as xgb
@@ -31,9 +43,45 @@ MODELS_DIR.mkdir(parents=True, exist_ok=True)
 
 CATEGORIES = ["air", "water", "noise", "biodiversity", "social", "soil", "climate"]
 
+def load_dataset():
+    """Load a real labelled CSV if EIA_TRAINING_CSV is set, else the bootstrap set."""
+    csv_path = os.environ.get("EIA_TRAINING_CSV")
+    if csv_path and os.path.exists(csv_path):
+        print(f"Loading REAL labelled dataset from {csv_path} ...")
+        return pd.read_csv(csv_path), "real"
+    print(
+        "No EIA_TRAINING_CSV provided — using rules-bootstrapped synthetic data.\n"
+        "  (The trained model will approximate the built-in expert rules only.\n"
+        "   Set EIA_TRAINING_CSV to a real labelled corpus for production models.)"
+    )
+    return pd.DataFrame(SAMPLE_DATA), "bootstrap"
+
+
+# Deterministic probability targets: severity band midpoint, nudged by feature
+# intensity. No randomness, so the regressor learns a reproducible signal.
+_SEV_PROB_BAND = {
+    "low": (0.10, 0.35),
+    "medium": (0.36, 0.65),
+    "high": (0.66, 0.89),
+    "critical": (0.90, 0.99),
+}
+
+
+def _intensity(row) -> float:
+    """A 0..1 intensity proxy from scale + proximity + threats (deterministic)."""
+    scale = min(float(row.get("scale_ha", 0)) / 5000.0, 1.0)
+    water = 1.0 - min(float(row.get("distance_to_water_km", 50)) / 50.0, 1.0)
+    threat = min(float(row.get("threatened_species_count", 0)) / 25.0, 1.0)
+    return round((scale + water + threat) / 3.0, 4)
+
+
+def _deterministic_probability(severity: str, intensity: float) -> float:
+    lo, hi = _SEV_PROB_BAND.get(severity, (0.4, 0.6))
+    return round(lo + (hi - lo) * intensity, 4)
+
+
 def run_training():
-    print("Loading synthetic records...")
-    df = pd.DataFrame(SAMPLE_DATA)
+    df, source = load_dataset()
 
     # 1. Feature Engineering
     # One-hot encode the project types explicitely based on known classes securely
@@ -59,6 +107,7 @@ def run_training():
     metadata = {
         "version": "1.0",
         "training_date": datetime.utcnow().isoformat(),
+        "data_source": source,  # "real" or "bootstrap"
         "categories": {}
     }
 
@@ -73,15 +122,16 @@ def run_training():
         # Classifier target setup
         y_cls = df[sev_col].map(sev_mapping)
         
-        # Regressor target setup (synthetic probabilities)
-        def map_prob(x):
-            if x == "low": return np.random.uniform(0.1, 0.35)
-            elif x == "medium": return np.random.uniform(0.36, 0.65)
-            elif x == "high": return np.random.uniform(0.66, 0.89)
-            elif x == "critical": return np.random.uniform(0.90, 0.99)
-            return 0.5
-            
-        y_reg = df[sev_col].apply(map_prob)
+        # Regressor target: deterministic probability from severity + intensity.
+        # Prefer a real "<category>_probability" column if the dataset provides one.
+        prob_col = f"{cat}_probability"
+        if prob_col in df.columns:
+            y_reg = df[prob_col].astype(float)
+        else:
+            y_reg = df.apply(
+                lambda r: _deterministic_probability(r[sev_col], _intensity(r)),
+                axis=1,
+            )
 
         # Train/Test Split
         X_train, X_test, y_train_cls, y_test_cls = train_test_split(X_scaled, y_cls, test_size=0.2, random_state=42)
