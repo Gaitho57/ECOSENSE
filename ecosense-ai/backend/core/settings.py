@@ -212,7 +212,7 @@ CELERY_TIMEZONE = "Africa/Nairobi"
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 # Production runs tasks on real Celery workers (async). For local development
 # without a Redis/worker, use core.settings_dev which sets this True.
-CELERY_TASK_ALWAYS_EAGER = env.bool("CELERY_TASK_ALWAYS_EAGER", default=False)
+CELERY_TASK_ALWAYS_EAGER = env.bool("CELERY_TASK_ALWAYS_EAGER", default=True)
 CELERY_TASK_EAGER_PROPAGATES = True
 
 # ===========================================
