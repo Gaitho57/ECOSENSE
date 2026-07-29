@@ -73,19 +73,51 @@ class GenerateReportView(APIView):
                  status='generating',
              )
 
-        # Dispatch. With CELERY_TASK_ALWAYS_EAGER the task runs (and may raise)
-        # right here at .delay(), so wrap the whole dispatch to surface the real
-        # error to the client instead of an opaque 500.
+        # Dispatch
         try:
-            async_result = generate_report.delay(
-                str(project_id), fmt, jurisdiction, language, report_id=str(report.id)
-            )
-            result = None
             if getattr(settings, "CELERY_TASK_ALWAYS_EAGER", False):
-                try:
-                    result = async_result.get(propagate=True)
-                except Exception:  # already ran at .delay(); ignore double-raise
-                    result = None
+                # When running without a Celery worker (e.g. Render Web Service without Redis),
+                # running synchronously blocks the HTTP request and triggers a 100s Gateway Timeout.
+                # To prevent "Network Error" on the frontend, we run the compilation in a background thread.
+                import threading
+                import uuid
+                from apps.reports.tasks import perform_report_generation
+                
+                def bg_task():
+                    try:
+                        perform_report_generation(
+                            str(project_id), fmt, jurisdiction, language, report_id=str(report.id)
+                        )
+                    except Exception as e:
+                        logger.exception("Threaded report generation failed")
+                
+                thread = threading.Thread(target=bg_task)
+                thread.start()
+                
+                return envelope(
+                    data={
+                        "report_id": str(report.id),
+                        "task_id": str(uuid.uuid4()),
+                        "status": report.status,
+                        "message": "Report generation started.",
+                    },
+                    status_code=status.HTTP_202_ACCEPTED,
+                )
+            else:
+                async_result = generate_report.delay(
+                    str(project_id), fmt, jurisdiction, language, report_id=str(report.id)
+                )
+                
+                return envelope(
+                    data={
+                        "report_id": str(report.id),
+                        "task_id": async_result.id,
+                        "status": report.status,
+                        "message": "Report generation started.",
+                    },
+                    status_code=status.HTTP_202_ACCEPTED,
+                )
+
         except Exception as exc:  # noqa: BLE001 - report the real cause
             logger.exception("Report generation failed for project %s", project_id)
             try:
@@ -94,41 +126,9 @@ class GenerateReportView(APIView):
             except Exception:
                 detail = None
             return envelope(
-                error={"code": 500, "message": f"Report generation failed: {detail or exc}", "details": {}},
+                error={"code": 500, "message": f"Report generation dispatch failed: {detail or exc}", "details": {}},
                 status_code=500,
             )
-
-        # Eager path finished synchronously — report the real outcome.
-        if getattr(settings, "CELERY_TASK_ALWAYS_EAGER", False):
-            if result == "PAYMENT_REQUIRED":
-                return envelope(
-                    error={"code": 402, "message": "No report credits remaining.", "details": {}},
-                    status_code=status.HTTP_402_PAYMENT_REQUIRED,
-                )
-            report.refresh_from_db()
-            if report.status == "failed":
-                return envelope(
-                    error={"code": 500, "message": report.error_message or "Report generation failed.", "details": {}},
-                    status_code=500,
-                )
-            return envelope(
-                data={
-                    "report_id": str(report.id),
-                    "task_id": async_result.id,
-                    "status": report.status,
-                    "message": "Report generated.",
-                },
-            )
-
-        return envelope(
-            data={
-                "report_id": str(report.id),
-                "task_id": async_result.id,
-                "status": report.status,
-                "message": "Report generation started.",
-            },
-            status_code=status.HTTP_202_ACCEPTED,
-        )
 
 
 class ReportStatusView(APIView):
