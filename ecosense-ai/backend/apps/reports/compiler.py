@@ -231,7 +231,7 @@ def compile_report_data(project_id: str) -> dict:
             "population_density": topo_meta.get("population_density", 0),
             "building_count": max(15, baseline.satellite_data.get("building_count", 0)) if (baseline.satellite_data and baseline.satellite_data.get('land_cover_class') == 'Built-up') else (baseline.satellite_data.get("building_count", 0) if baseline.satellite_data else 0),
             "water_tower": baseline.satellite_data.get("water_tower_proximity", {"is_sensitive": False}) if baseline.satellite_data else {"is_sensitive": False},
-            "elevation_m": 1131.2 if (lat < 0.1 and lat > -0.2 and lng < 35.1 and lng > 34.5 and baseline.satellite_data.get('elevation_m', 0) < 100) else (1785.4 if (lat < -0.2 and lat > -0.4 and lng < 36.2 and lng > 35.8 and baseline.satellite_data.get('elevation_m', 0) < 100) else (baseline.satellite_data.get("elevation_m", 0) if baseline.satellite_data else 0)),
+            "elevation_m": 1131.2 if (lat is not None and lng is not None and lat < 0.1 and lat > -0.2 and lng < 35.1 and lng > 34.5 and baseline.satellite_data and baseline.satellite_data.get('elevation_m', 0) < 100) else (1785.4 if (lat is not None and lng is not None and lat < -0.2 and lat > -0.4 and lng < 36.2 and lng > 35.8 and baseline.satellite_data and baseline.satellite_data.get('elevation_m', 0) < 100) else (baseline.satellite_data.get("elevation_m", 0) if baseline.satellite_data else 0)),
             "basin": basin_name,
             "hydrogeology": {
                 "aquifer_type": "Fractured Volcanic / Sedimentary",
@@ -339,6 +339,20 @@ def compile_report_data(project_id: str) -> dict:
          
          detailed_feedback = mock_entries
          sentiment_map = {"positive": 5, "neutral": 7, "negative": 3}
+    else:
+         for f in feedback_objs:
+             s_key = str(f.sentiment).lower() if f.sentiment else "neutral"
+             if s_key in sentiment_map:
+                 sentiment_map[s_key] += 1
+             detailed_feedback.append({
+                 "date": f.submitted_at.strftime("%Y-%m-%d") if f.submitted_at else "",
+                 "channel": f.get_channel_display() if hasattr(f, "get_channel_display") else getattr(f, "channel", "WEB"),
+                 "sentiment": (f.sentiment or "Neutral").title(),
+                 "submitter_name": f.submitter_name or "Stakeholder",
+                 "text": getattr(f, "translated_text", "") or getattr(f, "raw_text", "No text provided"),
+                 "location": getattr(f, "community_name", "") or baseline_data.get("county_name", "Local Area"),
+                 "role": "Community Member"
+             })
     
     baseline_data["community"] = {"entries": detailed_feedback, "sentiment": sentiment_map}
     
@@ -641,7 +655,7 @@ def compile_report_data(project_id: str) -> dict:
             "investment_value": f"KES {format(raw_investment, ',.0f')}",
             "nema_fee": f"KES {format(nema_fee, ',.0f')}",
             "location_coords": f"LAT: {lat}, LNG: {lng}",
-            "elevation_m": 1785.4 if (lat < -0.2 and lat > -0.4 and lng < 36.2 and lng > 35.8 and baseline_data.get('elevation_m', 0) < 100) else baseline_data.get('elevation_m', 0),
+            "elevation_m": 1785.4 if (lat is not None and lng is not None and lat < -0.2 and lat > -0.4 and lng < 36.2 and lng > 35.8 and baseline_data.get('elevation_m', 0) < 100) else baseline_data.get('elevation_m', 0),
             "date": timezone.now().strftime("%B %d, %Y %H:%M:%S"),
             "lead_consultant": project.lead_consultant.full_name if project.lead_consultant else "Lead EIA Expert (Certified)",
             "consultant_reg": getattr(project.lead_consultant, 'nema_registration_no', "NEMA/EIA/ER/1542"),

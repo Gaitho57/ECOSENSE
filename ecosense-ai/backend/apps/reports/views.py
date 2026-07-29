@@ -73,30 +73,38 @@ class GenerateReportView(APIView):
                  status='generating',
              )
 
-        async_result = generate_report.delay(
-            str(project_id), fmt, jurisdiction, language, report_id=str(report.id)
-        )
-
-        # When running without a Celery worker (CELERY_TASK_ALWAYS_EAGER), the
-        # task has already executed synchronously above. Surface any failure to
-        # the client with the real error message instead of an opaque 500, and
-        # return the finished status rather than "started".
-        if getattr(settings, "CELERY_TASK_ALWAYS_EAGER", False):
+        # Dispatch. With CELERY_TASK_ALWAYS_EAGER the task runs (and may raise)
+        # right here at .delay(), so wrap the whole dispatch to surface the real
+        # error to the client instead of an opaque 500.
+        try:
+            async_result = generate_report.delay(
+                str(project_id), fmt, jurisdiction, language, report_id=str(report.id)
+            )
+            result = None
+            if getattr(settings, "CELERY_TASK_ALWAYS_EAGER", False):
+                try:
+                    result = async_result.get(propagate=True)
+                except Exception:  # already ran at .delay(); ignore double-raise
+                    result = None
+        except Exception as exc:  # noqa: BLE001 - report the real cause
+            logger.exception("Report generation failed for project %s", project_id)
             try:
-                result = async_result.get(propagate=True)
-            except Exception as exc:  # noqa: BLE001 - report the real cause
-                logger.exception("Report generation failed for project %s", project_id)
-                return envelope(
-                    error={"code": 500, "message": f"Report generation failed: {exc}", "details": {}},
-                    status_code=500,
-                )
+                report.refresh_from_db()
+                detail = report.error_message
+            except Exception:
+                detail = None
+            return envelope(
+                error={"code": 500, "message": f"Report generation failed: {detail or exc}", "details": {}},
+                status_code=500,
+            )
 
+        # Eager path finished synchronously — report the real outcome.
+        if getattr(settings, "CELERY_TASK_ALWAYS_EAGER", False):
             if result == "PAYMENT_REQUIRED":
                 return envelope(
                     error={"code": 402, "message": "No report credits remaining.", "details": {}},
                     status_code=status.HTTP_402_PAYMENT_REQUIRED,
                 )
-
             report.refresh_from_db()
             if report.status == "failed":
                 return envelope(
