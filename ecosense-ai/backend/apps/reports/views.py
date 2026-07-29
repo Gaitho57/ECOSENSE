@@ -79,20 +79,25 @@ class GenerateReportView(APIView):
                 # When running without a Celery worker (e.g. Render Web Service without Redis),
                 # running synchronously blocks the HTTP request and triggers a 100s Gateway Timeout.
                 # To prevent "Network Error" on the frontend, we run the compilation in a background thread.
-                import threading
+                import multiprocessing
                 import uuid
-                from apps.reports.tasks import perform_report_generation
                 
-                def bg_task():
+                def bg_task(p_id, f, j, l, r_id):
+                    # Close inherited connections so child process gets fresh DB sockets
+                    from django.db import connection
+                    connection.close()
+                    
+                    from apps.reports.tasks import perform_report_generation
                     try:
-                        perform_report_generation(
-                            str(project_id), fmt, jurisdiction, language, report_id=str(report.id)
-                        )
+                        perform_report_generation(p_id, f, j, l, report_id=r_id)
                     except Exception as e:
-                        logger.exception("Threaded report generation failed")
+                        logger.exception("Multiprocessing report generation failed")
                 
-                thread = threading.Thread(target=bg_task)
-                thread.start()
+                p = multiprocessing.Process(
+                    target=bg_task,
+                    args=(str(project_id), fmt, jurisdiction, language, str(report.id))
+                )
+                p.start()
                 
                 return envelope(
                     data={
