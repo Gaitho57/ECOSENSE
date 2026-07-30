@@ -269,7 +269,7 @@ MPESA_ALLOW_MOCK_COMPLETION = env.bool("MPESA_ALLOW_MOCK_COMPLETION", default=Fa
 OLLAMA_HOST = env("OLLAMA_HOST", default="")
 LOCAL_LLM_MODEL = env("LOCAL_LLM_MODEL", default="llama3.2:1b")
 LOCAL_LLM_HF_MODEL = env("LOCAL_LLM_HF_MODEL", default="google/flan-t5-base")
-LOCAL_LLM_ENABLE_TRANSFORMERS = env.bool("LOCAL_LLM_ENABLE_TRANSFORMERS", default=True)
+LOCAL_LLM_ENABLE_TRANSFORMERS = env.bool("LOCAL_LLM_ENABLE_TRANSFORMERS", default=False)
 LOCAL_LLM_TIMEOUT = env.int("LOCAL_LLM_TIMEOUT", default=120)
 
 # ===========================================
