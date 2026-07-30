@@ -104,19 +104,6 @@ def perform_report_generation(project_id: str, format: str = 'pdf', jurisdiction
             's3_key', 's3_url', 'file_size_bytes', 'status',
             'generated_at', 'compliance_score', 'compliance_grade'
         ])
-        
-        # 💳 Consumptive Credit Accounting (Decrement on success)
-        from django.db.models import F
-        if not tenant.is_premium:
-            Tenant.objects.filter(id=tenant.id).update(credits_remaining=F('credits_remaining') - 1)
-
-        record_audit_event.delay(
-            project_id,
-            "REPORT_GENERATED",
-            {"version": new_v, "format": format, "jurisdiction": jurisdiction, "language": language}
-        )
-        
-        return str(report.id)
     except Exception as e:
         tb = traceback.format_exc()
         logger.error(f"Generator bounds failed explicitly: {e}\n{tb}")
@@ -125,6 +112,31 @@ def perform_report_generation(project_id: str, format: str = 'pdf', jurisdiction
         report.error_message = f"Generation failed: {str(e)}\n\n{tb}"[-1000:]
         report.save(update_fields=['status', 'error_message'])
         return None
+
+    # ---- Post-save side effects (best-effort) --------------------------------
+    # The report is already generated and persisted above. Credit accounting and
+    # the audit-trail event must NOT be able to flip a finished report back to
+    # 'failed', so they run OUTSIDE the generation try/except. With
+    # CELERY_TASK_ALWAYS_EAGER, record_audit_event.delay() executes inline, so a
+    # failure here (e.g. blockchain/audit write) would otherwise be fatal.
+    try:
+        # 💳 Consumptive Credit Accounting (Decrement on success)
+        from django.db.models import F
+        if not tenant.is_premium:
+            Tenant.objects.filter(id=tenant.id).update(credits_remaining=F('credits_remaining') - 1)
+    except Exception as e:
+        logger.error(f"Credit decrement failed (report {report.id} already saved): {e}")
+
+    try:
+        record_audit_event.delay(
+            project_id,
+            "REPORT_GENERATED",
+            {"version": new_v, "format": format, "jurisdiction": jurisdiction, "language": language}
+        )
+    except Exception as e:
+        logger.error(f"Audit event dispatch failed (report {report.id} already saved): {e}")
+
+    return str(report.id)
 
 @shared_task(bind=True)
 def generate_report(self, project_id: str, format: str = 'pdf', jurisdiction: str = 'NEMA_Kenya', language: str = 'en', report_id: str = None):

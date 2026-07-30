@@ -1,16 +1,17 @@
 import os
 import logging
 from io import BytesIO
-import boto3
+from pathlib import Path
 from django.conf import settings
-from pypdf import PdfReader, PdfWriter, Transformation
-import requests
+from django.template.loader import render_to_string
+
+# NOTE: The heavy libraries (weasyprint, pypdf, boto3, requests) are imported
+# lazily inside generate_pdf_report() rather than at module load. On a small
+# instance, importing WeasyPrint/Pango at boot inflates the resident memory of
+# every web worker; deferring it means that cost is only paid when a PDF is
+# actually rendered.
 
 logger = logging.getLogger(__name__)
-from django.template.loader import render_to_string
-from weasyprint import HTML, CSS
-from pathlib import Path
-from apps.compliance.engine import ComplianceEngine, ComplianceBlockedError
 
 def generate_pdf_report(project_id: str, tenant_id: str, version: int, report_data: dict, language: str = "en") -> tuple:
     """
@@ -18,6 +19,10 @@ def generate_pdf_report(project_id: str, tenant_id: str, version: int, report_da
     Compliance auditing is now handled by the compiler and rendered as an appendix.
     Returns (s3_key, file_size, s3_url)
     """
+    # Lazy imports — only loaded when a PDF is actually generated (see note above).
+    import requests
+    from weasyprint import HTML, CSS
+
     template_name = "reports/nema_report_sw.html" if language == "sw" else "reports/nema_report_v2.html"
     html_string = render_to_string(template_name, report_data)
     
@@ -40,6 +45,7 @@ def generate_pdf_report(project_id: str, tenant_id: str, version: int, report_da
         # Statutory Document Merging (The Annex Vault)
         statutory_docs = report_data.get("statutory_docs", [])
         if statutory_docs:
+             from pypdf import PdfReader, PdfWriter
              logger.info(f"Merging {len(statutory_docs)} statutory annexes for Project {project_id}")
              writer = PdfWriter()
              
@@ -94,6 +100,7 @@ def generate_pdf_report(project_id: str, tenant_id: str, version: int, report_da
     # 1. Attempt S3 Upload if keys are present
     if getattr(settings, "AWS_ACCESS_KEY_ID", None):
         try:
+            import boto3
             s3 = boto3.client('s3')
             s3.put_object(Bucket=bucket_name, Key=s3_key, Body=pdf_file, ContentType="application/pdf")
             url = s3.generate_presigned_url('get_object', Params={'Bucket': bucket_name, 'Key': s3_key}, ExpiresIn=604800)

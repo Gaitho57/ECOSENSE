@@ -19,7 +19,19 @@ export default function ReportPage() {
   const loadReports = async () => {
     try {
       const res = await axiosInstance.get(`/reports/${projectId}/reports/`);
-      setReports(res.data.data || []);
+      const list = res.data.data || [];
+      setReports(list);
+      // Resume polling if a report is still 'generating' (e.g. the user
+      // reloaded or navigated back mid-generation) and we aren't already
+      // tracking one. Without this the row shows "Compiling…" forever because
+      // nothing polls the status endpoint after a remount. The backend sweeper
+      // will eventually flip a truly-stuck report to 'failed', and this polling
+      // will then pick that up and surface it.
+      const inProgress = list.find(r => r.status === 'generating');
+      if (inProgress) {
+        setActiveReportId(id => id || inProgress.id);
+        setIsGenerating(true);
+      }
     } catch (e) {
       console.error('Failed loading reports:', e);
     }

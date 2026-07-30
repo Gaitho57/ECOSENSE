@@ -141,6 +141,27 @@ class ReportStatusView(APIView):
         except EIAReport.DoesNotExist:
              return envelope(error={"code": 404, "message": "Report not found."}, status_code=404)
 
+        # Self-healing sweep for stuck reports.
+        # Generation runs in a background thread. If the worker is hard-killed
+        # mid-render (out-of-memory or a platform restart), that thread's
+        # except/finally never runs and the report is left in 'generating'
+        # forever — the UI then spins indefinitely. Because the frontend polls
+        # this endpoint continuously, we use it as a cheap watchdog: any report
+        # that has been 'generating' longer than STUCK_AFTER is marked failed.
+        if report.status == 'generating':
+            from django.utils import timezone
+            from datetime import timedelta
+            STUCK_AFTER = timedelta(minutes=10)
+            last_touched = report.updated_at or report.created_at
+            if last_touched and (timezone.now() - last_touched) > STUCK_AFTER:
+                report.status = 'failed'
+                report.error_message = (
+                    "Generation timed out: the worker was likely terminated "
+                    "(out-of-memory or restart) before the report finished. "
+                    "Please retry; if this recurs, reduce report size/memory load."
+                )
+                report.save(update_fields=['status', 'error_message'])
+
         return envelope(data={
             "report_id": str(report.id),
             "status": report.status,

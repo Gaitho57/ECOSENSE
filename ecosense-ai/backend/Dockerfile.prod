@@ -54,4 +54,13 @@ RUN python manage.py collectstatic --noinput || true
 
 EXPOSE 8000
 
-CMD ["gunicorn", "core.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "2", "--worker-class", "gevent", "--worker-connections", "100", "--timeout", "300"]
+# Sync workers with threads (NOT gevent): report generation runs in a real
+# background OS thread inside the view. Under gevent, monkey.patch_all() turns
+# that thread into a cooperative greenlet — CPU-bound WeasyPrint/ML work never
+# yields, blocks the event loop, and the master SIGKILLs the "hung" worker,
+# leaving reports stuck in 'generating' forever. Sync workers avoid that:
+#   --workers 1   keep peak memory low on a small instance
+#   --threads 4   serve status polling concurrently with the generation thread
+#   --timeout 120 only bounds in-request time; the 202 returns immediately, so
+#                 the idle worker keeps heartbeating while generation continues
+CMD ["gunicorn", "core.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "1", "--threads", "4", "--timeout", "120"]

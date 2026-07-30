@@ -4,8 +4,9 @@ Expanded to professional 20-100 page depth.
 """
 
 from io import BytesIO
-import boto3
 from django.conf import settings
+# boto3 is imported lazily inside generate_docx_report() (only when an S3
+# upload is actually attempted) to keep idle worker memory low.
 from docx import Document
 from docx.shared import Pt, RGBColor, Inches
 from docx.enum.text import WD_ALIGN_PARAGRAPH
@@ -414,6 +415,7 @@ def generate_docx_report(project_id: str, tenant_id: str, version: int, report_d
 
     if getattr(settings, "AWS_ACCESS_KEY_ID", None):
         try:
+            import boto3
             s3 = boto3.client('s3')
             s3.put_object(Bucket=bucket_name, Key=s3_key, Body=docx_bytes, ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document")
             url = s3.generate_presigned_url('get_object', Params={'Bucket': bucket_name, 'Key': s3_key}, ExpiresIn=604800)
