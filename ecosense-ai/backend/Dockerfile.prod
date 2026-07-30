@@ -54,6 +54,4 @@ RUN python manage.py collectstatic --noinput || true
 
 EXPOSE 8000
 
-# --timeout 120: baseline/report generation makes several external API calls
-# and can exceed gunicorn's 30s default when run synchronously (no Celery worker).
-CMD ["gunicorn", "core.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "4", "--threads", "2", "--timeout", "120"]
+CMD ["gunicorn", "core.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "2", "--worker-class", "gevent", "--worker-connections", "100", "--timeout", "300"]
