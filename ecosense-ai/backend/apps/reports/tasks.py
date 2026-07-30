@@ -73,9 +73,10 @@ def perform_report_generation(project_id: str, format: str = 'pdf', jurisdiction
          report_data = compile_report_data(project_id)
     except Exception as e:
          traceback.print_exc()
-         logger.error(f"Compilation pipeline failed: {e}")
+         tb = traceback.format_exc()
+         logger.error(f"Compilation pipeline failed: {e}\n{tb}")
          report.status = 'failed'
-         report.error_message = f"Compilation failed: {e}"
+         report.error_message = f"Compilation failed: {str(e)}\n\n{tb}"[-1000:]
          report.save(update_fields=['status', 'error_message'])
          return None
 
@@ -117,16 +118,11 @@ def perform_report_generation(project_id: str, format: str = 'pdf', jurisdiction
         
         return str(report.id)
     except Exception as e:
-        logger.error(f"Generator bounds failed explicitly: {e}")
-        # Capture full traceback diagnostic
         tb = traceback.format_exc()
-        try:
-            with open("generation_error.log", "a") as f:
-                f.write(f"\n--- VERSION GENERATION ERROR TRACEBACK ---\n{tb}\n")
-        except:
-            pass
+        logger.error(f"Generator bounds failed explicitly: {e}\n{tb}")
+        # Store full traceback in report so it surfaces in the status endpoint
         report.status = 'failed'
-        report.error_message = f"Error: {str(e)}"
+        report.error_message = f"Generation failed: {str(e)}\n\n{tb}"[-1000:]
         report.save(update_fields=['status', 'error_message'])
         return None
 

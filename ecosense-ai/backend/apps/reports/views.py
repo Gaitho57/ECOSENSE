@@ -73,67 +73,62 @@ class GenerateReportView(APIView):
                  status='generating',
              )
 
-        # Dispatch
-        try:
-            if getattr(settings, "CELERY_TASK_ALWAYS_EAGER", False):
-                # When running without a Celery worker (e.g. Render Web Service without Redis),
-                # running synchronously blocks the HTTP request and triggers a 100s Gateway Timeout.
-                # To prevent "Network Error" on the frontend, we run the compilation in a background thread.
-                import multiprocessing
-                import uuid
-                
-                def bg_task(p_id, f, j, l, r_id):
-                    # Close inherited connections so child process gets fresh DB sockets
-                    from django.db import connection
-                    connection.close()
-                    
-                    from apps.reports.tasks import perform_report_generation
-                    try:
-                        perform_report_generation(p_id, f, j, l, report_id=r_id)
-                    except Exception as e:
-                        logger.exception("Multiprocessing report generation failed")
-                
-                p = multiprocessing.Process(
-                    target=bg_task,
-                    args=(str(project_id), fmt, jurisdiction, language, str(report.id))
-                )
-                p.start()
-                
-                return envelope(
-                    data={
-                        "report_id": str(report.id),
-                        "task_id": str(uuid.uuid4()),
-                        "status": report.status,
-                        "message": "Report generation started.",
-                    },
-                    status_code=status.HTTP_202_ACCEPTED,
-                )
-            else:
-                async_result = generate_report.delay(
-                    str(project_id), fmt, jurisdiction, language, report_id=str(report.id)
-                )
-                
-                return envelope(
-                    data={
-                        "report_id": str(report.id),
-                        "task_id": async_result.id,
-                        "status": report.status,
-                        "message": "Report generation started.",
-                    },
-                    status_code=status.HTTP_202_ACCEPTED,
-                )
+        # Dispatch: always fire-and-forget via a background thread so the HTTP
+        # response returns immediately (prevents Render's 100-second timeout).
+        # Threading (not multiprocessing) is used because:
+        #   - Render containers block fork()-based multiprocessing
+        #   - WeasyPrint/PDF rendering is mostly I/O-bound, not CPU-bound
+        #   - Threads share the same Django app registry & DB connection pool
+        import threading
 
-        except Exception as exc:  # noqa: BLE001 - report the real cause
-            logger.exception("Report generation failed for project %s", project_id)
+        def _bg_generate(p_id, f, j, l, r_id):
+            """
+            Runs inside a daemon thread. Opens a fresh DB connection for the
+            thread so it doesn't reuse the request's connection that will be
+            closed when the view returns.
+            """
+            import django.db
+            # Close the inherited request DB connection; Django will open a
+            # new one automatically when the thread first hits the DB.
+            django.db.close_old_connections()
             try:
-                report.refresh_from_db()
-                detail = report.error_message
+                from apps.reports.tasks import perform_report_generation
+                perform_report_generation(p_id, f, j, l, report_id=r_id)
             except Exception:
-                detail = None
-            return envelope(
-                error={"code": 500, "message": f"Report generation dispatch failed: {detail or exc}", "details": {}},
-                status_code=500,
-            )
+                logger.exception(
+                    "Background report generation failed for project %s report %s",
+                    p_id, r_id
+                )
+                # Make sure the report record is marked failed so the frontend
+                # stops polling and shows an error message.
+                try:
+                    from apps.reports.models import EIAReport
+                    import traceback
+                    EIAReport.all_objects.filter(id=r_id).update(
+                        status='failed',
+                        error_message=traceback.format_exc()[-500:]
+                    )
+                except Exception:
+                    pass
+            finally:
+                django.db.close_old_connections()
+
+        t = threading.Thread(
+            target=_bg_generate,
+            args=(str(project_id), fmt, jurisdiction, language, str(report.id)),
+            daemon=True,  # Don't block Gunicorn worker shutdown
+        )
+        t.start()
+
+        return envelope(
+            data={
+                "report_id": str(report.id),
+                "task_id": str(report.id),  # Use report_id as task_id for polling
+                "status": report.status,
+                "message": "Report generation started. Poll /status/ for updates.",
+            },
+            status_code=status.HTTP_202_ACCEPTED,
+        )
 
 
 class ReportStatusView(APIView):
