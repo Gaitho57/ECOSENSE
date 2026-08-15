@@ -318,3 +318,361 @@ class CommunityTemplatesView(APIView):
         templates["baraza_qr_codes"] = baraza_qr_codes
         return envelope(data=templates)
 
+
+# ═══════════════════════════════════════════════════════════════════════════ #
+# New Community Engagement Endpoints (Audit Remediation Sprint)
+# ═══════════════════════════════════════════════════════════════════════════ #
+
+class BarazaCreateView(APIView):
+    """
+    Schedule a new baraza (town hall) event for a project.
+    Creates or fetches the ParticipationWorkflow and adds a BarazaEvent.
+    """
+    permission_classes = [IsAuthenticated, IsSameTenant]
+
+    def post(self, request, project_id):
+        from apps.community.models import ParticipationWorkflow, BarazaEvent
+        from django.utils.dateparse import parse_datetime
+
+        try:
+            project = Project.objects.get(id=project_id)
+            self.check_object_permissions(request, project)
+        except Project.DoesNotExist:
+            return envelope(error={"code": 404, "message": "Project not found."}, status_code=404)
+
+        date_str = request.data.get("date_scheduled", "")
+        location = request.data.get("location_name", "").strip()
+        if not date_str or not location:
+            return envelope(
+                error={"code": 400, "message": "date_scheduled and location_name are required."},
+                status_code=400,
+            )
+
+        dt = parse_datetime(date_str)
+        if not dt:
+            return envelope(
+                error={"code": 400, "message": "Invalid date_scheduled format. Use ISO 8601."},
+                status_code=400,
+            )
+
+        workflow, _ = ParticipationWorkflow.objects.get_or_create(
+            project=project,
+            defaults={"tenant_id": project.tenant_id},
+        )
+
+        event = BarazaEvent.objects.create(
+            workflow=workflow,
+            date_scheduled=dt,
+            location_name=location,
+            chief_name=request.data.get("chief_name", ""),
+            expected_attendance=int(request.data.get("expected_attendance", 50)),
+        )
+
+        # Update workflow status
+        if workflow.baraza_status == "pending":
+            workflow.baraza_status = "scheduled"
+            workflow.save(update_fields=["baraza_status"])
+
+        return envelope(
+            data={
+                "baraza_id": str(event.id),
+                "qr_token": str(event.qr_token),
+                "location": event.location_name,
+                "date": event.date_scheduled.isoformat(),
+                "status": workflow.baraza_status,
+                "message": "Baraza event scheduled successfully.",
+            },
+            status_code=201,
+        )
+
+    def get(self, request, project_id):
+        """List all baraza events for a project."""
+        from apps.community.models import ParticipationWorkflow, BarazaEvent
+
+        try:
+            project = Project.objects.get(id=project_id)
+            self.check_object_permissions(request, project)
+        except Project.DoesNotExist:
+            return envelope(error={"code": 404, "message": "Project not found."}, status_code=404)
+
+        workflow = ParticipationWorkflow.objects.filter(project=project).first()
+        if not workflow:
+            return envelope(data=[], meta={"total": 0})
+
+        events = BarazaEvent.objects.filter(workflow=workflow).order_by("date_scheduled")
+        data = [
+            {
+                "id": str(e.id),
+                "location": e.location_name,
+                "date": e.date_scheduled.isoformat(),
+                "chief_name": e.chief_name,
+                "expected_attendance": e.expected_attendance,
+                "actual_attendance": e.actual_attendance,
+                "minutes_summary": e.minutes_summary,
+                "qr_token": str(e.qr_token),
+            }
+            for e in events
+        ]
+        return envelope(data=data, meta={"total": len(data)})
+
+
+class LogConsultationView(APIView):
+    """
+    Batch-create CommunityFeedback entries from a consultant logging
+    post-baraza feedback manually. This is the primary route to flip
+    is_simulated → False in generated reports.
+    """
+    permission_classes = [IsAuthenticated, IsSameTenant]
+
+    def post(self, request, project_id):
+        from apps.community.models import BarazaEvent, ParticipationWorkflow
+
+        try:
+            project = Project.objects.get(id=project_id)
+            self.check_object_permissions(request, project)
+        except Project.DoesNotExist:
+            return envelope(error={"code": 404, "message": "Project not found."}, status_code=404)
+
+        entries = request.data.get("entries", [])
+        if not entries or not isinstance(entries, list):
+            return envelope(
+                error={"code": 400, "message": "entries must be a non-empty list."},
+                status_code=400,
+            )
+
+        baraza_event_id = request.data.get("baraza_event_id")
+        baraza_event = None
+        if baraza_event_id:
+            try:
+                baraza_event = BarazaEvent.objects.get(id=baraza_event_id)
+            except BarazaEvent.DoesNotExist:
+                pass
+
+        created = []
+        for entry in entries:
+            text = (entry.get("comment") or "").strip()
+            if not text:
+                continue
+            fb = CommunityFeedback.objects.create(
+                project=project,
+                tenant_id=project.tenant_id,
+                channel="consultant_entry",
+                raw_text=text,
+                submitter_name=entry.get("submitter_name", ""),
+                submitter_role=entry.get("role", ""),
+                community_name=entry.get("community_name", ""),
+                sentiment=entry.get("sentiment", "neutral"),
+                is_anonymous=not bool(entry.get("submitter_name")),
+                baraza_event=baraza_event,
+            )
+            # Run NLP in background (non-critical)
+            try:
+                from apps.community.nlp import process_feedback_nlp
+                process_feedback_nlp.delay(str(fb.id))
+            except Exception:
+                pass
+            created.append(str(fb.id))
+
+        # If we now have real entries, mark the workflow baraza as completed
+        real_count = CommunityFeedback.objects.filter(project=project, channel="consultant_entry").count()
+        if real_count >= 5:
+            workflow = ParticipationWorkflow.objects.filter(project=project).first()
+            if workflow and workflow.baraza_status != "completed":
+                workflow.baraza_status = "completed"
+                workflow.save(update_fields=["baraza_status"])
+
+        return envelope(
+            data={
+                "created": len(created),
+                "ids": created,
+                "message": (
+                    f"{len(created)} feedback entries logged. "
+                    "Report simulation flag will be cleared on next generation."
+                ),
+            },
+            status_code=201,
+        )
+
+
+class UploadEvidenceView(APIView):
+    """
+    Upload evidence files (attendance register, photos, newspaper clipping)
+    to the ParticipationWorkflow for a project.
+    """
+    permission_classes = [IsAuthenticated, IsSameTenant]
+
+    def post(self, request, project_id):
+        from apps.community.models import ParticipationWorkflow
+
+        try:
+            project = Project.objects.get(id=project_id)
+            self.check_object_permissions(request, project)
+        except Project.DoesNotExist:
+            return envelope(error={"code": 404, "message": "Project not found."}, status_code=404)
+
+        workflow, _ = ParticipationWorkflow.objects.get_or_create(
+            project=project,
+            defaults={"tenant_id": project.tenant_id},
+        )
+
+        update_fields = []
+        uploaded = []
+
+        if "attendance_register" in request.FILES:
+            workflow.attendance_register_file = request.FILES["attendance_register"]
+            update_fields.append("attendance_register_file")
+            uploaded.append("attendance_register")
+
+        if "photos" in request.FILES:
+            workflow.photos_file = request.FILES["photos"]
+            update_fields.append("photos_file")
+            uploaded.append("photos")
+
+        if "newspaper_clipping" in request.FILES:
+            workflow.newspaper_clipping_file = request.FILES["newspaper_clipping"]
+            update_fields.append("newspaper_clipping_file")
+            # Promote status to 'published' when clipping is uploaded
+            workflow.newspaper_notice_status = "published"
+            update_fields.append("newspaper_notice_status")
+            uploaded.append("newspaper_clipping")
+
+        if update_fields:
+            workflow.save(update_fields=update_fields)
+
+        return envelope(
+            data={
+                "uploaded": uploaded,
+                "workflow_status": {
+                    "baraza": workflow.baraza_status,
+                    "newspaper": workflow.newspaper_notice_status,
+                    "radio": workflow.radio_announcement_status,
+                    "is_compliant": workflow.is_compliant(),
+                },
+                "message": f"Evidence uploaded: {', '.join(uploaded) or 'none'}.",
+            },
+            status_code=200,
+        )
+
+
+class SMSCampaignView(APIView):
+    """
+    Send (or simulate) an outbound SMS campaign to community stakeholders.
+    In development mode (simulate_only=True, the default), messages are
+    logged to the DB but NOT sent via Africa's Talking.
+    """
+    permission_classes = [IsAuthenticated, IsSameTenant]
+
+    def post(self, request, project_id):
+        from apps.community.sms import send_bulk_sms
+
+        try:
+            project = Project.objects.get(id=project_id)
+            self.check_object_permissions(request, project)
+        except Project.DoesNotExist:
+            return envelope(error={"code": 404, "message": "Project not found."}, status_code=404)
+
+        message_body = request.data.get("message_body", "").strip()
+        phone_numbers_raw = request.data.get("phone_numbers", "")
+        if not message_body:
+            return envelope(error={"code": 400, "message": "message_body is required."}, status_code=400)
+
+        # Accept either a list or a newline-separated string
+        if isinstance(phone_numbers_raw, list):
+            phone_numbers = phone_numbers_raw
+        else:
+            phone_numbers = [n.strip() for n in str(phone_numbers_raw).splitlines() if n.strip()]
+
+        if not phone_numbers:
+            return envelope(error={"code": 400, "message": "At least one phone number is required."}, status_code=400)
+
+        # Always simulate during development
+        result = send_bulk_sms(
+            project_id=str(project_id),
+            message_body=message_body,
+            phone_numbers=phone_numbers,
+            simulate_only=True,  # Switch to False when going live
+        )
+
+        if "error" in result:
+            return envelope(error={"code": 400, "message": result["error"]}, status_code=400)
+
+        return envelope(data=result, status_code=201)
+
+    def get(self, request, project_id):
+        """List SMS campaigns for this project."""
+        from apps.community.models import SMSCampaign
+
+        try:
+            project = Project.objects.get(id=project_id)
+            self.check_object_permissions(request, project)
+        except Project.DoesNotExist:
+            return envelope(error={"code": 404, "message": "Project not found."}, status_code=404)
+
+        campaigns = SMSCampaign.objects.filter(project=project)
+        data = [
+            {
+                "id": str(c.id),
+                "recipient_count": c.recipient_count,
+                "status": c.status,
+                "simulate_only": c.simulate_only,
+                "sent_at": c.sent_at.isoformat() if c.sent_at else None,
+                "message_preview": c.message_body[:120],
+            }
+            for c in campaigns
+        ]
+        return envelope(data=data, meta={"total": len(data)})
+
+
+class GazetteNoticeView(APIView):
+    """
+    Generate and download the bilingual (English + Swahili) gazette notice
+    in PDF or DOCX format. Marks the ParticipationWorkflow as 'generated'
+    on first download.
+    """
+    permission_classes = [IsAuthenticated, IsSameTenant]
+
+    def get(self, request, project_id, fmt="pdf"):
+        from django.http import HttpResponse
+        from apps.community.gazette_generator import generate_gazette_pdf, generate_gazette_docx
+        from apps.community.models import ParticipationWorkflow
+
+        try:
+            project = Project.objects.get(id=project_id)
+            self.check_object_permissions(request, project)
+        except Project.DoesNotExist:
+            return HttpResponse("Project not found.", status=404)
+
+        try:
+            if fmt == "docx":
+                file_bytes = generate_gazette_docx(str(project_id))
+                content_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                filename = f"gazette_notice_{project.name.replace(' ', '_')}.docx"
+            else:
+                file_bytes = generate_gazette_pdf(str(project_id))
+                content_type = "application/pdf"
+                filename = f"gazette_notice_{project.name.replace(' ', '_')}.pdf"
+
+            # Mark workflow notice as generated
+            try:
+                workflow = ParticipationWorkflow.objects.get(project=project)
+                if workflow.newspaper_notice_status == "pending":
+                    workflow.newspaper_notice_status = "generated"
+                    workflow.save(update_fields=["newspaper_notice_status"])
+            except ParticipationWorkflow.DoesNotExist:
+                ParticipationWorkflow.objects.create(
+                    project=project,
+                    tenant_id=project.tenant_id,
+                    newspaper_notice_status="generated",
+                )
+
+            response = HttpResponse(file_bytes, content_type=content_type)
+            response["Content-Disposition"] = f'attachment; filename="{filename}"'
+            return response
+
+        except Exception as exc:
+            logger.exception("Gazette generation failed for project %s", project_id)
+            return envelope(
+                error={"code": 500, "message": f"Gazette generation failed: {exc}"},
+                status_code=500,
+            )
+

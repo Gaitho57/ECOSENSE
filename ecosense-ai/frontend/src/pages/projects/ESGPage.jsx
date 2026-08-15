@@ -122,7 +122,7 @@ export default function ESGPage() {
        {/* Row 3: Audit Table */}
        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mt-8">
             <div className="px-6 py-5 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
-                 <h3 className="font-bold text-gray-800 uppercase tracking-widest text-sm">Immutable Web3 Execution Leger (Polygon Mumbai)</h3>
+                 <h3 className="font-bold text-gray-800 uppercase tracking-widest text-sm">Immutable Audit Ledger (Polygon Amoy Testnet)</h3>
             </div>
             
             <div className="overflow-x-auto">
@@ -146,22 +146,50 @@ export default function ESGPage() {
                                         {a.data_hash.substring(0, 16)}...
                                    </td>
                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        {a.tx_hash ? (
-                                             <a href={`https://mumbai.polygonscan.com/tx/${a.tx_hash}`} target="_blank" rel="noreferrer" className="text-blue-500 hover:underline font-mono text-xs font-bold">
-                                                  {a.tx_hash.substring(0, 16)}...
+                                        {a.status === 'local_only' || (a.tx_hash && a.tx_hash.startsWith('local:')) ? (
+                                             <span
+                                                  title="Tamper-evident local record. Blockchain verification not configured."
+                                                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-gray-100 text-gray-600 text-[10px] font-black uppercase tracking-widest border border-gray-300 cursor-default"
+                                             >
+                                                  🔒 Local Audit Hash
+                                             </span>
+                                        ) : a.status === 'confirmed' && a.tx_hash && !a.tx_hash.startsWith('local:') ? (
+                                             <a
+                                                  href={`https://amoy.polygonscan.com/tx/${a.tx_hash}`}
+                                                  target="_blank"
+                                                  rel="noreferrer"
+                                                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-green-100 text-green-700 text-[10px] font-black uppercase tracking-widest border border-green-300 hover:bg-green-200 transition-colors"
+                                             >
+                                                  ✅ {a.tx_hash.substring(0, 14)}...
                                              </a>
-                                        ) : <span className="text-gray-400 italic font-mono text-xs">Awaiting Execution</span>}
+                                        ) : (
+                                             <span className="text-gray-400 italic font-mono text-xs">Awaiting Execution</span>
+                                        )}
                                    </td>
                                    <td className="px-6 py-4 whitespace-nowrap text-xs font-bold text-gray-500">
                                         {new Date(a.timestamp).toLocaleString()}
                                    </td>
                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
-                                             a.status === 'confirmed' ? 'bg-green-100 text-green-700' :
-                                             a.status === 'failed' ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700 animate-pulse'
-                                        }`}>
-                                            {a.status}
-                                        </span>
+                                        {(a.status === 'local_only' || (a.tx_hash && a.tx_hash.startsWith('local:'))) ? (
+                                             <span
+                                                  title="Tamper-evident local record. Blockchain verification not configured."
+                                                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-gray-100 text-gray-500 text-[10px] font-black uppercase tracking-widest border border-gray-300 cursor-default"
+                                             >
+                                                  🔒 Local Audit Hash
+                                             </span>
+                                        ) : a.status === 'confirmed' && a.tx_hash && !a.tx_hash.startsWith('local:') ? (
+                                             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-green-100 text-green-700 text-[10px] font-black uppercase tracking-widest border border-green-300">
+                                                  ✅ On-Chain Verified
+                                             </span>
+                                        ) : a.status === 'failed' ? (
+                                             <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-red-100 text-red-700 text-[10px] font-black uppercase tracking-widest border border-red-300">
+                                                  ❌ Failed
+                                             </span>
+                                        ) : (
+                                             <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-gray-100 text-gray-500 text-[10px] font-black uppercase tracking-widest border border-gray-300 animate-pulse">
+                                                  ⏳ Pending
+                                             </span>
+                                        )}
                                    </td>
                                </tr>
                            ))}
