@@ -44,6 +44,7 @@ urlpatterns = [
     path("api/v1/compliance/", include("apps.compliance.urls")),
     path("api/v1/emp/", include("apps.emp.urls")),
     path("api/v1/esg/", include("apps.esg.urls")),
+    path("api/v1/ehs/", include("apps.ehs.urls")),
     # Phase 1 — Regulation Registry & Document Checklist
     path("api/v1/regulations/", include("apps.regulations.urls")),
     # Phase 2 & 3 — Site Visit, Public Notice, Public Submissions

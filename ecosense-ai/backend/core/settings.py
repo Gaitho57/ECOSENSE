@@ -80,6 +80,7 @@ INSTALLED_APPS = [
     "apps.reports",
     "apps.emp",
     "apps.esg",
+    "apps.ehs",
 ]
 
 MIDDLEWARE = [

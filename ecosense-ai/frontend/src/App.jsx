@@ -26,6 +26,7 @@ const CommunityPage = lazy(() => import('./pages/projects/CommunityPage'));
 const ReportPage = lazy(() => import('./pages/projects/ReportPage'));
 const ReportEditorPage = lazy(() => import('./pages/projects/ReportEditorPage'));
 const CompliancePage = lazy(() => import('./pages/projects/CompliancePage'));
+const EHSIncidentsPage = lazy(() => import('./pages/projects/EHSIncidentsPage'));
 
 const SettingsPage = lazy(() => import('./pages/settings/SettingsPage'));
 const BillingPage = lazy(() => import('./pages/billing/BillingPage'));
@@ -98,6 +99,7 @@ function App() {
                  <Route path="projects/:projectId/report" element={<ReportPage />} />
                  <Route path="projects/:projectId/report-editor" element={<ReportEditorPage />} />
                  <Route path="projects/:projectId/compliance" element={<CompliancePage />} />
+                 <Route path="projects/:projectId/ehs" element={<EHSIncidentsPage />} />
                  
                  <Route path="settings" element={<SettingsPage />} />
                  <Route path="billing" element={<BillingPage />} />

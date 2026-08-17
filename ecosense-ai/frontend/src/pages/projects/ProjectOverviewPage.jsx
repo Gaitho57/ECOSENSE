@@ -127,6 +127,7 @@ export default function ProjectOverviewPage() {
     { id: 'approved',   label: '6. NEMA Submit', path: `/dashboard/projects/${projectId}` },
     { id: 'compliance', label: '7. Compliance',  path: `/dashboard/projects/${projectId}/compliance` },
     { id: 'monitoring', label: '8. ESG Monitor', path: `/dashboard/projects/${projectId}/monitoring` },
+    { id: 'ehs', label: '9. EHS Incidents', path: `/dashboard/projects/${projectId}/ehs` },
   ];
   const statusIndexMap = { scoping: 0, baseline: 1, assessment: 2, review: 3, submitted: 4, approved: 5, compliance: 6, monitoring: 7 };
   const currentIndex = statusIndexMap[project.status] ?? 0;
@@ -241,6 +242,11 @@ export default function ProjectOverviewPage() {
             subtitle={mods.report?.compliance_score != null ? `Compliance: ${mods.report.compliance_score}% (${mods.report.compliance_grade})` : 'Not generated'}
             status={mods.report?.status || 'not_started'}
             to={`/dashboard/projects/${projectId}/report`}
+          />
+          <ModuleCard icon="⚕️" title="EHS Incidents"
+            subtitle="Incident Reporting"
+            status="running"
+            to={`/dashboard/projects/${projectId}/ehs`}
           />
         </div>
       </div>
