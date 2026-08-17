@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import axiosInstance from '../../api/axiosInstance';
+import ModuleHeader from '../../components/layout/ModuleHeader';
 
 // ─── Collapsible Panel Wrapper ───────────────────────────────────────────────
 function CollapsiblePanel({ title, children }) {
@@ -256,11 +257,12 @@ export default function CommunityPage() {
     <div className="min-h-screen bg-gray-50 p-6 lg:p-10 space-y-8">
       
       {/* Header */}
-      <div className="flex justify-between items-end">
-          <div>
-              <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Community Engagement</h1>
-              <p className="text-gray-500 mt-1 max-w-2xl">NLP Aggregation mapping public participation via SMS payloads and direct portal metrics cleanly.</p>
-          </div>
+      <div className="flex justify-between items-start mb-6">
+          <ModuleHeader 
+            icon="👥"
+            title="Community Engagement"
+            description="NLP Aggregation mapping public participation via SMS payloads and direct portal metrics cleanly."
+          />
           <div className="flex gap-4">
               <Link to={`/participate/${projectId}`} target="_blank" className="bg-blue-50 text-blue-700 font-bold py-2 px-6 rounded-lg opacity-90 hover:opacity-100 transition-opacity flex items-center">
                   View Public Portal

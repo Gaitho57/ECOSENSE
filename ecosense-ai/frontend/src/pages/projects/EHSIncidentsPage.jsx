@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import axiosInstance from '../../api/axiosInstance';
 import IncidentReportForm from '../../components/ehs/IncidentReportForm';
+import ModuleHeader from '../../components/layout/ModuleHeader';
 
 export default function EHSIncidentsPage() {
   const { projectId } = useParams();
@@ -42,8 +43,11 @@ export default function EHSIncidentsPage() {
               ← Back to Project
             </Link>
           </div>
-          <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">EHS Incidents Dashboard</h1>
-          <p className="text-gray-500 mt-1 text-sm">Monitor and report Environment, Health, and Safety incidents.</p>
+          <ModuleHeader 
+            icon="⚕️"
+            title="EHS Incidents Dashboard"
+            description="Monitor and report Environment, Health, and Safety incidents. Ensure OSHA and DOSH 1 compliance with accurate record keeping."
+          />
         </div>
         
         {!showForm && (

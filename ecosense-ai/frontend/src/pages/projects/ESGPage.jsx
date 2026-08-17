@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import axiosInstance from '../../api/axiosInstance';
 import { RadialBarChart, RadialBar, Tooltip, Legend, ResponsiveContainer, PolarAngleAxis } from 'recharts';
+import ModuleHeader from '../../components/layout/ModuleHeader';
 
 export default function ESGPage() {
   const { projectId = 'placeholder-id' } = useParams();
@@ -50,11 +51,12 @@ export default function ESGPage() {
   return (
     <div className="min-h-screen bg-gray-50 p-6 lg:p-10 space-y-8">
        
-       <div className="flex justify-between items-end border-b border-gray-200 pb-6 mb-6">
-           <div>
-               <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">ESG Performance Index</h1>
-               <p className="text-gray-500 mt-1 max-w-3xl">Decentralized mapping structuring environmental footprints against Web3 public legers generating cryptographic verification bounds cleanly.</p>
-           </div>
+       <div className="flex justify-between items-start border-b border-gray-200 pb-6 mb-6">
+           <ModuleHeader 
+             icon="🌍"
+             title="ESG Performance Index"
+             description="Decentralized mapping structuring environmental footprints against Web3 public legers generating cryptographic verification bounds cleanly."
+           />
            
            <button 
                disabled={score.overall < 70}
