@@ -44,14 +44,16 @@ class ComplianceEngine:
         Executes structural tracking iterating through variables scoring arrays dynamically securely.
         """
         try:
-             project = Project.objects.get(id=project_id)
+             # all_objects: run_check is called from a background thread
+             # (via compile_report_data) with no tenant context.
+             project = Project.all_objects.get(id=project_id)
         except Project.DoesNotExist:
              raise ValueError("Project boundary invalid natively.")
 
-        baseline = BaselineReport.objects.filter(project=project).first()
-        predictions = ImpactPrediction.objects.filter(project=project)
-        feedbacks = CommunityFeedback.objects.filter(project=project)
-        reports = EIAReport.objects.filter(project=project)
+        baseline = BaselineReport.all_objects.filter(project=project).first()
+        predictions = ImpactPrediction.all_objects.filter(project=project)
+        feedbacks = CommunityFeedback.all_objects.filter(project=project)
+        reports = EIAReport.all_objects.filter(project=project)
 
         # Drafted report sections (used to verify a rule's evidence actually
         # exists in the document rather than assuming it).
@@ -59,7 +61,7 @@ class ComplianceEngine:
             from apps.reports.models import ReportSection
             sections = {
                 s.section_id: (s.content or "")
-                for s in ReportSection.objects.filter(project=project)
+                for s in ReportSection.all_objects.filter(project=project)
             }
         except Exception:
             sections = {}

@@ -33,7 +33,8 @@ def compile_report_data(project_id: str) -> dict:
     Builds the massive structured context array resolving parameters seamlessly safely catching missing modules.
     Expands data for professional-grade 20-100 page reports.
     """
-    project = Project.objects.get(id=project_id)
+    # all_objects: this runs in a background thread with no tenant context.
+    project = Project.all_objects.get(id=project_id)
     
     # Safely handle location (handle both GeoDjango objects and string fallbacks)
     loc = project.location
@@ -104,7 +105,7 @@ def compile_report_data(project_id: str) -> dict:
 
     # 1. Baseline Exhaustive Mapping (DB Fetch)
     try:
-        baseline = BaselineReport.objects.get(project=project)
+        baseline = BaselineReport.all_objects.get(project=project)
         
         # Align keys with template expectations
         air_data = baseline.air_quality_baseline or {}
@@ -294,7 +295,7 @@ def compile_report_data(project_id: str) -> dict:
         })
     
     # 2. Community Feedback (Fetched early for context-intersection in mitigations)
-    feedback_objs = CommunityFeedback.objects.filter(project=project).order_by("-submitted_at")
+    feedback_objs = CommunityFeedback.all_objects.filter(project=project).order_by("-submitted_at")
     sentiment_map = {"positive": 0, "neutral": 0, "negative": 0}
     detailed_feedback = []
     
@@ -359,7 +360,7 @@ def compile_report_data(project_id: str) -> dict:
     # 2.2 Physical Participation Workflow (NEW)
     participation_data = {"status": "Incomplete", "baraza": "Pending", "newspaper": "Pending"}
     try:
-        pw = ParticipationWorkflow.objects.get(project=project)
+        pw = ParticipationWorkflow.all_objects.get(project=project)
         total_count = max(feedback_objs.count(), len(detailed_feedback))
         participation_data = {
             "status": "Compliant" if pw.is_compliant() else "Ongoing",
@@ -408,7 +409,7 @@ def compile_report_data(project_id: str) -> dict:
     historical_baseline = pred_engine.get_historical_baseline_context(county_name)
     baseline_data["historical_context"] = historical_baseline
     
-    preds = ImpactPrediction.objects.filter(project=project).order_by("-created_at")
+    preds = ImpactPrediction.all_objects.filter(project=project).order_by("-created_at")
     predictions_data = []
     seen_categories = set()
     
@@ -460,10 +461,10 @@ def compile_report_data(project_id: str) -> dict:
     # pred_engine = PredictionEngine() (Moved up)
 
     # 5. Modular Section Persistence (Expert Overrides)
-    manual_sections = { s.section_id: s.content for s in ReportSection.objects.filter(project=project) }
+    manual_sections = { s.section_id: s.content for s in ReportSection.all_objects.filter(project=project) }
 
     # Fetch Categorized Field Evidence (Photos)
-    media_objs = ProjectMedia.objects.filter(project=project)
+    media_objs = ProjectMedia.all_objects.filter(project=project)
     project_media = {}
     for media in media_objs:
         if media.section_id not in project_media:
@@ -484,7 +485,7 @@ def compile_report_data(project_id: str) -> dict:
 
     # Fetch Statutory Annexes (Title Deeds, Licenses, ToRs)
     from apps.projects.models import ProjectDocument # Ensure imported
-    doc_objs = ProjectDocument.objects.filter(project=project)
+    doc_objs = ProjectDocument.all_objects.filter(project=project)
     statutory_docs = []
     for doc in doc_objs:
         try:
