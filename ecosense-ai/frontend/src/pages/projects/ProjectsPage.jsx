@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axiosInstance from '../../api/axiosInstance';
-import NewProjectModal from '../../components/projects/NewProjectModal';
+import PhasedIntakeWizard from '../../components/projects/PhasedIntakeWizard';
 
 export default function ProjectsPage() {
   const [projects, setProjects] = useState([]);
@@ -111,7 +111,25 @@ export default function ProjectsPage() {
             })}
        </div>
 
-       {isModalOpen && <NewProjectModal onClose={() => setModalOpen(false)} onCreated={fetchProjects} />}
+       {isModalOpen && (
+           <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 sm:p-6 overflow-y-auto">
+               <div className="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto bg-transparent">
+                   <button 
+                       onClick={() => setModalOpen(false)}
+                       className="absolute top-4 right-4 z-[110] bg-white text-gray-500 hover:text-gray-800 rounded-full p-2 shadow-md"
+                   >
+                       ✕
+                   </button>
+                   <PhasedIntakeWizard 
+                       onComplete={async (data, uploadedFiles) => {
+                           // Future: wire to backend POST /projects/
+                           setModalOpen(false);
+                           fetchProjects();
+                       }} 
+                   />
+               </div>
+           </div>
+       )}
     </div>
   );
 }
