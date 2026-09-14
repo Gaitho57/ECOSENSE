@@ -1,20 +1,24 @@
 import React, { useState } from 'react';
 import { Outlet, Link, useLocation, useParams } from 'react-router-dom';
+import useAuthStore from '../../store/authStore';
 
 export default function AppLayout() {
   const { pathname } = useLocation();
   const { projectId } = useParams();
+  const user = useAuthStore((state) => state.user);
   
   const [isSidebarOpen, setSidebarOpen] = useState(true);
 
   // Core navigation
-  const navLinks = [
+  const allNavLinks = [
     { name: 'Dashboard', path: '/dashboard', icon: '📊' },
-    { name: 'Projects', path: '/dashboard/projects', icon: '🌍' },
-    { name: 'Analytics', path: '/dashboard/analytics', icon: '📈' },
+    { name: 'Projects', path: '/dashboard/projects', icon: '📁' },
+    { name: 'Analytics', path: '/dashboard/analytics', icon: '📈', premiumOnly: true },
     { name: 'Billing', path: '/dashboard/billing', icon: '💳' },
     { name: 'Settings', path: '/dashboard/settings', icon: '⚙️' },
   ];
+
+  const navLinks = allNavLinks.filter(link => !link.premiumOnly || user?.tenant_is_premium);
 
   // Specific project navigation (appears when inside a project boundary)
   const projectNavLinks = [

@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import axiosInstance from '../../api/axiosInstance';
+import useAuthStore from '../../store/authStore';
 
 export default function DashboardPage() {
   const [data, setData] = useState(null);
+  const user = useAuthStore((state) => state.user);
+  const isPremium = user?.tenant_is_premium;
 
   useEffect(() => {
        // Mocking the aggregate dashboard limits strictly matching endpoints.
@@ -28,7 +30,7 @@ export default function DashboardPage() {
                { name: 'Approved', count: 2 },
             ],
             activity: [
-               { action: 'Report Submitted to NEMA', project: 'Nairobi Express', time: '10 mins ago', icon: '📄' },
+               { action: 'Report Submitted to NEMA', project: 'Nairobi Express', time: '10 mins ago', icon: '📝' },
                { action: 'IoT Breach Warning', project: 'Athi Steel Mill', time: '1 hr ago', icon: '⚠️' },
                { action: 'Baseline Imagery Scanned', project: 'Olkaria Geo', time: '4 hrs ago', icon: '🛰️' }
             ]
@@ -42,29 +44,51 @@ export default function DashboardPage() {
         
         {/* Row 1: KPI STATS */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-             <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                 <span className="text-gray-400 uppercase tracking-widest text-[10px] font-black inline-block mb-1">Total Projects</span>
+             <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between">
+                 <span className="text-gray-400 uppercase tracking-widest text-[10px] font-black mb-1">Total Projects</span>
                  <div className="text-4xl font-black text-gray-900">{data.total_projects}</div>
              </div>
-             <div className="bg-blue-600 text-white p-6 rounded-2xl shadow-sm">
-                 <span className="text-blue-200 uppercase tracking-widest text-[10px] font-black inline-block mb-1">Active Assessments</span>
-                 <div className="text-4xl font-black">{data.active_assessments}</div>
-             </div>
-             <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                 <span className="text-gray-400 uppercase tracking-widest text-[10px] font-black inline-block mb-1">Reports Compiled</span>
+             
+             {isPremium ? (
+                 <div className="bg-blue-600 text-white p-6 rounded-2xl shadow-sm flex flex-col justify-between">
+                     <span className="text-blue-200 uppercase tracking-widest text-[10px] font-black mb-1">Active Assessments</span>
+                     <div className="text-4xl font-black">{data.active_assessments}</div>
+                 </div>
+             ) : (
+                 <div className="bg-green-600 text-white p-6 rounded-2xl shadow-sm flex flex-col justify-between relative overflow-hidden group hover:bg-green-700 transition-colors cursor-pointer" onClick={() => window.location.href='/dashboard/projects'}>
+                     <span className="text-green-200 uppercase tracking-widest text-[12px] font-black mb-1 z-10 relative">Ready to Draft?</span>
+                     <div className="text-2xl font-black z-10 relative mt-2">+ Start New Report</div>
+                     <div className="absolute -right-4 -bottom-4 opacity-20 text-8xl group-hover:scale-110 transition-transform">📄</div>
+                 </div>
+             )}
+
+             <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between">
+                 <span className="text-gray-400 uppercase tracking-widest text-[10px] font-black mb-1">Reports Compiled</span>
                  <div className="text-4xl font-black text-green-500">{data.reports_generated}</div>
              </div>
-             <div className="bg-red-50 p-6 rounded-2xl border border-red-100 shadow-sm">
-                 <span className="text-red-400 uppercase tracking-widest text-[10px] font-black inline-block mb-1">IoT Alerts (Monthly)</span>
-                 <div className="text-4xl font-black text-red-600">{data.iot_alerts}</div>
-             </div>
+             
+             {isPremium ? (
+                 <div className="bg-red-50 p-6 rounded-2xl border border-red-100 shadow-sm flex flex-col justify-between">
+                     <span className="text-red-400 uppercase tracking-widest text-[10px] font-black mb-1">IoT Alerts (Monthly)</span>
+                     <div className="text-4xl font-black text-red-600">{data.iot_alerts}</div>
+                 </div>
+             ) : (
+                 <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between relative">
+                     <span className="text-gray-400 uppercase tracking-widest text-[10px] font-black mb-1">Credits Remaining</span>
+                     <div className="flex items-center gap-4 mt-1">
+                         <div className="text-4xl font-black text-gray-900">{user?.credits_remaining || 0}</div>
+                         <button className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs rounded uppercase tracking-wider">Buy More</button>
+                     </div>
+                 </div>
+             )}
         </div>
 
         {/* MIDDLE SECTION */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
              
-             {/* LEFT: Table Pipeline Map (Span 2) */}
-             <div className="lg:col-span-2 space-y-8">
+             {/* LEFT: Table Pipeline Map */}
+             <div className={isPremium ? "lg:col-span-2 space-y-8" : "lg:col-span-3 space-y-8"}>
+                 {isPremium && (
                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
                      <div className="flex justify-between items-center mb-6">
                           <h3 className="text-lg font-black text-gray-800 flex items-center gap-2">
@@ -86,6 +110,7 @@ export default function DashboardPage() {
                          </ResponsiveContainer>
                      </div>
                  </div>
+                 )}
 
                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                       <div className="p-6 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
@@ -125,9 +150,10 @@ export default function DashboardPage() {
              </div>
 
              {/* RIGHT: Activity Feeds */}
+             {isPremium && (
              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm">
                   <div className="p-6 border-b border-gray-100 bg-gray-50">
-                       <h3 className="font-bold text-gray-800 text-sm uppercase tracking-widest flex items-center gap-2">⏱️ Network Activity</h3>
+                       <h3 className="font-bold text-gray-800 text-sm uppercase tracking-widest flex items-center gap-2">🌐 Network Activity</h3>
                   </div>
                   <div className="p-6">
                        <div className="relative border-l-2 border-gray-100 ml-4 space-y-8">
@@ -142,6 +168,7 @@ export default function DashboardPage() {
                        </div>
                   </div>
              </div>
+             )}
 
         </div>
     </div>

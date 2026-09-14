@@ -25,6 +25,8 @@ class UserSerializer(serializers.ModelSerializer):
     """
 
     tenant_name = serializers.CharField(source="tenant.name", read_only=True, default=None)
+    tenant_is_premium = serializers.BooleanField(source="tenant.is_premium", read_only=True, default=False)
+    credits_remaining = serializers.IntegerField(source="tenant.credits_remaining", read_only=True, default=0)
 
     class Meta:
         model = User
@@ -36,6 +38,8 @@ class UserSerializer(serializers.ModelSerializer):
             "phone",
             "tenant_id",
             "tenant_name",
+            "tenant_is_premium",
+            "credits_remaining",
             "nema_registration_no",
             "digital_stamp",
             "digital_signature",
