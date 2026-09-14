@@ -34,10 +34,18 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
   const [files, setFiles] = useState({});
   const [position, setPosition] = useState(null); // Map coordinates
   const [formData, setFormData] = useState({
+    projectName: '',
+    projectCategory: 'Infrastructure',
+    siteArea: '',
+    county: '',
+    plotNumber: '',
     proponentName: '',
     pin: '',
-    leadExpertReg: '',
+    proponentEmail: '',
+    proponentPhone: '',
     investmentCost: '',
+    timelineMonths: '',
+    leadExpertReg: 'NEMA/EIA/1234', // Auto-filled from user context
     communityConcerns: '',
     sensitiveReceptors: []
   });
@@ -126,24 +134,96 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
 
         {currentPhase === 1 && (
           <div className="space-y-6 animate-fadeIn">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Proponent Name *</label>
-                <input type="text" name="proponentName" value={formData.proponentName} onChange={handleInputChange} 
-                       className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 p-2 border" placeholder="e.g. KeNHA" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Proponent KRA PIN *</label>
-                <input type="text" name="pin" value={formData.pin} onChange={handleInputChange} 
-                       className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 p-2 border" placeholder="P051..." />
-              </div>
+            
+            {/* Project Details */}
+            <div className="bg-white p-4 rounded-lg border border-gray-200">
+                <h4 className="font-bold text-gray-800 mb-4 border-b pb-2">1. Project Identity & Scope</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Project Title / Name *</label>
+                    <input type="text" name="projectName" value={formData.projectName} onChange={handleInputChange} 
+                           className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 p-2 border" placeholder="e.g. Proposed Bomas-Kiserian Road Upgrade" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Project Category *</label>
+                    <select name="projectCategory" value={formData.projectCategory} onChange={handleInputChange} className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border bg-white">
+                        <option value="Infrastructure">Infrastructure (Roads/Bridges)</option>
+                        <option value="Energy">Energy (Solar/Wind/Geothermal)</option>
+                        <option value="Real Estate">Real Estate & Housing</option>
+                        <option value="Mining">Mining & Quarrying</option>
+                        <option value="Manufacturing">Manufacturing & Processing</option>
+                        <option value="Agriculture">Agriculture & Forestry</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Estimated Investment Cost (KES) *</label>
+                    <input type="number" name="investmentCost" value={formData.investmentCost} onChange={handleInputChange} 
+                           className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 p-2 border" placeholder="e.g. 1500000000" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Construction Timeline (Months) *</label>
+                    <input type="number" name="timelineMonths" value={formData.timelineMonths} onChange={handleInputChange} 
+                           className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. 24" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Site Area / Footprint (Hectares) *</label>
+                    <input type="number" name="siteArea" value={formData.siteArea} onChange={handleInputChange} step="0.1"
+                           className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. 15.5" />
+                  </div>
+                </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
-                <MapPin className="w-4 h-4 mr-1 text-emerald-600" />
-                Project Location (Drop a pin) *
-              </label>
+            {/* Proponent Details */}
+            <div className="bg-white p-4 rounded-lg border border-gray-200">
+                <h4 className="font-bold text-gray-800 mb-4 border-b pb-2">2. Proponent Profile</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Proponent Name (Company/Agency) *</label>
+                    <input type="text" name="proponentName" value={formData.proponentName} onChange={handleInputChange} 
+                           className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. KeNHA" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Proponent KRA PIN *</label>
+                    <input type="text" name="pin" value={formData.pin} onChange={handleInputChange} 
+                           className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="P051..." />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Email Address *</label>
+                    <input type="email" name="proponentEmail" value={formData.proponentEmail} onChange={handleInputChange} 
+                           className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="contact@proponent.co.ke" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number *</label>
+                    <input type="text" name="proponentPhone" value={formData.proponentPhone} onChange={handleInputChange} 
+                           className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="+254..." />
+                  </div>
+                </div>
+            </div>
+
+            {/* Location Details */}
+            <div className="bg-white p-4 rounded-lg border border-gray-200">
+                <h4 className="font-bold text-gray-800 mb-4 border-b pb-2 flex items-center justify-between">
+                    <span>3. Administrative & Spatial Location</span>
+                    <span className="text-xs text-gray-400 font-normal">Lead Expert: {formData.leadExpertReg}</span>
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">County *</label>
+                    <input type="text" name="county" value={formData.county} onChange={handleInputChange} 
+                           className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. Kajiado" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Plot / LR Number *</label>
+                    <input type="text" name="plotNumber" value={formData.plotNumber} onChange={handleInputChange} 
+                           className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. LR No. 1234/56" />
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+                    <MapPin className="w-4 h-4 mr-1 text-emerald-600" />
+                    Spatial Boundary (Drop a pin for Sentinel-2 centroid) *
+                  </label>
               <div className="h-[250px] w-full rounded-md border border-gray-300 overflow-hidden relative z-0">
                 <MapContainer center={[-1.2921, 36.8219]} zoom={11} className="w-full h-full">
                   <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
@@ -246,8 +326,12 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
             </div>
             
             <div className="grid grid-cols-2 gap-4 text-sm bg-white p-4 rounded-lg border">
+              <div><span className="text-gray-500">Project Name:</span> <span className="font-medium text-gray-900">{formData.projectName || 'Missing'}</span></div>
+              <div><span className="text-gray-500">Category:</span> <span className="font-medium text-gray-900">{formData.projectCategory || 'Missing'}</span></div>
               <div><span className="text-gray-500">Proponent:</span> <span className="font-medium text-gray-900">{formData.proponentName || 'Missing'}</span></div>
+              <div><span className="text-gray-500">Location:</span> <span className="font-medium text-gray-900">{formData.county || 'Missing'}, Plot {formData.plotNumber || 'Missing'}</span></div>
               <div><span className="text-gray-500">Coordinates:</span> <span className="font-medium text-gray-900">{position ? `${position[0].toFixed(3)}, ${position[1].toFixed(3)}` : 'Missing'}</span></div>
+              <div><span className="text-gray-500">Cost (KES):</span> <span className="font-medium text-gray-900">{formData.investmentCost ? Number(formData.investmentCost).toLocaleString() : 'Missing'}</span></div>
               <div><span className="text-gray-500">Files Uploaded:</span> <span className="font-medium text-gray-900">{Object.keys(files).length}</span></div>
               <div><span className="text-gray-500">Receptors:</span> <span className="font-medium text-gray-900">{formData.sensitiveReceptors.length} identified</span></div>
             </div>
