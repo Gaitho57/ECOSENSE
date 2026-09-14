@@ -38,13 +38,17 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
     projectCategory: 'Infrastructure',
     siteArea: '',
     county: '',
+    subCounty: '',
+    ward: '',
     plotNumber: '',
+    landOwnership: '',
     proponentName: '',
     pin: '',
     proponentEmail: '',
     proponentPhone: '',
     investmentCost: '',
     timelineMonths: '',
+    operationalLifespan: '',
     leadExpertReg: 'NEMA/EIA/1234', // Auto-filled from user context
     communityConcerns: '',
     sensitiveReceptors: []
@@ -170,6 +174,11 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
                     <input type="number" name="siteArea" value={formData.siteArea} onChange={handleInputChange} step="0.1"
                            className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. 15.5" />
                   </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Operational Lifespan (Years)</label>
+                    <input type="number" name="operationalLifespan" value={formData.operationalLifespan} onChange={handleInputChange} 
+                           className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. 30" />
+                  </div>
                 </div>
             </div>
 
@@ -213,9 +222,30 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
                            className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. Kajiado" />
                   </div>
                   <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Sub-county *</label>
+                    <input type="text" name="subCounty" value={formData.subCounty} onChange={handleInputChange} 
+                           className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. Kajiado North" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Ward *</label>
+                    <input type="text" name="ward" value={formData.ward} onChange={handleInputChange} 
+                           className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. Ongata Rongai" />
+                  </div>
+                  <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Plot / LR Number *</label>
                     <input type="text" name="plotNumber" value={formData.plotNumber} onChange={handleInputChange} 
                            className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. LR No. 1234/56" />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Land Ownership Status *</label>
+                    <select name="landOwnership" value={formData.landOwnership} onChange={handleInputChange} className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border bg-white">
+                        <option value="">Select Ownership Status</option>
+                        <option value="Private Land - Freehold">Private Land - Freehold</option>
+                        <option value="Private Land - Leasehold">Private Land - Leasehold</option>
+                        <option value="Government Land - Way Leave">Government Land - Way Leave</option>
+                        <option value="Community Land">Community Land</option>
+                        <option value="Public Land">Public Land</option>
+                    </select>
                   </div>
                 </div>
                 
@@ -330,9 +360,11 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
               <div><span className="text-gray-500">Project Name:</span> <span className="font-medium text-gray-900">{formData.projectName || 'Missing'}</span></div>
               <div><span className="text-gray-500">Category:</span> <span className="font-medium text-gray-900">{formData.projectCategory || 'Missing'}</span></div>
               <div><span className="text-gray-500">Proponent:</span> <span className="font-medium text-gray-900">{formData.proponentName || 'Missing'}</span></div>
-              <div><span className="text-gray-500">Location:</span> <span className="font-medium text-gray-900">{formData.county || 'Missing'}, Plot {formData.plotNumber || 'Missing'}</span></div>
+              <div><span className="text-gray-500">Location:</span> <span className="font-medium text-gray-900">{formData.county}, {formData.subCounty}, {formData.ward}</span></div>
+              <div><span className="text-gray-500">Plot / Tenure:</span> <span className="font-medium text-gray-900">{formData.plotNumber} ({formData.landOwnership})</span></div>
               <div><span className="text-gray-500">Coordinates:</span> <span className="font-medium text-gray-900">{position ? `${position[0].toFixed(3)}, ${position[1].toFixed(3)}` : 'Missing'}</span></div>
               <div><span className="text-gray-500">Cost (KES):</span> <span className="font-medium text-gray-900">{formData.investmentCost ? Number(formData.investmentCost).toLocaleString() : 'Missing'}</span></div>
+              <div><span className="text-gray-500">Lifespan:</span> <span className="font-medium text-gray-900">{formData.operationalLifespan ? `${formData.operationalLifespan} Years` : 'Missing'}</span></div>
               <div><span className="text-gray-500">Files Uploaded:</span> <span className="font-medium text-gray-900">{Object.keys(files).length}</span></div>
               <div><span className="text-gray-500">Receptors:</span> <span className="font-medium text-gray-900">{formData.sensitiveReceptors.length} identified</span></div>
             </div>
