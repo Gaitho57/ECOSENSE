@@ -230,7 +230,7 @@ def compile_report_data(project_id: str) -> dict:
             "topography": baseline.topography_data or {},
             "coordinates": f"LAT: {lat}, LNG: {lng}",
             "population_density": topo_meta.get("population_density", 0),
-            "building_count": max(15, baseline.satellite_data.get("building_count", 0)) if (baseline.satellite_data and baseline.satellite_data.get('land_cover_class') == 'Built-up') else (baseline.satellite_data.get("building_count", 0) if baseline.satellite_data else 0),
+            "building_count": baseline.satellite_data.get("building_count", "an unverified number of") if baseline.satellite_data else "an unverified number of",
             "water_tower": baseline.satellite_data.get("water_tower_proximity", {"is_sensitive": False}) if baseline.satellite_data else {"is_sensitive": False},
             "elevation_m": 1131.2 if (lat is not None and lng is not None and lat < 0.1 and lat > -0.2 and lng < 35.1 and lng > 34.5 and baseline.satellite_data and baseline.satellite_data.get('elevation_m', 0) < 100) else (1785.4 if (lat is not None and lng is not None and lat < -0.2 and lat > -0.4 and lng < 36.2 and lng > 35.8 and baseline.satellite_data and baseline.satellite_data.get('elevation_m', 0) < 100) else (baseline.satellite_data.get("elevation_m", 0) if baseline.satellite_data else 0)),
             "basin": basin_name,
@@ -269,7 +269,7 @@ def compile_report_data(project_id: str) -> dict:
         if baseline_data.get("topography", {}).get("land_cover_class") in ("Unknown", None):
              if "topography" not in baseline_data:
                   baseline_data["topography"] = {}
-             baseline_data["topography"]["land_cover_class"] = "Mixed Urban/Riparian Vegetation (Lake Basin Heuristic)"
+             baseline_data["topography"]["land_cover_class"] = f"Mixed Vegetation ({county_name} Region Heuristic)"
              
         # 3. Dynamic Site Capacity (Sector Aware)
         unit = "m³/day" if "borehole" in project_type.lower() else "Units/Apartments" if "housing" in project_type.lower() else "Facility Units"
@@ -305,7 +305,7 @@ def compile_report_data(project_id: str) -> dict:
     if feedback_objs.count() == 0:
          # EXPERT V11 DEMO MODE: Project-Aware Mock Submissions (NEMA Compliant 15+ entries)
          roles = ["Area Resident", "Nyumba Kumi Elder", "Local Business Owner", "Youth Leader", "Women Representative", "Healthcare Worker", "Environmental Student"]
-         locations = [f"{baseline_data.get('county_name')} South", f"{baseline_data.get('county_name')} Central", "Athi River Ward", "Mavoko"]
+         locations = [f"{county_name} South", f"{county_name} Central", "Local Ward", "Project Environs"]
          
          mock_entries = []
          for i in range(15):
@@ -317,13 +317,13 @@ def compile_report_data(project_id: str) -> dict:
                      "Long overdue project. The community is ready for this change."
                  ],
                  "Neutral": [
-                     f"What are the measures for dust control near the {baseline_data.get('basin_name')}?",
+                     f"What are the measures for dust control near the site?",
                      f"Will the {ptype_clean} affect our local water supply or grazing land?",
                      "We need more information on the recruitment process for local labor."
                  ],
                  "Negative": [
                      f"The noise from {ptype_clean} will disturb our livestock and families.",
-                     "I am concerned about the increased traffic on Mombasa Road.",
+                     "I am concerned about the increased traffic and disruption.",
                      "Will there be compensation for those living near the boundary?"
                  ]
              }
@@ -540,10 +540,10 @@ def compile_report_data(project_id: str) -> dict:
         methodology = _validate_section(raw_meth, ['scoping', 'methodology', 'data', 'remote sensing', 'baseline', 'impact', 'study'], "Study methodology followed EMCA 1999 Second Schedule framework.")
     
     # 5.4 Dynamic Executive Summary and Project Description
-    exec_summary = pred_engine.generate_executive_summary(
+    exec_summary = manual_sections.get('exec_summary') or pred_engine.generate_executive_summary(
         project.name, project_type, scale, baseline_data, len(predictions_data)
     )
-    project_description = pred_engine.generate_project_description(
+    project_description = manual_sections.get('project_desc') or pred_engine.generate_project_description(
         project.name, project_type, scale, f"LAT: {lat}, LNG: {lng}",
         baseline_data=baseline_data
     )

@@ -144,7 +144,11 @@ class ProjectDocument(BaseModel):
         ("kra_pin", "KRA PIN Certificate (Proponent)"),
         ("expert_license", "Lead Expert Practicing License"),
         ("firm_registration", "Firm of Experts Registration"),
+        ("engineering_design", "Engineering / Architectural Designs"),
+        ("biodiversity_survey", "Biodiversity / Ecological Survey"),
+        ("hydrology_report", "Hydrological & Geotechnical Reports"),
         ("lab_results", "Laboratory Analysis Certificate"),
+        ("baraza_minutes", "Public Baraza Minutes & Attendance"),
         ("tor_approval", "NEMA ToR Approval Letter"),
         ("other", "General Statutory Attachment"),
     ]

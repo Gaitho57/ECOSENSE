@@ -1,7 +1,16 @@
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
-from core.permissions import IsSameTenant
-from core.responses import envelope
+from apps.accounts.permissions import IsSameTenant
+from rest_framework import status
+from rest_framework.response import Response
+
+def envelope(data=None, meta=None, error=None, status_code=status.HTTP_200_OK):
+    return Response({
+        "data": data,
+        "meta": meta,
+        "error": error
+    }, status=status_code)
+
 from apps.projects.models import Project
 from apps.ehs.models import IncidentReport
 from django.utils.dateparse import parse_datetime

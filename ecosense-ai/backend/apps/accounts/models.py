@@ -90,6 +90,11 @@ class Tenant(models.Model):
         help_text="NEMA registration identifier (if applicable).",
     )
     
+    # White-label Branding
+    firm_logo = models.ImageField(upload_to="tenants/logos/", null=True, blank=True)
+    brand_color = models.CharField(max_length=7, default="#059669", help_text="Hex color code")
+    firm_registration_number = models.CharField(max_length=50, blank=True, help_text="NEMA Firm of Experts Registration No.")
+    
     # Commercial / Credit Tracking (NEW)
     credits_remaining = models.IntegerField(
         default=3, 

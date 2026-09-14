@@ -184,6 +184,7 @@
     <!-- 7. PROJECT DESCRIPTION -->
     <section class="page-break">
         <h2>5. Project Description</h2>
+        {{ project_description|safe }}
         <p>The project footprint is located at <strong>{{ project.location_coords }}</strong>. The site encompasses diverse terrain with a mean elevation of {{ baseline.topography.elevation_m }}m above sea level. The dominant land cover is identified as <strong>{{ baseline.topography.land_cover_class }}</strong>.</p>
         
         <div class="map-container" style="border: 2px solid #e2e8f0; border-radius: 8px; margin-top: 15px;">

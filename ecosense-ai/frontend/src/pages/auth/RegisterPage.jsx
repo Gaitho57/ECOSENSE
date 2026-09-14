@@ -26,8 +26,8 @@ export default function RegisterPage() {
             setAuth(user, access_token, refresh_token);
             navigate('/dashboard');
         } catch (err) {
-            const errorMessage = err.response?.data?.error?.message || 'Validation error.';
-            const details = err.response?.data?.error?.details;
+            const errorMessage = err.response?.data?.error?.message || err.message || 'Validation error.';
+            const details = err.response?.data?.error?.details || err.response?.data;
 
             if (details && typeof details === 'object') {
                 const firstError = Object.values(details)[0];
@@ -81,12 +81,12 @@ export default function RegisterPage() {
                     </div>
 
                     <button disabled={loading} type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black rounded-xl p-4 transition-transform active:scale-95 shadow-md mt-6 disabled:bg-gray-400">
-                        {loading ? 'Allocating Database Limits...' : 'Architect Tenant Profile 🚀'}
+                        {loading ? 'Setting up Workspace...' : 'Create Account 🚀'}
                     </button>
                 </form>
 
                 <div className="mt-8 text-center text-sm font-medium text-gray-500">
-                    Already mapped boundaries? <Link to="/login" className="text-gray-900 font-bold hover:underline">Access Portal</Link>
+                    Already have an account? <Link to="/login" className="text-gray-900 font-bold hover:underline">Log In</Link>
                 </div>
             </div>
         </div>

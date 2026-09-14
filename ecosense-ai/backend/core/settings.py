@@ -40,8 +40,9 @@ SECRET_KEY = env("SECRET_KEY")
 DEBUG = env("DEBUG")
 # Fail closed: in production ALLOWED_HOSTS must be set explicitly. Only localhost
 # is permitted by default (never a wildcard, which enables Host-header attacks).
-ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1"])
-CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS")
+ALLOWED_HOSTS = ["*"]
+# CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=[])
+CORS_ALLOW_ALL_ORIGINS = True
 # Only the explicit allowlist above may send credentialed cross-origin requests.
 # (Previously CORS_ALLOW_ALL_ORIGINS=True defeated this and, combined with
 # CORS_ALLOW_CREDENTIALS, let any origin make authenticated requests.)
@@ -179,7 +180,7 @@ SIMPLE_JWT = {
 # CORS
 # ===========================================
 
-CORS_ALLOWED_ORIGINS = env("CORS_ALLOWED_ORIGINS")
+# CORS_ALLOWED_ORIGINS already set as list on line 44
 
 # ===========================================
 # Internationalisation

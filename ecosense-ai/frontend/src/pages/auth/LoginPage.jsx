@@ -27,12 +27,12 @@ export default function LoginPage() {
 
             const { user, access_token, refresh_token } = response.data.data;
 
-            // Securely inject constraints scaling natively explicitly securely
+            // Securely set tokens
             setAuth(user, access_token, refresh_token);
 
             navigate(from, { replace: true });
         } catch (err) {
-            setError(err.response?.data?.error?.message || 'Authentication mapping securely blocked.');
+            setError(err.response?.data?.error?.message || err.response?.data?.detail || 'Invalid email or password.');
         } finally {
             setLoading(false);
         }
@@ -63,7 +63,7 @@ export default function LoginPage() {
                     </div>
 
                     <div>
-                        <label className="block text-[11px] font-black uppercase text-gray-500 mb-2">Cryptographic Password</label>
+                        <label className="block text-[11px] font-black uppercase text-gray-500 mb-2">Password</label>
                         <input
                             type="password" required
                             value={password} onChange={e => setPassword(e.target.value)}
@@ -77,12 +77,12 @@ export default function LoginPage() {
                         type="submit"
                         className="w-full bg-gray-900 hover:bg-black text-white font-black rounded-xl p-4 transition-transform active:scale-95 shadow-md disabled:bg-gray-400"
                     >
-                        {loading ? 'Decrypting Access Limits...' : 'Authenticate 🔒'}
+                        {loading ? 'Authenticating...' : 'Log In 🔒'}
                     </button>
                 </form>
 
                 <div className="mt-8 text-center text-sm font-medium text-gray-500">
-                    Executing entirely new footprint? <Link to="/register" className="text-blue-600 font-bold hover:underline">Register Firm</Link>
+                    Need an account? <Link to="/register" className="text-blue-600 font-bold hover:underline">Register Firm</Link>
                 </div>
             </div>
         </div>
