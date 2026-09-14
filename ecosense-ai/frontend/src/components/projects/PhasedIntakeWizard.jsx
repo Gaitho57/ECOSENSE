@@ -50,7 +50,17 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
     timelineMonths: '',
     operationalLifespan: '',
     leadExpertReg: 'NEMA/EIA/1234', // Auto-filled from user context
-    communityConcerns: '',
+    communityConcerns: [{ concern: '', response: '' }], // Structured list
+    barazaDate: '',
+    barazaVenue: '',
+    attendeeCount: '',
+    facilitatingOfficer: '',
+    newspaperName: '',
+    newspaperDate: '',
+    noticePeriodDays: '',
+    stakeholderGroups: {}, // e.g. { "County Government": true }
+    vulnerableGroups: '',
+    grmEstablished: 'Yes',
     sensitiveReceptors: {}, // Changed from array to object map
     airQualityPM25: '',
     airQualityPM10: '',
@@ -117,6 +127,26 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
         [category]: { ...formData.sensitiveReceptors[category], [field]: value }
       }
     });
+  };
+
+  const handleStakeholderToggle = (group) => {
+    const current = { ...formData.stakeholderGroups };
+    if (current[group]) {
+      delete current[group];
+    } else {
+      current[group] = true;
+    }
+    setFormData({ ...formData, stakeholderGroups: current });
+  };
+
+  const handleConcernChange = (index, field, value) => {
+    const newConcerns = [...formData.communityConcerns];
+    newConcerns[index][field] = value;
+    setFormData({ ...formData, communityConcerns: newConcerns });
+  };
+
+  const addConcern = () => {
+    setFormData({ ...formData, communityConcerns: [...formData.communityConcerns, { concern: '', response: '' }] });
   };
 
   const submitPhase = async () => {
@@ -462,20 +492,130 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
 
         {currentPhase === 3 && (
           <div className="space-y-6 animate-fadeIn">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Top 3 Community Concerns (Summary)</label>
-              <textarea name="communityConcerns" value={formData.communityConcerns} onChange={handleInputChange} rows={3}
-                        className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 p-2 border" 
-                        placeholder="1. Dust during construction&#10;2. Loss of business frontage&#10;3. Local youth employment" />
+            
+            {/* Public Notification (Reg 17) */}
+            <div className="bg-white p-4 rounded-lg border border-gray-200">
+                <h4 className="font-bold text-gray-800 mb-4 border-b pb-2 flex justify-between items-center">
+                    <span>1. Public Notification (Reg 17)</span>
+                    <span className="text-xs font-normal text-amber-600 bg-amber-50 px-2 py-1 rounded border border-amber-200">Statutory Requirement</span>
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Newspaper Name *</label>
+                    <input type="text" name="newspaperName" value={formData.newspaperName} onChange={handleInputChange} 
+                           className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. Daily Nation" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Publication Date *</label>
+                    <input type="date" name="newspaperDate" value={formData.newspaperDate} onChange={handleInputChange} 
+                           className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Notice Period (Days) *</label>
+                    <input type="number" name="noticePeriodDays" value={formData.noticePeriodDays} onChange={handleInputChange} 
+                           className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. 14" />
+                  </div>
+                </div>
+                <div className="p-3 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50 hover:bg-white transition-colors">
+                  <label className="flex items-center justify-center cursor-pointer">
+                    <Upload className="w-5 h-5 text-gray-400 mr-2" />
+                    <span className="text-sm font-medium text-gray-600 mr-2">Upload Newspaper Tear-sheet (PDF/Image) *</span>
+                    <span className="text-xs text-gray-400">{files.newspaper_notice ? files.newspaper_notice.name : 'Missing'}</span>
+                    <input type="file" className="hidden" onChange={(e) => handleFileChange('newspaper_notice', e)} />
+                  </label>
+                </div>
             </div>
 
-            <div className="p-4 border-2 border-dashed border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors">
-              <label className="flex flex-col items-center justify-center cursor-pointer">
-                <Upload className="w-8 h-8 text-gray-400 mb-2" />
-                <span className="text-sm font-medium text-gray-600">Upload Public Baraza Minutes & Attendance (PDF/Images) *</span>
-                <span className="text-xs text-gray-400 mt-1">{files.baraza_minutes ? files.baraza_minutes.name : 'Required by NEMA Reg 17'}</span>
-                <input type="file" className="hidden" onChange={(e) => handleFileChange('baraza_minutes', e)} />
-              </label>
+            {/* Baraza Logistics & Attendance */}
+            <div className="bg-white p-4 rounded-lg border border-gray-200">
+                <h4 className="font-bold text-gray-800 mb-4 border-b pb-2">2. Baraza Logistics & Stakeholders</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Date of Meeting *</label>
+                    <input type="date" name="barazaDate" value={formData.barazaDate} onChange={handleInputChange} 
+                           className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Venue / Location *</label>
+                    <input type="text" name="barazaVenue" value={formData.barazaVenue} onChange={handleInputChange} 
+                           className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. Chief's Camp, Ruiru" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Number of Attendees (Headcount) *</label>
+                    <input type="number" name="attendeeCount" value={formData.attendeeCount} onChange={handleInputChange} 
+                           className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. 150" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Facilitating Officer / Lead Expert *</label>
+                    <input type="text" name="facilitatingOfficer" value={formData.facilitatingOfficer} onChange={handleInputChange} 
+                           className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. John Doe (NEMA/EIA/123)" />
+                  </div>
+                </div>
+
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Stakeholder Groups Consulted (Check all present)</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {['Local Administration (Chief/DO)', 'County Government Officials', 'Project Affected Persons (PAPs)', 'Neighbors / Immediate Community', 'CBOs / NGOs', 'Youth Representatives', 'Women Representatives', 'Other Agencies (e.g. KWS, WRMA)'].map((group) => (
+                      <label key={group} className="flex items-center space-x-2 p-2 border rounded bg-gray-50 hover:bg-white cursor-pointer text-sm">
+                        <input type="checkbox" checked={!!formData.stakeholderGroups[group]} onChange={() => handleStakeholderToggle(group)} 
+                               className="text-emerald-600 rounded" />
+                        <span className="text-gray-700">{group}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                
+                <div className="p-3 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50 hover:bg-white transition-colors">
+                  <label className="flex flex-col items-center justify-center cursor-pointer">
+                    <Upload className="w-6 h-6 text-gray-400 mb-1" />
+                    <span className="text-sm font-medium text-gray-600">Upload Signed Attendance Sheets & Minutes (PDF) *</span>
+                    <span className="text-xs text-gray-400">{files.baraza_minutes ? files.baraza_minutes.name : 'Missing'}</span>
+                    <input type="file" className="hidden" onChange={(e) => handleFileChange('baraza_minutes', e)} />
+                  </label>
+                </div>
+            </div>
+
+            {/* Inclusion & Grievance */}
+            <div className="bg-white p-4 rounded-lg border border-gray-200">
+                <h4 className="font-bold text-gray-800 mb-4 border-b pb-2">3. Inclusion & Grievance Redress</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Vulnerable/Marginalized Groups Addressed</label>
+                    <input type="text" name="vulnerableGroups" value={formData.vulnerableGroups} onChange={handleInputChange} 
+                           className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. Provisions made for PWDs access..." />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Grievance Redress Mechanism (GRM) Proposed?</label>
+                    <select name="grmEstablished" value={formData.grmEstablished} onChange={handleInputChange} className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border bg-white">
+                        <option value="Yes">Yes - GRM Committee Formed/Proposed</option>
+                        <option value="No">No GRM</option>
+                    </select>
+                  </div>
+                </div>
+            </div>
+
+            {/* Documented Concerns & Responses */}
+            <div className="bg-white p-4 rounded-lg border border-gray-200">
+                <h4 className="font-bold text-gray-800 mb-4 border-b pb-2">4. Documented Concerns & Proponent Mitigations</h4>
+                <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2">
+                  {formData.communityConcerns.map((item, index) => (
+                    <div key={index} className="flex flex-col md:flex-row gap-3 border p-3 rounded-lg bg-gray-50">
+                      <div className="flex-1">
+                        <label className="block text-xs text-gray-500 mb-1">Community Concern #{index + 1}</label>
+                        <textarea value={item.concern} onChange={(e) => handleConcernChange(index, 'concern', e.target.value)} rows={2}
+                                  className="w-full rounded border-gray-300 p-2 border text-sm bg-white" placeholder="e.g. Dust during construction affecting local shops" />
+                      </div>
+                      <div className="flex-1">
+                        <label className="block text-xs text-emerald-600 mb-1 font-medium">Proponent Response / Mitigation</label>
+                        <textarea value={item.response} onChange={(e) => handleConcernChange(index, 'response', e.target.value)} rows={2}
+                                  className="w-full rounded border-gray-300 p-2 border text-sm bg-white" placeholder="e.g. Water bowsers will sprinkle the road 3x daily" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <button type="button" onClick={addConcern} className="mt-4 text-sm text-emerald-600 font-medium hover:text-emerald-700 flex items-center">
+                  + Add Another Concern
+                </button>
             </div>
           </div>
         )}
@@ -501,8 +641,10 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
               <div><span className="text-gray-500">Coordinates:</span> <span className="font-medium text-gray-900">{position ? `${position[0].toFixed(3)}, ${position[1].toFixed(3)}` : 'Missing'}</span></div>
               <div><span className="text-gray-500">Cost (KES):</span> <span className="font-medium text-gray-900">{formData.investmentCost ? Number(formData.investmentCost).toLocaleString() : 'Missing'}</span></div>
               <div><span className="text-gray-500">Lifespan:</span> <span className="font-medium text-gray-900">{formData.operationalLifespan ? `${formData.operationalLifespan} Years` : 'Missing'}</span></div>
-              <div><span className="text-gray-500">Files Uploaded:</span> <span className="font-medium text-gray-900">{Object.keys(files).length}</span></div>
               <div><span className="text-gray-500">Receptors:</span> <span className="font-medium text-gray-900">{Object.keys(formData.sensitiveReceptors).length} detailed</span></div>
+              <div><span className="text-gray-500">Stakeholders:</span> <span className="font-medium text-gray-900">{formData.attendeeCount ? `${formData.attendeeCount} Attendees` : 'Missing'}</span></div>
+              <div><span className="text-gray-500">GRM Proposed:</span> <span className="font-medium text-gray-900">{formData.grmEstablished}</span></div>
+              <div><span className="text-gray-500">Concerns Mitigated:</span> <span className="font-medium text-gray-900">{formData.communityConcerns.filter(c => c.concern).length}</span></div>
             </div>
           </div>
         )}
