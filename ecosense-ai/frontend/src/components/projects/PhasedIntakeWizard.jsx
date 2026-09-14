@@ -245,6 +245,7 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
                 </div>
               </div>
             </div>
+            </div>
 
             <div className="p-4 border-2 border-dashed border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors">
               <label className="flex flex-col items-center justify-center cursor-pointer">
