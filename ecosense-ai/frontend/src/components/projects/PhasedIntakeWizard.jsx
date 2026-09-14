@@ -51,7 +51,11 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
     operationalLifespan: '',
     leadExpertReg: 'NEMA/EIA/1234', // Auto-filled from user context
     communityConcerns: '',
-    sensitiveReceptors: []
+    sensitiveReceptors: {}, // Changed from array to object map
+    airQuality: '',
+    noiseLevel: '',
+    groundwaterDepth: '',
+    existingLandUse: ''
   });
 
   const phases = [
@@ -89,13 +93,24 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleReceptorChange = (value) => {
-    const current = formData.sensitiveReceptors;
-    if (current.includes(value)) {
-      setFormData({ ...formData, sensitiveReceptors: current.filter(item => item !== value) });
+  const handleReceptorToggle = (category) => {
+    const current = { ...formData.sensitiveReceptors };
+    if (current[category]) {
+      delete current[category];
     } else {
-      setFormData({ ...formData, sensitiveReceptors: [...current, value] });
+      current[category] = { name: '', distance: '', direction: '' };
     }
+    setFormData({ ...formData, sensitiveReceptors: current });
+  };
+
+  const handleReceptorField = (category, field, value) => {
+    setFormData({
+      ...formData,
+      sensitiveReceptors: {
+        ...formData.sensitiveReceptors,
+        [category]: { ...formData.sensitiveReceptors[category], [field]: value }
+      }
+    });
   };
 
   const submitPhase = async () => {
@@ -290,35 +305,97 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
 
         {currentPhase === 2 && (
           <div className="space-y-6 animate-fadeIn">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-3">Sensitive Receptors within 1km (Check all that apply)</label>
-              <div className="grid grid-cols-2 gap-3">
-                {['Hospitals / Clinics', 'Schools', 'Places of Worship', 'Rivers / Wetlands', 'National Parks', 'Boreholes'].map((item) => (
-                  <label key={item} className="flex items-center space-x-3 p-3 border rounded-lg bg-white hover:border-emerald-500 cursor-pointer">
-                    <input type="checkbox" checked={formData.sensitiveReceptors.includes(item)} onChange={() => handleReceptorChange(item)} 
-                           className="w-4 h-4 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500" />
-                    <span className="text-sm text-gray-700">{item}</span>
-                  </label>
+            
+            {/* Baseline Conditions */}
+            <div className="bg-white p-4 rounded-lg border border-gray-200">
+                <h4 className="font-bold text-gray-800 mb-4 border-b pb-2">1. Baseline Conditions</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Air Quality Baseline (e.g., PM2.5/PM10)</label>
+                    <input type="text" name="airQuality" value={formData.airQuality} onChange={handleInputChange} 
+                           className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. Good, 12 µg/m³" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Noise Level Baseline (Leq in dBA)</label>
+                    <input type="text" name="noiseLevel" value={formData.noiseLevel} onChange={handleInputChange} 
+                           className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. 45 dBA (Day)" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Existing Land Use / Cover</label>
+                    <input type="text" name="existingLandUse" value={formData.existingLandUse} onChange={handleInputChange} 
+                           className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. Mixed Agriculture" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Groundwater Depth (Meters, if applicable)</label>
+                    <input type="text" name="groundwaterDepth" value={formData.groundwaterDepth} onChange={handleInputChange} 
+                           className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. 50m" />
+                  </div>
+                </div>
+            </div>
+
+            {/* Sensitive Receptors */}
+            <div className="bg-white p-4 rounded-lg border border-gray-200">
+              <h4 className="font-bold text-gray-800 mb-4 border-b pb-2">2. Sensitive Receptors within 1km</h4>
+              <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
+                {['Hospitals / Clinics', 'Schools', 'Places of Worship', 'Rivers / Wetlands', 'National Parks', 'Gazetted Forest Reserves', 'Archaeological / Cultural Heritage', 'Residential Settlements', 'Boreholes'].map((item) => (
+                  <div key={item} className="border border-gray-200 rounded-lg bg-gray-50 overflow-hidden transition-all">
+                    <label className="flex items-center space-x-3 p-3 bg-white hover:bg-gray-50 cursor-pointer border-b border-gray-100">
+                      <input type="checkbox" checked={!!formData.sensitiveReceptors[item]} onChange={() => handleReceptorToggle(item)} 
+                             className="w-4 h-4 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500" />
+                      <span className="text-sm font-medium text-gray-700">{item}</span>
+                    </label>
+                    {formData.sensitiveReceptors[item] && (
+                      <div className="p-3 grid grid-cols-1 md:grid-cols-3 gap-3 bg-gray-50 text-sm animate-fadeIn">
+                        <div>
+                           <label className="block text-xs text-gray-500 mb-1">Name / Identifier *</label>
+                           <input type="text" value={formData.sensitiveReceptors[item].name} onChange={(e) => handleReceptorField(item, 'name', e.target.value)}
+                                  className="w-full rounded border-gray-300 p-1.5 border bg-white" placeholder="e.g. Ruiru River" />
+                        </div>
+                        <div>
+                           <label className="block text-xs text-gray-500 mb-1">Distance (Meters) *</label>
+                           <input type="number" value={formData.sensitiveReceptors[item].distance} onChange={(e) => handleReceptorField(item, 'distance', e.target.value)}
+                                  className="w-full rounded border-gray-300 p-1.5 border bg-white" placeholder="e.g. 450" />
+                        </div>
+                        <div>
+                           <label className="block text-xs text-gray-500 mb-1">Direction / Bearing</label>
+                           <input type="text" value={formData.sensitiveReceptors[item].direction} onChange={(e) => handleReceptorField(item, 'direction', e.target.value)}
+                                  className="w-full rounded border-gray-300 p-1.5 border bg-white" placeholder="e.g. Southeast" />
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 ))}
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-4 border-2 border-dashed border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors">
-                <label className="flex flex-col items-center justify-center cursor-pointer text-center">
-                  <Upload className="w-6 h-6 text-gray-400 mb-2" />
-                  <span className="text-sm font-medium text-gray-600">Upload Biodiversity Survey</span>
-                  <span className="text-xs text-gray-400 mt-1">{files.biodiversity_survey ? files.biodiversity_survey.name : 'Optional'}</span>
-                  <input type="file" className="hidden" onChange={(e) => handleFileChange('biodiversity_survey', e)} />
-                </label>
-              </div>
-              <div className="p-4 border-2 border-dashed border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors">
-                <label className="flex flex-col items-center justify-center cursor-pointer text-center">
-                  <Upload className="w-6 h-6 text-gray-400 mb-2" />
-                  <span className="text-sm font-medium text-gray-600">Upload Hydrology Report</span>
-                  <span className="text-xs text-gray-400 mt-1">{files.hydrology_report ? files.hydrology_report.name : 'Optional'}</span>
-                  <input type="file" className="hidden" onChange={(e) => handleFileChange('hydrology_report', e)} />
-                </label>
+            {/* Specialist Surveys */}
+            <div className="bg-white p-4 rounded-lg border border-gray-200">
+              <h4 className="font-bold text-gray-800 mb-4 border-b pb-2">3. Specialist Surveys (PDF)</h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="p-4 border-2 border-dashed border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors">
+                  <label className="flex flex-col items-center justify-center cursor-pointer text-center h-full">
+                    <Upload className="w-6 h-6 text-gray-400 mb-2" />
+                    <span className="text-sm font-medium text-gray-600">Soil / Geotech Survey</span>
+                    <span className="text-xs text-gray-400 mt-1">{files.soil_survey ? files.soil_survey.name : 'Optional'}</span>
+                    <input type="file" className="hidden" onChange={(e) => handleFileChange('soil_survey', e)} />
+                  </label>
+                </div>
+                <div className="p-4 border-2 border-dashed border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors">
+                  <label className="flex flex-col items-center justify-center cursor-pointer text-center h-full">
+                    <Upload className="w-6 h-6 text-gray-400 mb-2" />
+                    <span className="text-sm font-medium text-gray-600">Biodiversity Survey</span>
+                    <span className="text-xs text-gray-400 mt-1">{files.biodiversity_survey ? files.biodiversity_survey.name : 'Optional'}</span>
+                    <input type="file" className="hidden" onChange={(e) => handleFileChange('biodiversity_survey', e)} />
+                  </label>
+                </div>
+                <div className="p-4 border-2 border-dashed border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors">
+                  <label className="flex flex-col items-center justify-center cursor-pointer text-center h-full">
+                    <Upload className="w-6 h-6 text-gray-400 mb-2" />
+                    <span className="text-sm font-medium text-gray-600">Hydrology Report</span>
+                    <span className="text-xs text-gray-400 mt-1">{files.hydrology_report ? files.hydrology_report.name : 'Optional'}</span>
+                    <input type="file" className="hidden" onChange={(e) => handleFileChange('hydrology_report', e)} />
+                  </label>
+                </div>
               </div>
             </div>
           </div>
@@ -366,7 +443,7 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
               <div><span className="text-gray-500">Cost (KES):</span> <span className="font-medium text-gray-900">{formData.investmentCost ? Number(formData.investmentCost).toLocaleString() : 'Missing'}</span></div>
               <div><span className="text-gray-500">Lifespan:</span> <span className="font-medium text-gray-900">{formData.operationalLifespan ? `${formData.operationalLifespan} Years` : 'Missing'}</span></div>
               <div><span className="text-gray-500">Files Uploaded:</span> <span className="font-medium text-gray-900">{Object.keys(files).length}</span></div>
-              <div><span className="text-gray-500">Receptors:</span> <span className="font-medium text-gray-900">{formData.sensitiveReceptors.length} identified</span></div>
+              <div><span className="text-gray-500">Receptors:</span> <span className="font-medium text-gray-900">{Object.keys(formData.sensitiveReceptors).length} detailed</span></div>
             </div>
           </div>
         )}
