@@ -98,11 +98,11 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
         <div className="flex justify-between items-center relative">
           <div className="absolute left-0 top-1/2 -z-10 w-full h-1 bg-gray-100 -translate-y-1/2"></div>
           <div className="absolute left-0 top-1/2 -z-10 h-1 bg-emerald-500 transition-all duration-300 -translate-y-1/2" 
-               style={{ width: ${((currentPhase - 1) / 3) * 100}% }}></div>
+               style={{ width: `${((currentPhase - 1) / 3) * 100}%` }}></div>
           
           {phases.map((phase) => (
-            <div key={phase.id} className={lex flex-col items-center bg-white px-2 }>
-              <div className={w-12 h-12 rounded-full flex items-center justify-center border-2 mb-2 bg-white }>
+            <div key={phase.id} className="flex flex-col items-center bg-white px-2">
+              <div className="w-12 h-12 rounded-full flex items-center justify-center border-2 mb-2 bg-white">
                 {currentPhase > phase.id ? <CheckCircle2 className="w-6 h-6" /> : phase.icon}
               </div>
               <span className="text-sm font-medium hidden sm:block">{phase.title}</span>
@@ -144,7 +144,7 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
                 </MapContainer>
               </div>
               <p className="text-xs text-gray-500 mt-1">
-                {position ? Coordinates captured: ,  : 'Click on the map to set the project location.'}
+                {position ? `Coordinates captured: ${position[0].toFixed(4)}, ${position[1].toFixed(4)}` : 'Click on the map to set the project location.'}
               </p>
             </div>
 
@@ -229,7 +229,7 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
             
             <div className="grid grid-cols-2 gap-4 text-sm bg-white p-4 rounded-lg border">
               <div><span className="text-gray-500">Proponent:</span> <span className="font-medium text-gray-900">{formData.proponentName || 'Missing'}</span></div>
-              <div><span className="text-gray-500">Coordinates:</span> <span className="font-medium text-gray-900">{position ? ${position[0].toFixed(3)},  : 'Missing'}</span></div>
+              <div><span className="text-gray-500">Coordinates:</span> <span className="font-medium text-gray-900">{position ? `${position[0].toFixed(3)}, ${position[1].toFixed(3)}` : 'Missing'}</span></div>
               <div><span className="text-gray-500">Files Uploaded:</span> <span className="font-medium text-gray-900">{Object.keys(files).length}</span></div>
               <div><span className="text-gray-500">Receptors:</span> <span className="font-medium text-gray-900">{formData.sensitiveReceptors.length} identified</span></div>
             </div>
@@ -241,7 +241,7 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
         <button 
           onClick={() => setCurrentPhase(Math.max(1, currentPhase - 1))}
           disabled={currentPhase === 1 || isUploading}
-          className={lex items-center px-4 py-2 rounded-lg font-medium transition-colors }
+          className="flex items-center px-4 py-2 rounded-lg font-medium transition-colors text-gray-600 hover:bg-gray-200"
         >
           <ChevronLeft className="w-5 h-5 mr-1" /> Back
         </button>
@@ -249,7 +249,7 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
         <button 
           onClick={submitPhase}
           disabled={isUploading || (currentPhase === 1 && !position)}
-          className={lex items-center px-6 py-2 rounded-lg font-medium text-white transition-colors shadow-sm }
+          className="flex items-center px-6 py-2 rounded-lg font-medium text-white transition-colors shadow-sm bg-emerald-600 hover:bg-emerald-700"
         >
           {isUploading ? (
             <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> Saving...</>
@@ -265,3 +265,4 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
 };
 
 export default PhasedIntakeWizard;
+
