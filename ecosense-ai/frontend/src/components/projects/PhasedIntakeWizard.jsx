@@ -52,10 +52,16 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
     leadExpertReg: 'NEMA/EIA/1234', // Auto-filled from user context
     communityConcerns: '',
     sensitiveReceptors: {}, // Changed from array to object map
-    airQuality: '',
+    airQualityPM25: '',
+    airQualityPM10: '',
     noiseLevel: '',
     groundwaterDepth: '',
-    existingLandUse: ''
+    existingLandUse: '',
+    baselineDate: '',
+    baselineSeason: 'Dry Season',
+    baselineSource: 'Field Instrument',
+    specialistName: '',
+    specialistDate: ''
   });
 
   const phases = [
@@ -309,16 +315,21 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
             {/* Baseline Conditions */}
             <div className="bg-white p-4 rounded-lg border border-gray-200">
                 <h4 className="font-bold text-gray-800 mb-4 border-b pb-2">1. Baseline Conditions</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Air Quality Baseline (e.g., PM2.5/PM10)</label>
-                    <input type="text" name="airQuality" value={formData.airQuality} onChange={handleInputChange} 
-                           className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. Good, 12 µg/m³" />
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Air Quality: PM2.5 (µg/m³)</label>
+                    <input type="number" name="airQualityPM25" value={formData.airQualityPM25} onChange={handleInputChange} 
+                           className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. 12" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Noise Level Baseline (Leq in dBA)</label>
-                    <input type="text" name="noiseLevel" value={formData.noiseLevel} onChange={handleInputChange} 
-                           className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. 45 dBA (Day)" />
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Air Quality: PM10 (µg/m³)</label>
+                    <input type="number" name="airQualityPM10" value={formData.airQualityPM10} onChange={handleInputChange} 
+                           className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. 25" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Noise Level (Leq in dBA)</label>
+                    <input type="number" name="noiseLevel" value={formData.noiseLevel} onChange={handleInputChange} 
+                           className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. 45" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Existing Land Use / Cover</label>
@@ -326,9 +337,33 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
                            className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. Mixed Agriculture" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Groundwater Depth (Meters, if applicable)</label>
-                    <input type="text" name="groundwaterDepth" value={formData.groundwaterDepth} onChange={handleInputChange} 
-                           className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. 50m" />
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Groundwater Depth (m)</label>
+                    <input type="number" name="groundwaterDepth" value={formData.groundwaterDepth} onChange={handleInputChange} 
+                           className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. 50" />
+                  </div>
+                </div>
+                
+                <div className="bg-gray-50 p-3 rounded-lg grid grid-cols-1 md:grid-cols-3 gap-4 border border-gray-100">
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Measurement Date / Month</label>
+                    <input type="month" name="baselineDate" value={formData.baselineDate} onChange={handleInputChange} 
+                           className="w-full rounded border-gray-300 p-1.5 border text-sm bg-white" />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Season</label>
+                    <select name="baselineSeason" value={formData.baselineSeason} onChange={handleInputChange} className="w-full rounded border-gray-300 p-1.5 border text-sm bg-white">
+                        <option value="Dry Season">Dry Season</option>
+                        <option value="Wet Season">Wet Season</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Data Source / Method</label>
+                    <select name="baselineSource" value={formData.baselineSource} onChange={handleInputChange} className="w-full rounded border-gray-300 p-1.5 border text-sm bg-white">
+                        <option value="Field Instrument">Field Instrument</option>
+                        <option value="Desktop Estimate">Desktop Estimate</option>
+                        <option value="Satellite Derived">Satellite Derived</option>
+                        <option value="Secondary Literature">Secondary Literature</option>
+                    </select>
                   </div>
                 </div>
             </div>
@@ -357,9 +392,19 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
                                   className="w-full rounded border-gray-300 p-1.5 border bg-white" placeholder="e.g. 450" />
                         </div>
                         <div>
-                           <label className="block text-xs text-gray-500 mb-1">Direction / Bearing</label>
-                           <input type="text" value={formData.sensitiveReceptors[item].direction} onChange={(e) => handleReceptorField(item, 'direction', e.target.value)}
-                                  className="w-full rounded border-gray-300 p-1.5 border bg-white" placeholder="e.g. Southeast" />
+                           <label className="block text-xs text-gray-500 mb-1">Direction / Bearing *</label>
+                           <select value={formData.sensitiveReceptors[item].direction} onChange={(e) => handleReceptorField(item, 'direction', e.target.value)}
+                                   className="w-full rounded border-gray-300 p-1.5 border bg-white">
+                               <option value="">Select Direction</option>
+                               <option value="N">North (N)</option>
+                               <option value="NE">Northeast (NE)</option>
+                               <option value="E">East (E)</option>
+                               <option value="SE">Southeast (SE)</option>
+                               <option value="S">South (S)</option>
+                               <option value="SW">Southwest (SW)</option>
+                               <option value="W">West (W)</option>
+                               <option value="NW">Northwest (NW)</option>
+                           </select>
                         </div>
                       </div>
                     )}
@@ -370,7 +415,21 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
 
             {/* Specialist Surveys */}
             <div className="bg-white p-4 rounded-lg border border-gray-200">
-              <h4 className="font-bold text-gray-800 mb-4 border-b pb-2">3. Specialist Surveys (PDF)</h4>
+              <h4 className="font-bold text-gray-800 mb-4 border-b pb-2 flex justify-between items-center">
+                  <span>3. Specialist Surveys (PDF)</span>
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Lead Specialist / Firm Name</label>
+                    <input type="text" name="specialistName" value={formData.specialistName} onChange={handleInputChange} 
+                           className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. Dr. Jane Doe / EarthSciences Ltd" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Fieldwork Date</label>
+                    <input type="date" name="specialistDate" value={formData.specialistDate} onChange={handleInputChange} 
+                           className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" />
+                  </div>
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="p-4 border-2 border-dashed border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors">
                   <label className="flex flex-col items-center justify-center cursor-pointer text-center h-full">
