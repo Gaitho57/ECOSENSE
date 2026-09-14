@@ -13,11 +13,18 @@ L.Icon.Default.mergeOptions({
 });
 
 function LocationPicker({ position, setPosition }) {
-  useMapEvents({
+  const map = useMapEvents({
     click(e) {
       setPosition([e.latlng.lat, e.latlng.lng]);
     },
   });
+  
+  React.useEffect(() => {
+    if (position) {
+      map.flyTo(position, map.getZoom());
+    }
+  }, [position, map]);
+
   return position ? <Marker position={position} /> : null;
 }
 
@@ -143,9 +150,20 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
                   <LocationPicker position={position} setPosition={setPosition} />
                 </MapContainer>
               </div>
-              <p className="text-xs text-gray-500 mt-1">
-                {position ? `Coordinates captured: ${position[0].toFixed(4)}, ${position[1].toFixed(4)}` : 'Click on the map to set the project location.'}
-              </p>
+              <div className="grid grid-cols-2 gap-4 mt-2">
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Latitude</label>
+                  <input type="number" step="0.0001" value={position ? position[0] : ''} 
+                         onChange={(e) => setPosition([parseFloat(e.target.value) || 0, position ? position[1] : 36.8219])}
+                         className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 p-1.5 border text-sm" placeholder="e.g. -1.2921" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Longitude</label>
+                  <input type="number" step="0.0001" value={position ? position[1] : ''} 
+                         onChange={(e) => setPosition([position ? position[0] : -1.2921, parseFloat(e.target.value) || 0])}
+                         className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 p-1.5 border text-sm" placeholder="e.g. 36.8219" />
+                </div>
+              </div>
             </div>
 
             <div className="p-4 border-2 border-dashed border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors">
