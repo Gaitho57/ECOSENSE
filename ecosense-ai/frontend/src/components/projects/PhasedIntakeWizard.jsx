@@ -50,17 +50,22 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
     timelineMonths: '',
     operationalLifespan: '',
     leadExpertReg: 'NEMA/EIA/1234', // Auto-filled from user context
-    communityConcerns: [{ concern: '', response: '' }], // Structured list
+    communityConcerns: [{ concern: '', category: 'Social', response: '' }], // Structured list
     barazaDate: '',
     barazaVenue: '',
+    barazaLanguage: '',
     attendeeCount: '',
+    attendeesMale: '',
+    attendeesFemale: '',
     facilitatingOfficer: '',
     newspaperName: '',
     newspaperDate: '',
     noticePeriodDays: '',
+    otherNotificationMethod: '',
     stakeholderGroups: {}, // e.g. { "County Government": true }
     vulnerableGroups: '',
     grmEstablished: 'Yes',
+    grmContact: '',
     sensitiveReceptors: {}, // Changed from array to object map
     airQualityPM25: '',
     airQualityPM10: '',
@@ -146,7 +151,7 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
   };
 
   const addConcern = () => {
-    setFormData({ ...formData, communityConcerns: [...formData.communityConcerns, { concern: '', response: '' }] });
+    setFormData({ ...formData, communityConcerns: [...formData.communityConcerns, { concern: '', category: 'Social', response: '' }] });
   };
 
   const submitPhase = async () => {
@@ -499,7 +504,7 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
                     <span>1. Public Notification (Reg 17)</span>
                     <span className="text-xs font-normal text-amber-600 bg-amber-50 px-2 py-1 rounded border border-amber-200">Statutory Requirement</span>
                 </h4>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Newspaper Name *</label>
                     <input type="text" name="newspaperName" value={formData.newspaperName} onChange={handleInputChange} 
@@ -511,9 +516,14 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
                            className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Notice Period (Days) *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Notice (Days) *</label>
                     <input type="number" name="noticePeriodDays" value={formData.noticePeriodDays} onChange={handleInputChange} 
                            className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. 14" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Other Notification (Optional)</label>
+                    <input type="text" name="otherNotificationMethod" value={formData.otherNotificationMethod} onChange={handleInputChange} 
+                           className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. Local Radio / Chief Baraza" />
                   </div>
                 </div>
                 <div className="p-3 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50 hover:bg-white transition-colors">
@@ -529,7 +539,7 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
             {/* Baraza Logistics & Attendance */}
             <div className="bg-white p-4 rounded-lg border border-gray-200">
                 <h4 className="font-bold text-gray-800 mb-4 border-b pb-2">2. Baraza Logistics & Stakeholders</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Date of Meeting *</label>
                     <input type="date" name="barazaDate" value={formData.barazaDate} onChange={handleInputChange} 
@@ -541,14 +551,32 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
                            className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. Chief's Camp, Ruiru" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Number of Attendees (Headcount) *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Facilitator / Lead Expert *</label>
+                    <input type="text" name="facilitatingOfficer" value={formData.facilitatingOfficer} onChange={handleInputChange} 
+                           className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. John Doe (NEMA/EIA/123)" />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Total Attendees *</label>
                     <input type="number" name="attendeeCount" value={formData.attendeeCount} onChange={handleInputChange} 
                            className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. 150" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Facilitating Officer / Lead Expert *</label>
-                    <input type="text" name="facilitatingOfficer" value={formData.facilitatingOfficer} onChange={handleInputChange} 
-                           className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. John Doe (NEMA/EIA/123)" />
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Male</label>
+                    <input type="number" name="attendeesMale" value={formData.attendeesMale} onChange={handleInputChange} 
+                           className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. 80" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Female</label>
+                    <input type="number" name="attendeesFemale" value={formData.attendeesFemale} onChange={handleInputChange} 
+                           className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. 70" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Language(s) Used</label>
+                    <input type="text" name="barazaLanguage" value={formData.barazaLanguage} onChange={handleInputChange} 
+                           className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. Kiswahili, Kikuyu" />
                   </div>
                 </div>
 
@@ -586,10 +614,14 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Grievance Redress Mechanism (GRM) Proposed?</label>
-                    <select name="grmEstablished" value={formData.grmEstablished} onChange={handleInputChange} className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border bg-white">
+                    <select name="grmEstablished" value={formData.grmEstablished} onChange={handleInputChange} className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border bg-white mb-2">
                         <option value="Yes">Yes - GRM Committee Formed/Proposed</option>
                         <option value="No">No GRM</option>
                     </select>
+                    {formData.grmEstablished === 'Yes' && (
+                        <input type="text" name="grmContact" value={formData.grmContact} onChange={handleInputChange} 
+                               className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border text-sm" placeholder="GRM Contact Person / Phone Number" />
+                    )}
                   </div>
                 </div>
             </div>
@@ -597,15 +629,27 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
             {/* Documented Concerns & Responses */}
             <div className="bg-white p-4 rounded-lg border border-gray-200">
                 <h4 className="font-bold text-gray-800 mb-4 border-b pb-2">4. Documented Concerns & Proponent Mitigations</h4>
-                <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2">
+                <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
                   {formData.communityConcerns.map((item, index) => (
-                    <div key={index} className="flex flex-col md:flex-row gap-3 border p-3 rounded-lg bg-gray-50">
-                      <div className="flex-1">
-                        <label className="block text-xs text-gray-500 mb-1">Community Concern #{index + 1}</label>
-                        <textarea value={item.concern} onChange={(e) => handleConcernChange(index, 'concern', e.target.value)} rows={2}
-                                  className="w-full rounded border-gray-300 p-2 border text-sm bg-white" placeholder="e.g. Dust during construction affecting local shops" />
+                    <div key={index} className="flex flex-col gap-3 border p-3 rounded-lg bg-gray-50">
+                      <div className="flex flex-col md:flex-row gap-3">
+                          <div className="flex-1">
+                            <label className="block text-xs text-gray-500 mb-1">Community Concern #{index + 1}</label>
+                            <textarea value={item.concern} onChange={(e) => handleConcernChange(index, 'concern', e.target.value)} rows={2}
+                                      className="w-full rounded border-gray-300 p-2 border text-sm bg-white" placeholder="e.g. Dust during construction affecting local shops" />
+                          </div>
+                          <div className="w-full md:w-1/3">
+                            <label className="block text-xs text-gray-500 mb-1">Category</label>
+                            <select value={item.category} onChange={(e) => handleConcernChange(index, 'category', e.target.value)}
+                                    className="w-full rounded border-gray-300 p-2 border text-sm bg-white">
+                                <option value="Environmental">Environmental</option>
+                                <option value="Social">Social</option>
+                                <option value="Economic">Economic</option>
+                                <option value="Labor">Labor / Health</option>
+                            </select>
+                          </div>
                       </div>
-                      <div className="flex-1">
+                      <div>
                         <label className="block text-xs text-emerald-600 mb-1 font-medium">Proponent Response / Mitigation</label>
                         <textarea value={item.response} onChange={(e) => handleConcernChange(index, 'response', e.target.value)} rows={2}
                                   className="w-full rounded border-gray-300 p-2 border text-sm bg-white" placeholder="e.g. Water bowsers will sprinkle the road 3x daily" />
