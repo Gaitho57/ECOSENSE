@@ -1,18 +1,18 @@
-"\"\"
-EcoSense AI ?" Predictions App Models.
+"""
+EcoSense AI - Predictions App Models.
 
 Defines the ImpactPrediction model bridging AI inference outputs to projects.
-"\"\"
+"""
 
 from django.db import models
 from django.db.models import JSONField
 from core.models import BaseModel
 
 class ImpactPrediction(BaseModel):
-    "\"\"
+    """
     Tracks machine learning impact assessments per project category.
     Includes severity, confidence bounds, and LLM-generated mitigations.
-    "\"\"
+    """
 
     CATEGORY_CHOICES = [
         ("air", "Air Quality"),

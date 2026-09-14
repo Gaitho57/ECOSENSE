@@ -1,5 +1,5 @@
-"\"\"
-EcoSense AI ?" Language Model Client.
+"""
+EcoSense AI - Language Model Client.
 
 This module is the single entry point for all generative text in EcoSense.
 It now supports a Hybrid approach:
@@ -7,7 +7,7 @@ It now supports a Hybrid approach:
 2. Ollama HTTP server (Offline/Local)
 3. Local HuggingFace transformers (Offline/Local CPU)
 4. Deterministic expert templates (Fallback)
-"\"\"
+"""
 
 import logging
 import requests
@@ -30,7 +30,7 @@ DEFAULT_SYSTEM_ROLE = (
 )
 
 class LocalLLM:
-    "\"\"A wrapper handling both Cloud and Local generative models."\"\"
+    """A wrapper handling both Cloud and Local generative models."""
 
     def __init__(self):
         self.backend = None
