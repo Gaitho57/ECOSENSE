@@ -76,7 +76,10 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
     baselineSeason: 'Dry Season',
     baselineSource: 'Field Instrument',
     specialistName: '',
-    specialistDate: ''
+    specialistDate: '',
+    projectDescription: '',
+    alternativesConsidered: '',
+    empRows: [{ impact: '', mitigation: '', responsibleParty: '', monitoringFrequency: '', estCost: '' }]
   });
 
   const phases = [
@@ -100,8 +103,14 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
     },
     {
       id: 4,
-      title: "Final Review",
+      title: "Management Plan",
       icon: <FileText className="w-6 h-6" />,
+      description: "Environmental and Social Management Plan (EMP)."
+    },
+    {
+      id: 5,
+      title: "Final Review",
+      icon: <CheckCircle2 className="w-6 h-6" />,
       description: "Confirm details before AI processing."
     }
   ];
@@ -154,12 +163,22 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
     setFormData({ ...formData, communityConcerns: [...formData.communityConcerns, { concern: '', category: 'Social', response: '' }] });
   };
 
+  const handleEmpChange = (index, field, value) => {
+    const newEmp = [...formData.empRows];
+    newEmp[index][field] = value;
+    setFormData({ ...formData, empRows: newEmp });
+  };
+
+  const addEmpRow = () => {
+    setFormData({ ...formData, empRows: [...formData.empRows, { impact: '', mitigation: '', responsibleParty: '', monitoringFrequency: '', estCost: '' }] });
+  };
+
   const submitPhase = async () => {
     setIsUploading(true);
     await new Promise(r => setTimeout(r, 1000));
     setIsUploading(false);
     
-    if (currentPhase < 4) {
+    if (currentPhase < 5) {
       setCurrentPhase(currentPhase + 1);
     } else {
       if (onComplete) onComplete({ ...formData, location: position }, files);
@@ -331,6 +350,24 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
                 </div>
               </div>
             </div>
+            </div>
+
+            <div className="bg-white p-4 rounded-lg border border-gray-200">
+                <h4 className="font-bold text-gray-800 mb-4 border-b pb-2">4. Project Description & Alternatives</h4>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Detailed Project Description *</label>
+                    <textarea name="projectDescription" value={formData.projectDescription} onChange={handleInputChange} rows={3}
+                              className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" 
+                              placeholder="Describe the scope, activities, and design of the project..." />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Alternatives Considered *</label>
+                    <textarea name="alternativesConsidered" value={formData.alternativesConsidered} onChange={handleInputChange} rows={3}
+                              className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" 
+                              placeholder="e.g. Alternative 1: No-action... Alternative 2: Different routing... Selected: Current..." />
+                  </div>
+                </div>
             </div>
 
             <div className="p-4 border-2 border-dashed border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors">
@@ -666,6 +703,50 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
 
         {currentPhase === 4 && (
           <div className="space-y-6 animate-fadeIn">
+            <div className="bg-white p-4 rounded-lg border border-gray-200">
+                <h4 className="font-bold text-gray-800 mb-4 border-b pb-2">Environmental and Social Management Plan (EMP)</h4>
+                <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
+                  {formData.empRows.map((item, index) => (
+                    <div key={index} className="flex flex-col gap-3 border p-3 rounded-lg bg-gray-50">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-xs text-gray-500 mb-1">Impact</label>
+                            <input type="text" value={item.impact} onChange={(e) => handleEmpChange(index, 'impact', e.target.value)}
+                                   className="w-full rounded border-gray-300 p-2 border text-sm bg-white" placeholder="e.g. Dust emissions during construction" />
+                          </div>
+                          <div>
+                            <label className="block text-xs text-gray-500 mb-1">Mitigation</label>
+                            <input type="text" value={item.mitigation} onChange={(e) => handleEmpChange(index, 'mitigation', e.target.value)}
+                                   className="w-full rounded border-gray-300 p-2 border text-sm bg-white" placeholder="e.g. Water spraying 3x daily" />
+                          </div>
+                          <div>
+                            <label className="block text-xs text-gray-500 mb-1">Responsible Party</label>
+                            <input type="text" value={item.responsibleParty} onChange={(e) => handleEmpChange(index, 'responsibleParty', e.target.value)}
+                                   className="w-full rounded border-gray-300 p-2 border text-sm bg-white" placeholder="e.g. Contractor" />
+                          </div>
+                          <div>
+                            <label className="block text-xs text-gray-500 mb-1">Monitoring Frequency</label>
+                            <input type="text" value={item.monitoringFrequency} onChange={(e) => handleEmpChange(index, 'monitoringFrequency', e.target.value)}
+                                   className="w-full rounded border-gray-300 p-2 border text-sm bg-white" placeholder="e.g. Weekly" />
+                          </div>
+                          <div>
+                            <label className="block text-xs text-gray-500 mb-1">Estimated Cost (KES)</label>
+                            <input type="text" value={item.estCost} onChange={(e) => handleEmpChange(index, 'estCost', e.target.value)}
+                                   className="w-full rounded border-gray-300 p-2 border text-sm bg-white" placeholder="e.g. 500,000" />
+                          </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <button type="button" onClick={addEmpRow} className="mt-4 text-sm text-emerald-600 font-medium hover:text-emerald-700 flex items-center">
+                  + Add EMP Row
+                </button>
+            </div>
+          </div>
+        )}
+
+        {currentPhase === 5 && (
+          <div className="space-y-6 animate-fadeIn">
             <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
               <h4 className="text-emerald-800 font-bold flex items-center mb-2">
                 <CheckCircle2 className="w-5 h-5 mr-2" />
@@ -689,6 +770,7 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
               <div><span className="text-gray-500">Stakeholders:</span> <span className="font-medium text-gray-900">{formData.attendeeCount ? `${formData.attendeeCount} Attendees` : 'Missing'}</span></div>
               <div><span className="text-gray-500">GRM Proposed:</span> <span className="font-medium text-gray-900">{formData.grmEstablished}</span></div>
               <div><span className="text-gray-500">Concerns Mitigated:</span> <span className="font-medium text-gray-900">{formData.communityConcerns.filter(c => c.concern).length}</span></div>
+              <div><span className="text-gray-500">EMP Rows:</span> <span className="font-medium text-gray-900">{formData.empRows.filter(e => e.impact).length}</span></div>
             </div>
           </div>
         )}
@@ -710,7 +792,7 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
         >
           {isUploading ? (
             <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> Saving...</>
-          ) : currentPhase === 4 ? (
+          ) : currentPhase === 5 ? (
             <>Compile Report <FileText className="w-5 h-5 ml-2" /></>
           ) : (
             <>Next Phase <ChevronRight className="w-5 h-5 ml-2" /></>
