@@ -175,13 +175,35 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
 
   const submitPhase = async () => {
     setIsUploading(true);
-    await new Promise(r => setTimeout(r, 1000));
-    setIsUploading(false);
-    
-    if (currentPhase < 5) {
-      setCurrentPhase(currentPhase + 1);
-    } else {
-      if (onComplete) onComplete({ ...formData, location: position }, files);
+    try {
+      if (currentPhase < 5) {
+        await new Promise(r => setTimeout(r, 1000));
+        setCurrentPhase(currentPhase + 1);
+      } else {
+        // Assuming you have the project_id from context or props. 
+        // For demonstration, we'll use a placeholder '1' if none exists.
+        const currentProjectId = projectId || 1; 
+        const response = await fetch(`/api/reports/projects/${currentProjectId}/generate_groq/`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            // 'Authorization': `Bearer ${token}` // Add auth if needed
+          },
+          body: JSON.stringify({ ...formData, location: position })
+        });
+        
+        if (!response.ok) throw new Error('Failed to start AI generation');
+        
+        // Generation is running in the background!
+        alert("AI Generation Started! The 120B model is writing your report in the background. Check back in 5 minutes.");
+        
+        if (onComplete) onComplete({ ...formData, location: position }, files);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error triggering the Groq generator.");
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -230,7 +252,7 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
                         <option value="Energy">Energy (Solar/Wind/Geothermal)</option>
                         <option value="Real Estate">Real Estate & Housing</option>
                         <option value="Mining">Mining & Quarrying</option>
-                        <option value="Manufacturing">Manufacturing & Processing</option>
+                        <option value="Manufacturing">Manufacturing/Agro-Processing</option>
                         <option value="Agriculture">Agriculture & Forestry</option>
                     </select>
                   </div>

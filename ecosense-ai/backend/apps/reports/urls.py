@@ -25,7 +25,10 @@ app_name = "reports"
 router = DefaultRouter()
 router.register(r'(?P<project_id>[^/.]+)/sections', ReportSectionViewSet, basename='project-sections')
 
+from .views import GenerateGroqReportView
+
 urlpatterns = [
+    path('projects/<str:project_id>/generate_groq/', GenerateGroqReportView.as_view(), name='generate-groq'),
     path('', include(router.urls)),
     # Core report management
     path('<uuid:project_id>/generate-report/', GenerateReportView.as_view(), name='generate_report'),

@@ -712,3 +712,20 @@ class ReportSectionViewSet(viewsets.ModelViewSet):
             "updated": updated_count, 
             "message": "Study pre-populated with AI-drafted narrative chapters."
         })
+
+
+class GenerateGroqReportView(APIView):
+    permission_classes = [] # Allow all for wizard testing
+
+    def post(self, request, project_id):
+        import subprocess
+        import os
+        from django.conf import settings
+        from apps.core.utils.responses import envelope
+        
+        script_path = os.path.join(settings.BASE_DIR, 'generate_groq_report.py')
+        
+        # We start the script detached so the request returns immediately
+        subprocess.Popen(['python', script_path, '--project_id', str(project_id)], cwd=settings.BASE_DIR)
+        
+        return envelope(data={'message': 'Groq Report generation started in the background. It will be available in ~5 minutes.'}, status_code=202)

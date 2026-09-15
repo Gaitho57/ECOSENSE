@@ -1,0 +1,598 @@
+[
+  {
+    "style": "Heading 2",
+    "text": "Note on this Revision"
+  },
+  {
+    "style": "Heading 1",
+    "text": "Table of Contents"
+  },
+  {
+    "style": "Heading 2",
+    "text": "Acronyms"
+  },
+  {
+    "style": "Heading 1",
+    "text": "Executive Summary"
+  },
+  {
+    "style": "Heading 1",
+    "text": "Chapter 1: Introduction"
+  },
+  {
+    "style": "Heading 2",
+    "text": "1.1 Introduction"
+  },
+  {
+    "style": "Heading 2",
+    "text": "1.2 The Project Background"
+  },
+  {
+    "style": "Heading 2",
+    "text": "1.3 ESIA Study Process"
+  },
+  {
+    "style": "Heading 3",
+    "text": "1.3.1 Study Objectives and Scope"
+  },
+  {
+    "style": "Heading 3",
+    "text": "1.3.2 The General Approach"
+  },
+  {
+    "style": "Heading 3",
+    "text": "1.3.3 ESIA Activities"
+  },
+  {
+    "style": "Heading 3",
+    "text": "1.3.4 Reporting"
+  },
+  {
+    "style": "Heading 2",
+    "text": "1.4 ESIA Study Team"
+  },
+  {
+    "style": "Heading 1",
+    "text": "Chapter 2: Project Description"
+  },
+  {
+    "style": "Heading 2",
+    "text": "2.1 Project Location"
+  },
+  {
+    "style": "Heading 2",
+    "text": "2.2 Current Road Condition"
+  },
+  {
+    "style": "Heading 3",
+    "text": "2.2.1 Bomas\u2013Rongai\u2013Kiserian Road"
+  },
+  {
+    "style": "Heading 4",
+    "text": "Galleria / Brookhouse area (Km 0+000 \u2013 Km 1+000)"
+  },
+  {
+    "style": "Heading 4",
+    "text": "CUEA Junction \u2013 Multimedia University (Km 1+000 \u2013 Km 6+000)"
+  },
+  {
+    "style": "Heading 4",
+    "text": "Ongata Rongai peri-urban zone (Km 6+000 \u2013 Km 14+000)"
+  },
+  {
+    "style": "Heading 4",
+    "text": "Kiserian Town (Km 14+000 \u2013 Km 17+500, approx.)"
+  },
+  {
+    "style": "Heading 4",
+    "text": "Road users \u2014 Bomas\u2013Rongai\u2013Kiserian"
+  },
+  {
+    "style": "Heading 3",
+    "text": "2.2.2 Kiserian\u2013Ngong Road"
+  },
+  {
+    "style": "Heading 4",
+    "text": "Kiserian Junction area (Km 0+000 \u2013 Km 1+200)"
+  },
+  {
+    "style": "Heading 4",
+    "text": "Matasia market area (Km 3+000 \u2013 Km 6+000)"
+  },
+  {
+    "style": "Heading 4",
+    "text": "Peri-urban residential belt (Km 6+000 \u2013 Km 8+000)"
+  },
+  {
+    "style": "Heading 4",
+    "text": "Ngong urban approach and termination (Km 8+000 \u2013 Km 9+900)"
+  },
+  {
+    "style": "Heading 4",
+    "text": "Road users \u2014 Kiserian\u2013Ngong"
+  },
+  {
+    "style": "Heading 3",
+    "text": "2.2.3 Karen\u2013Ngong Road"
+  },
+  {
+    "style": "Heading 4",
+    "text": "Karen Roundabout area (Km 0+000 \u2013 Km 1+500 / Km 2+000)"
+  },
+  {
+    "style": "Heading 4",
+    "text": "Railway crossing (approx. Km 5+200 \u2013 Km 5+400)"
+  },
+  {
+    "style": "Heading 4",
+    "text": "Embulbul and Vet Centre (Km 1+500 \u2013 Km 6+500)"
+  },
+  {
+    "style": "Heading 4",
+    "text": "Ngong Town junction (Km 6+500 \u2013 Km 8+500 / 8+630)"
+  },
+  {
+    "style": "Heading 4",
+    "text": "Road users \u2014 Karen\u2013Ngong"
+  },
+  {
+    "style": "Heading 2",
+    "text": "2.3 Proposed Improvement Concepts"
+  },
+  {
+    "style": "Heading 4",
+    "text": "Design standards summary"
+  },
+  {
+    "style": "Heading 4",
+    "text": "Cross-section and carriageway"
+  },
+  {
+    "style": "Heading 4",
+    "text": "Junctions"
+  },
+  {
+    "style": "Heading 4",
+    "text": "Drainage and utilities"
+  },
+  {
+    "style": "Heading 2",
+    "text": "2.4 General Observations"
+  },
+  {
+    "style": "Heading 2",
+    "text": "2.5 Target Materials Sites"
+  },
+  {
+    "style": "Heading 4",
+    "text": "2.5.1 Hard Stone Aggregate"
+  },
+  {
+    "style": "Heading 4",
+    "text": "2.5.2 Gravel"
+  },
+  {
+    "style": "Heading 4",
+    "text": "2.5.3 Sand and Cement"
+  },
+  {
+    "style": "Heading 4",
+    "text": "2.5.4 Water"
+  },
+  {
+    "style": "Heading 4",
+    "text": "2.5.5 Construction Camp Sites"
+  },
+  {
+    "style": "Heading 4",
+    "text": "2.5.6 Others"
+  },
+  {
+    "style": "Heading 2",
+    "text": "2.6 Project Alternatives"
+  },
+  {
+    "style": "Heading 4",
+    "text": "No-project alternative"
+  },
+  {
+    "style": "Heading 4",
+    "text": "Do-minimum (rehabilitate existing carriageway without dualling)"
+  },
+  {
+    "style": "Heading 4",
+    "text": "Alternative alignment / bypass of town centres"
+  },
+  {
+    "style": "Heading 4",
+    "text": "Phased implementation"
+  },
+  {
+    "style": "Heading 2",
+    "text": "2.7 Project Implementation Schedule"
+  },
+  {
+    "style": "Heading 2",
+    "text": "2.8 Project Cost Estimates"
+  },
+  {
+    "style": "Heading 1",
+    "text": "Chapter 3: Policy, Legal and Institutional Framework"
+  },
+  {
+    "style": "Heading 2",
+    "text": "3.1 National Policies"
+  },
+  {
+    "style": "Heading 2",
+    "text": "3.2 Legal Aspects"
+  },
+  {
+    "style": "Heading 2",
+    "text": "3.3 Institutional Arrangement"
+  },
+  {
+    "style": "Heading 3",
+    "text": "3.3.1 KURA Mandate"
+  },
+  {
+    "style": "Heading 3",
+    "text": "3.3.2 Institutional Components"
+  },
+  {
+    "style": "Heading 3",
+    "text": "3.3.3 Key Partners"
+  },
+  {
+    "style": "Heading 1",
+    "text": "Chapter 4: Environmental Baseline Conditions"
+  },
+  {
+    "style": "Heading 2",
+    "text": "4.1 General Status"
+  },
+  {
+    "style": "Heading 2",
+    "text": "4.2 Topography"
+  },
+  {
+    "style": "Heading 2",
+    "text": "4.3 Water Resources"
+  },
+  {
+    "style": "Heading 2",
+    "text": "4.4 Waste Management"
+  },
+  {
+    "style": "Heading 2",
+    "text": "4.5 Drainage and Hydrology"
+  },
+  {
+    "style": "Heading 2",
+    "text": "4.6 Geology and Soils"
+  },
+  {
+    "style": "Heading 2",
+    "text": "4.7 Biodiversity"
+  },
+  {
+    "style": "Heading 2",
+    "text": "4.8 Air Quality"
+  },
+  {
+    "style": "Heading 2",
+    "text": "4.9 Noise and Vibrations"
+  },
+  {
+    "style": "Heading 2",
+    "text": "4.10 Climatic Conditions"
+  },
+  {
+    "style": "Heading 1",
+    "text": "Chapter 5: Social and Economic Baseline Conditions"
+  },
+  {
+    "style": "Heading 2",
+    "text": "5.1 Administrative Setting"
+  },
+  {
+    "style": "Heading 2",
+    "text": "5.2 Population and Demography"
+  },
+  {
+    "style": "Heading 3",
+    "text": "5.2.1 Population"
+  },
+  {
+    "style": "Heading 3",
+    "text": "5.2.2 Migration Patterns"
+  },
+  {
+    "style": "Heading 3",
+    "text": "5.2.3 Settlement Patterns and Housing Conditions"
+  },
+  {
+    "style": "Heading 2",
+    "text": "5.3 Land Tenure and Land Use"
+  },
+  {
+    "style": "Heading 2",
+    "text": "5.4 Public Utilities and Infrastructure"
+  },
+  {
+    "style": "Heading 3",
+    "text": "5.4.1 Roads Use and Traffic"
+  },
+  {
+    "style": "Heading 3",
+    "text": "5.4.2 Rail Lines"
+  },
+  {
+    "style": "Heading 3",
+    "text": "5.4.3 Airports"
+  },
+  {
+    "style": "Heading 3",
+    "text": "5.4.4 Oil Pipeline"
+  },
+  {
+    "style": "Heading 3",
+    "text": "5.4.5 Power Lines"
+  },
+  {
+    "style": "Heading 3",
+    "text": "5.4.6 Water Pipelines"
+  },
+  {
+    "style": "Heading 3",
+    "text": "5.4.7 Sewer Lines"
+  },
+  {
+    "style": "Heading 3",
+    "text": "5.4.8 Communication Service Lines"
+  },
+  {
+    "style": "Heading 2",
+    "text": "5.5 Social Welfare"
+  },
+  {
+    "style": "Heading 3",
+    "text": "5.5.1 Education"
+  },
+  {
+    "style": "Heading 3",
+    "text": "5.5.2 Health and Safety"
+  },
+  {
+    "style": "Heading 3",
+    "text": "5.5.3 Religious Facilities and Practices"
+  },
+  {
+    "style": "Heading 2",
+    "text": "5.6 Socio-Cultural Profile"
+  },
+  {
+    "style": "Heading 2",
+    "text": "5.7 Economic Activities"
+  },
+  {
+    "style": "Heading 3",
+    "text": "5.7.1 Income and Expenditure"
+  },
+  {
+    "style": "Heading 3",
+    "text": "5.7.2 Trade and Industry"
+  },
+  {
+    "style": "Heading 3",
+    "text": "5.7.3 Agriculture and Livestock Keeping"
+  },
+  {
+    "style": "Heading 2",
+    "text": "5.8 Cross-Cutting Issues"
+  },
+  {
+    "style": "Heading 3",
+    "text": "5.8.1 Poverty"
+  },
+  {
+    "style": "Heading 3",
+    "text": "5.8.2 Gender Issues"
+  },
+  {
+    "style": "Heading 3",
+    "text": "5.8.3 Child Protection Issues"
+  },
+  {
+    "style": "Heading 3",
+    "text": "5.8.4 Security"
+  },
+  {
+    "style": "Heading 3",
+    "text": "5.8.5 HIV/AIDS"
+  },
+  {
+    "style": "Heading 3",
+    "text": "5.8.6 Physically Challenged Persons"
+  },
+  {
+    "style": "Heading 1",
+    "text": "Chapter 7: Resettlement Issues"
+  },
+  {
+    "style": "Heading 2",
+    "text": "7.1 Overall Benefits"
+  },
+  {
+    "style": "Heading 2",
+    "text": "7.2 Land Use Trends"
+  },
+  {
+    "style": "Heading 2",
+    "text": "7.3 Summary of Affected Features"
+  },
+  {
+    "style": "Heading 3",
+    "text": "7.3.1 Loss of Access to Social Facilities"
+  },
+  {
+    "style": "Heading 3",
+    "text": "7.3.2 Affected Public Assets"
+  },
+  {
+    "style": "Heading 2",
+    "text": "7.4 Public Opinion on Potential Displacements"
+  },
+  {
+    "style": "Heading 2",
+    "text": "7.5 Grievance Redress Procedures"
+  },
+  {
+    "style": "Heading 2",
+    "text": "7.6 Resettlement Action Plan"
+  },
+  {
+    "style": "Heading 1",
+    "text": "Chapter 8: Public Consultations"
+  },
+  {
+    "style": "Heading 2",
+    "text": "8.1 Overview"
+  },
+  {
+    "style": "Heading 2",
+    "text": "8.2 Consultative Public Participation (CPP) Meetings"
+  },
+  {
+    "style": "Heading 2",
+    "text": "8.3 Public Views, Opinions, Comments and Suggestions"
+  },
+  {
+    "style": "Heading 4",
+    "text": "8.3.1 Compensation on Losses"
+  },
+  {
+    "style": "Heading 4",
+    "text": "8.3.2 Road Safety"
+  },
+  {
+    "style": "Heading 4",
+    "text": "8.3.3 Public Utilities"
+  },
+  {
+    "style": "Heading 4",
+    "text": "8.3.4 Project Ownership and Timing"
+  },
+  {
+    "style": "Heading 4",
+    "text": "8.3.5 Compensation, ROW Encroachment and Property/Asset Valuation"
+  },
+  {
+    "style": "Heading 4",
+    "text": "8.3.6 Road Maintenance"
+  },
+  {
+    "style": "Heading 4",
+    "text": "8.3.7 Provision of Complementary Road Facilities"
+  },
+  {
+    "style": "Heading 4",
+    "text": "8.3.8 Employment"
+  },
+  {
+    "style": "Heading 4",
+    "text": "8.3.9 Design of the Road"
+  },
+  {
+    "style": "Heading 4",
+    "text": "8.3.10 The Marginalised and Vulnerable Members of the Public"
+  },
+  {
+    "style": "Heading 2",
+    "text": "8.4 Recommendations"
+  },
+  {
+    "style": "Heading 1",
+    "text": "Chapter 9: Anticipated Impacts and Mitigation Measures"
+  },
+  {
+    "style": "Heading 2",
+    "text": "9.1 General Impacts"
+  },
+  {
+    "style": "Heading 2",
+    "text": "9.2 Positive Impacts"
+  },
+  {
+    "style": "Heading 2",
+    "text": "9.3 Specific Negative Impacts"
+  },
+  {
+    "style": "Heading 3",
+    "text": "Pre-construction phase"
+  },
+  {
+    "style": "Heading 3",
+    "text": "Construction phase"
+  },
+  {
+    "style": "Heading 3",
+    "text": "Operation phase"
+  },
+  {
+    "style": "Heading 3",
+    "text": "Impact\u2013Mitigation Matrix (Construction Phase)"
+  },
+  {
+    "style": "Heading 3",
+    "text": "Impact\u2013Mitigation Matrix (Operation Phase)"
+  },
+  {
+    "style": "Heading 1",
+    "text": "Chapter 10: Environmental and Social Management Plan"
+  },
+  {
+    "style": "Heading 2",
+    "text": "10.1 An Overview"
+  },
+  {
+    "style": "Heading 2",
+    "text": "10.2 ESMP Matrix"
+  },
+  {
+    "style": "Heading 2",
+    "text": "10.3 Monitoring Plan"
+  },
+  {
+    "style": "Heading 1",
+    "text": "Chapter 11: Conclusions and Recommendations"
+  },
+  {
+    "style": "Heading 2",
+    "text": "11.1 Conclusions"
+  },
+  {
+    "style": "Heading 2",
+    "text": "11.2 Recommendations"
+  },
+  {
+    "style": "Heading 1",
+    "text": "References"
+  },
+  {
+    "style": "Heading 1",
+    "text": "Annexes"
+  },
+  {
+    "style": "Heading 1",
+    "text": "Declarations"
+  },
+  {
+    "style": "Heading 2",
+    "text": "Declaration by the Proponent"
+  },
+  {
+    "style": "Heading 2",
+    "text": "Declaration by the Lead Expert"
+  }
+]
