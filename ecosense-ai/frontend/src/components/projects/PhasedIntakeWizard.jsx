@@ -79,7 +79,8 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
     specialistDate: '',
     projectDescription: '',
     alternativesConsidered: '',
-    empRows: [{ impact: '', mitigation: '', responsibleParty: '', monitoringFrequency: '', estCost: '' }]
+    empRows: [{ impact: '', mitigation: '', responsibleParty: '', monitoringFrequency: '', estCost: '' }],
+    engineeringSpecs: {} // Category-specific engineering specs
   });
 
   const phases = [
@@ -121,6 +122,13 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
 
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSpecChange = (e) => {
+    setFormData({
+      ...formData,
+      engineeringSpecs: { ...formData.engineeringSpecs, [e.target.name]: e.target.value }
+    });
   };
 
   const handleReceptorToggle = (category) => {
@@ -255,6 +263,91 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
                         <option value="Manufacturing">Manufacturing/Agro-Processing</option>
                         <option value="Agriculture">Agriculture & Forestry</option>
                     </select>
+                  </div>
+                  
+                  {/* DYNAMIC ENGINEERING SPECS */}
+                  <div className="col-span-1 md:col-span-2 mt-6 pt-6 border-t border-gray-200">
+                    <h4 className="font-bold text-gray-800 mb-4">Category-Specific Engineering Specifications</h4>
+                    
+                    {formData.projectCategory === 'Mining' && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Production/Crushing Capacity *</label>
+                          <input type="text" name="productionCapacity" value={formData.engineeringSpecs?.productionCapacity || ''} onChange={handleSpecChange} className="w-full rounded-md border-gray-300 shadow-sm p-2 border" placeholder="e.g. 500 t/day" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Explosive Type & Blast Schedule *</label>
+                          <input type="text" name="explosiveType" value={formData.engineeringSpecs?.explosiveType || ''} onChange={handleSpecChange} className="w-full rounded-md border-gray-300 shadow-sm p-2 border" placeholder="e.g. ANFO, bi-weekly" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Daily Haul Truck Volume *</label>
+                          <input type="text" name="truckVolume" value={formData.engineeringSpecs?.truckVolume || ''} onChange={handleSpecChange} className="w-full rounded-md border-gray-300 shadow-sm p-2 border" placeholder="e.g. 40 trips/day" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Generator / Power Rating *</label>
+                          <input type="text" name="powerRating" value={formData.engineeringSpecs?.powerRating || ''} onChange={handleSpecChange} className="w-full rounded-md border-gray-300 shadow-sm p-2 border" placeholder="e.g. 800 kVA" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Daily Water Consumption *</label>
+                          <input type="text" name="waterConsumption" value={formData.engineeringSpecs?.waterConsumption || ''} onChange={handleSpecChange} className="w-full rounded-md border-gray-300 shadow-sm p-2 border" placeholder="e.g. 15,000 L/day" />
+                        </div>
+                      </div>
+                    )}
+                    
+                    {formData.projectCategory === 'Manufacturing' && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Throughput / Processing Capacity *</label>
+                          <input type="text" name="processingCapacity" value={formData.engineeringSpecs?.processingCapacity || ''} onChange={handleSpecChange} className="w-full rounded-md border-gray-300 shadow-sm p-2 border" placeholder="e.g. 300 t/day" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Effluent Discharge Rate *</label>
+                          <input type="text" name="effluentRate" value={formData.engineeringSpecs?.effluentRate || ''} onChange={handleSpecChange} className="w-full rounded-md border-gray-300 shadow-sm p-2 border" placeholder="e.g. Zero-discharge / 50 m3/day" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Storage Silo/Tank Capacity *</label>
+                          <input type="text" name="storageCapacity" value={formData.engineeringSpecs?.storageCapacity || ''} onChange={handleSpecChange} className="w-full rounded-md border-gray-300 shadow-sm p-2 border" placeholder="e.g. 15,000 tonnes" />
+                        </div>
+                      </div>
+                    )}
+
+                    {formData.projectCategory === 'Real Estate' && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Unit Type Breakdown *</label>
+                          <input type="text" name="unitBreakdown" value={formData.engineeringSpecs?.unitBreakdown || ''} onChange={handleSpecChange} className="w-full rounded-md border-gray-300 shadow-sm p-2 border" placeholder="e.g. 300 apartments, 112 townhouses" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">PSTP Treatment Capacity (m³/day) *</label>
+                          <input type="text" name="pstpCapacity" value={formData.engineeringSpecs?.pstpCapacity || ''} onChange={handleSpecChange} className="w-full rounded-md border-gray-300 shadow-sm p-2 border" placeholder="e.g. 600 m3/day" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Peak Daily Water Demand (m³/day) *</label>
+                          <input type="text" name="waterDemand" value={formData.engineeringSpecs?.waterDemand || ''} onChange={handleSpecChange} className="w-full rounded-md border-gray-300 shadow-sm p-2 border" placeholder="e.g. 800 m3/day" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Average Daily Traffic (ADT) *</label>
+                          <input type="text" name="avgDailyTraffic" value={formData.engineeringSpecs?.avgDailyTraffic || ''} onChange={handleSpecChange} className="w-full rounded-md border-gray-300 shadow-sm p-2 border" placeholder="e.g. 450 vehicles/day" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Peak Hour Vehicle Count *</label>
+                          <input type="text" name="peakHourTraffic" value={formData.engineeringSpecs?.peakHourTraffic || ''} onChange={handleSpecChange} className="w-full rounded-md border-gray-300 shadow-sm p-2 border" placeholder="e.g. 120 vehicles/hr" />
+                        </div>
+                      </div>
+                    )}
+
+                    {formData.projectCategory === 'Infrastructure' && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Total Length (km) *</label>
+                          <input type="text" name="roadLength" value={formData.engineeringSpecs?.roadLength || ''} onChange={handleSpecChange} className="w-full rounded-md border-gray-300 shadow-sm p-2 border" placeholder="e.g. 15 km" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Right-of-Way Width (m) *</label>
+                          <input type="text" name="rowWidth" value={formData.engineeringSpecs?.rowWidth || ''} onChange={handleSpecChange} className="w-full rounded-md border-gray-300 shadow-sm p-2 border" placeholder="e.g. 30 meters" />
+                        </div>
+                      </div>
+                    )}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Estimated Investment Cost (KES) *</label>

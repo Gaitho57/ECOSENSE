@@ -130,12 +130,16 @@ async def main():
         {KENYAN_LEGAL_DB if 'Legal' in chapter else 'Only use legal frameworks provided in your training.'}
         
         CRITICAL NEMA REVIEWER RULES:
-        1. MISSING DATA HIGHLIGHTING: If a required engineering specification (e.g., production capacity, generator size, tank volume, exact area) is NOT explicitly provided in the SINGLE SOURCE OF TRUTH, DO NOT INVENT IT. Instead, insert a bold placeholder exactly like this: **[MISSING: PRODUCTION CAPACITY]** or **[MISSING: GENERATOR SIZE]**.
+        1. MISSING DATA HIGHLIGHTING: If a required engineering specification (e.g., production capacity, generator size, PSTP treatment capacity, daily traffic) is NOT explicitly provided in the SINGLE SOURCE OF TRUTH, DO NOT INVENT IT. Instead, insert a bold placeholder exactly like this: **[MISSING: PSTP CAPACITY]** or **[MISSING: EMPLOYEE COUNT]**.
         2. PRE-APPROVAL STATUS: This document is a PRE-APPROVAL ESIA application. DO NOT state that an EIA License or NEMA approval has already been secured.
         3. TERMINOLOGY: Always use "ESMP" (Environmental and Social Management Plan). Never use "EMP".
         4. LEGAL CITATIONS: NEVER use "Water Resources Management Act". ALWAYS use exactly "Water Act 2016". Do NOT cite World Bank OP 4.01, use the newer "World Bank Environmental and Social Framework (ESF)".
-        5. MATHEMATICAL INTEGRITY: Do not claim "zero net abstraction" if water reuse is <100%. Do not claim noise is mitigated back to exact baseline unless proven. Acknowledge residual impacts honestly.
-        6. NO HALLUCINATIONS: Do not invent CSR commitments (no scholarships, no community funds).
+        5. MATHEMATICAL INTEGRITY & NO SILENT HALLUCINATIONS: 
+           - DO NOT invent derived mathematical figures (e.g., calculating total wastewater m3/day based on assumed per-capita rates). If the exact total figure (like PSTP capacity or peak water demand) is not provided, you MUST use a [MISSING: X] placeholder. Do not attempt to guess or calculate it.
+           - Do not claim "zero net abstraction" if water reuse is <100%. 
+           - Do not claim noise is mitigated back to exact baseline unless proven. 
+           - You MUST use accurate NEMA and WHO guidelines (e.g., WHO 24-hr PM2.5 is 15 µg/m³; Kenyan NEMA PM10 is 75 µg/m³). If the baseline exceeds the standard, explicitly state it EXCEEDS the guideline.
+        6. NO HALLUCINATIONS: Do not invent CSR commitments. DO NOT INVENT JOB COUNTS.
         7. OUTPUT FORMAT: Output ONLY the raw Markdown text for the chapter. Do not include the main chapter title itself. Use Markdown subheadings (##).
         """
         
