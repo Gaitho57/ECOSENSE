@@ -47,24 +47,25 @@ async def call_groq(prompt):
         "max_tokens": 3000
     }
     
-    retries = 3
+    retries = 6
     while retries > 0:
         try:
             def do_req():
                 import requests
-                return requests.post(GROQ_URL, headers=headers, json=data, timeout=60)
+                return requests.post(GROQ_URL, headers=headers, json=data, timeout=90)
             
             resp = await asyncio.to_thread(do_req)
             if resp.status_code == 200:
                 return resp.json()["choices"][0]["message"]["content"].strip()
             elif resp.status_code == 429:
-                await asyncio.sleep(15)
+                print(f"      [!] Rate limit hit. Sleeping for 25 seconds...")
+                await asyncio.sleep(25)
                 retries -= 1
             else:
-                await asyncio.sleep(5)
+                await asyncio.sleep(8)
                 retries -= 1
         except Exception as e:
-            await asyncio.sleep(5)
+            await asyncio.sleep(8)
             retries -= 1
             
     return "[Content generation failed due to repeated rate limits.]"
@@ -131,16 +132,16 @@ async def main():
         
         CRITICAL NEMA REVIEWER RULES:
         1. MISSING DATA HIGHLIGHTING: If a required engineering specification (e.g., production capacity, generator size, PSTP treatment capacity, daily traffic) is NOT explicitly provided in the SINGLE SOURCE OF TRUTH, DO NOT INVENT IT. Instead, insert a bold placeholder exactly like this: **[MISSING: PSTP CAPACITY]** or **[MISSING: EMPLOYEE COUNT]**.
-        2. PRE-APPROVAL STATUS: This document is a PRE-APPROVAL ESIA application. DO NOT state that an EIA License or NEMA approval has already been secured.
-        3. TERMINOLOGY: Always use "ESMP" (Environmental and Social Management Plan). Never use "EMP".
-        4. LEGAL CITATIONS: NEVER use "Water Resources Management Act". ALWAYS use exactly "Water Act 2016". Do NOT cite World Bank OP 4.01, use the newer "World Bank Environmental and Social Framework (ESF)".
-        5. MATHEMATICAL INTEGRITY & NO SILENT HALLUCINATIONS: 
+        2. CONTRADICTION HANDLING: If the SINGLE SOURCE OF TRUTH contains data that is mathematically or logically contradictory (e.g., panel footprint > site area), you MUST explicitly flag it using **[CONTRADICTION: <explain>]**. DO NOT unilaterally redesign the project (e.g., do not invent a "reduced-capacity alternative") to make the math work. You must assess the project EXACTLY as proposed, flag the contradictions as fatal flaws, and require the proponent to resolve them before approval.
+        3. PRE-APPROVAL STATUS: This document is a PRE-APPROVAL ESIA application. DO NOT state that an EIA License or NEMA approval has already been secured.
+        4. TERMINOLOGY: Always use "ESMP" (Environmental and Social Management Plan). Never use "EMP".
+        5. LEGAL CITATIONS: NEVER use "Water Resources Management Act". ALWAYS use exactly "Water Act 2016". Do NOT cite World Bank OP 4.01, use the newer "World Bank Environmental and Social Framework (ESF)".
+        6. MATHEMATICAL INTEGRITY & NO SILENT HALLUCINATIONS: 
            - DO NOT invent derived mathematical figures (e.g., calculating total wastewater m3/day based on assumed per-capita rates). If the exact total figure (like PSTP capacity or peak water demand) is not provided, you MUST use a [MISSING: X] placeholder. Do not attempt to guess or calculate it.
            - Do not claim "zero net abstraction" if water reuse is <100%. 
-           - Do not claim noise is mitigated back to exact baseline unless proven. 
            - You MUST use accurate NEMA and WHO guidelines (e.g., WHO 24-hr PM2.5 is 15 µg/m³; Kenyan NEMA PM10 is 75 µg/m³). If the baseline exceeds the standard, explicitly state it EXCEEDS the guideline.
-        6. NO HALLUCINATIONS: Do not invent CSR commitments. DO NOT INVENT JOB COUNTS.
-        7. OUTPUT FORMAT: Output ONLY the raw Markdown text for the chapter. Do not include the main chapter title itself. Use Markdown subheadings (##).
+        7. NO HALLUCINATIONS: Do not invent CSR commitments. DO NOT INVENT JOB COUNTS.
+        8. OUTPUT FORMAT: Output ONLY the raw Markdown text for the chapter. Do not include the main chapter title itself. Use Markdown subheadings (##).
         """
         
         print(f"Requesting: {chapter}")

@@ -182,6 +182,18 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
   };
 
   const submitPhase = async () => {
+    // Front-end validation for Phase 1
+    if (currentPhase === 1) {
+      if (formData.projectCategory === 'Energy' && formData.engineeringSpecs?.arrayFootprint && formData.siteArea) {
+        const footprint = parseFloat(formData.engineeringSpecs.arrayFootprint);
+        const siteArea = parseFloat(formData.siteArea);
+        if (footprint > siteArea) {
+          alert(`Validation Error: Panel Array Footprint (${footprint} ha) cannot exceed total Site Area (${siteArea} ha). Please correct this before proceeding.`);
+          return;
+        }
+      }
+    }
+
     setIsUploading(true);
     try {
       if (currentPhase < 5) {
@@ -332,6 +344,23 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">Peak Hour Vehicle Count *</label>
                           <input type="text" name="peakHourTraffic" value={formData.engineeringSpecs?.peakHourTraffic || ''} onChange={handleSpecChange} className="w-full rounded-md border-gray-300 shadow-sm p-2 border" placeholder="e.g. 120 vehicles/hr" />
+                        </div>
+                      </div>
+                    )}
+
+                    {formData.projectCategory === 'Energy' && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Plant Capacity (MW) *</label>
+                          <input type="text" name="plantCapacity" value={formData.engineeringSpecs?.plantCapacity || ''} onChange={handleSpecChange} className="w-full rounded-md border-gray-300 shadow-sm p-2 border" placeholder="e.g. 50 MW" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Panel Array Footprint (ha) *</label>
+                          <input type="text" name="arrayFootprint" value={formData.engineeringSpecs?.arrayFootprint || ''} onChange={handleSpecChange} className="w-full rounded-md border-gray-300 shadow-sm p-2 border" placeholder="e.g. 45 ha" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Direct Operations Employment *</label>
+                          <input type="text" name="opsEmployment" value={formData.engineeringSpecs?.opsEmployment || ''} onChange={handleSpecChange} className="w-full rounded-md border-gray-300 shadow-sm p-2 border" placeholder="e.g. 25 permanent staff" />
                         </div>
                       </div>
                     )}
