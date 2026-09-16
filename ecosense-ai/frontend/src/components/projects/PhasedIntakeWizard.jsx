@@ -891,31 +891,63 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
 
         {currentPhase === 5 && (
           <div className="space-y-6 animate-fadeIn">
-            <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
-              <h4 className="text-emerald-800 font-bold flex items-center mb-2">
-                <CheckCircle2 className="w-5 h-5 mr-2" />
-                Ready for AI Processing
-              </h4>
-              <p className="text-emerald-700 text-sm">
-                Your data is structured and compliant. Clicking 'Compile Report' will initiate the Cloud AI to parse your specific uploads and merge them into the final NEMA format.
-              </p>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4 text-sm bg-white p-4 rounded-lg border">
-              <div><span className="text-gray-500">Project Name:</span> <span className="font-medium text-gray-900">{formData.projectName || 'Missing'}</span></div>
-              <div><span className="text-gray-500">Category:</span> <span className="font-medium text-gray-900">{formData.projectCategory || 'Missing'}</span></div>
-              <div><span className="text-gray-500">Proponent:</span> <span className="font-medium text-gray-900">{formData.proponentName || 'Missing'}</span></div>
-              <div><span className="text-gray-500">Location:</span> <span className="font-medium text-gray-900">{formData.county}, {formData.subCounty}, {formData.ward}</span></div>
-              <div><span className="text-gray-500">Plot / Tenure:</span> <span className="font-medium text-gray-900">{formData.plotNumber} ({formData.landOwnership})</span></div>
-              <div><span className="text-gray-500">Coordinates:</span> <span className="font-medium text-gray-900">{position ? `${position[0].toFixed(3)}, ${position[1].toFixed(3)}` : 'Missing'}</span></div>
-              <div><span className="text-gray-500">Cost (KES):</span> <span className="font-medium text-gray-900">{formData.investmentCost ? Number(formData.investmentCost).toLocaleString() : 'Missing'}</span></div>
-              <div><span className="text-gray-500">Lifespan:</span> <span className="font-medium text-gray-900">{formData.operationalLifespan ? `${formData.operationalLifespan} Years` : 'Missing'}</span></div>
-              <div><span className="text-gray-500">Receptors:</span> <span className="font-medium text-gray-900">{Object.keys(formData.sensitiveReceptors).length} detailed</span></div>
-              <div><span className="text-gray-500">Stakeholders:</span> <span className="font-medium text-gray-900">{formData.attendeeCount ? `${formData.attendeeCount} Attendees` : 'Missing'}</span></div>
-              <div><span className="text-gray-500">GRM Proposed:</span> <span className="font-medium text-gray-900">{formData.grmEstablished}</span></div>
-              <div><span className="text-gray-500">Concerns Mitigated:</span> <span className="font-medium text-gray-900">{formData.communityConcerns.filter(c => c.concern).length}</span></div>
-              <div><span className="text-gray-500">EMP Rows:</span> <span className="font-medium text-gray-900">{formData.empRows.filter(e => e.impact).length}</span></div>
-            </div>
+            {(() => {
+              const requiredFields = ['projectName', 'siteArea', 'county', 'plotNumber', 'proponentName', 'pin', 'investmentCost', 'timelineMonths', 'operationalLifespan', 'newspaperName', 'barazaDate'];
+              const missingFields = requiredFields.filter(f => !formData[f]);
+              const isReady = missingFields.length === 0;
+
+              return (
+                <>
+                  <div className={`p-4 rounded-lg border ${isReady ? 'bg-emerald-50 border-emerald-200' : 'bg-amber-50 border-amber-200'}`}>
+                    <div className="flex items-center space-x-3 mb-2">
+                      <CheckCircle2 className={`w-6 h-6 ${isReady ? 'text-emerald-600' : 'text-amber-600'}`} />
+                      <h4 className={`font-bold ${isReady ? 'text-emerald-800' : 'text-amber-800'}`}>
+                        {isReady ? 'Ready for AI Processing — your data is structured and compliant' : 'Incomplete Data — please fill missing fields before generating'}
+                      </h4>
+                    </div>
+                    {!isReady && (
+                      <p className="text-sm text-amber-700">Missing fields: {missingFields.join(', ')}</p>
+                    )}
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+                    <div className="space-y-2 bg-white p-4 rounded border border-gray-200">
+                      <h5 className="font-bold text-gray-700 border-b pb-2 mb-3">Project Summary</h5>
+                      <p><span className="font-semibold text-gray-600">Name:</span> {formData.projectName || 'Missing'}</p>
+                      <p><span className="font-semibold text-gray-600">Category:</span> {formData.projectCategory}</p>
+                      <p><span className="font-semibold text-gray-600">Location:</span> {formData.ward}, {formData.subCounty}, {formData.county}</p>
+                      <p><span className="font-semibold text-gray-600">Coordinates:</span> {position ? `${position[0].toFixed(4)}, ${position[1].toFixed(4)}` : 'Missing'}</p>
+                      <p><span className="font-semibold text-gray-600">Investment:</span> KES {formData.investmentCost ? Number(formData.investmentCost).toLocaleString() : 'Missing'}</p>
+                      <p><span className="font-semibold text-gray-600">Lifespan:</span> {formData.operationalLifespan ? `${formData.operationalLifespan} years` : 'Missing'}</p>
+                    </div>
+
+                    <div className="space-y-2 bg-white p-4 rounded border border-gray-200">
+                      <h5 className="font-bold text-gray-700 border-b pb-2 mb-3">Proponent Details</h5>
+                      <p><span className="font-semibold text-gray-600">Name:</span> {formData.proponentName || 'Missing'}</p>
+                      <p><span className="font-semibold text-gray-600">PIN:</span> {formData.pin || 'Missing'}</p>
+                      <p><span className="font-semibold text-gray-600">Plot:</span> {formData.plotNumber || 'Missing'} ({formData.landOwnership || 'Missing Tenure'})</p>
+                      <p><span className="font-semibold text-gray-600">Lead Expert:</span> {formData.leadExpertReg}</p>
+                      <p><span className="font-semibold text-gray-600">Receptors Found:</span> {Object.keys(formData.sensitiveReceptors).length}</p>
+                      <p><span className="font-semibold text-gray-600">Stakeholder Groups:</span> {Object.keys(formData.stakeholderGroups).length}</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                    <label className="flex items-start space-x-3 cursor-pointer">
+                      <input type="checkbox" name="attestation" className="mt-1 w-4 h-4 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500" 
+                             checked={formData.attestation || false} 
+                             onChange={(e) => setFormData({...formData, attestation: e.target.checked})} />
+                      <div>
+                        <span className="text-sm font-bold text-gray-800">Lead Expert Attestation</span>
+                        <p className="text-xs text-gray-500 mt-1">
+                          I, {formData.leadExpertReg}, confirm that the data provided in this wizard accurately reflects the baseline conditions, engineering designs, and stakeholder engagement records for this project. I authorize the EcoSense AI to generate a pre-approval ESIA draft based solely on this locked dataset.
+                        </p>
+                      </div>
+                    </label>
+                  </div>
+                </>
+              );
+            })()}
           </div>
         )}
       </div>
@@ -931,8 +963,8 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
         
         <button 
           onClick={submitPhase}
-          disabled={isUploading || (currentPhase === 1 && !position)}
-          className="flex items-center px-6 py-2 rounded-lg font-medium text-white transition-colors shadow-sm bg-emerald-600 hover:bg-emerald-700"
+          disabled={isUploading || (currentPhase === 1 && !position) || (currentPhase === 5 && (!formData.attestation || ['projectName', 'siteArea', 'county', 'plotNumber', 'proponentName', 'pin', 'investmentCost', 'timelineMonths', 'operationalLifespan', 'newspaperName', 'barazaDate'].some(f => !formData[f])))}
+          className="flex items-center px-6 py-2 rounded-lg font-medium text-white transition-colors shadow-sm bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isUploading ? (
             <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> Saving...</>
