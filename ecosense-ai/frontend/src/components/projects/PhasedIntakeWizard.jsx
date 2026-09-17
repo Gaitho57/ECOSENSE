@@ -539,6 +539,41 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
                       </div>
                     </div>
                   )}
+
+                  <div className="md:col-span-2 mt-2">
+                    <label className="flex items-center space-x-2 cursor-pointer bg-gray-50 p-3 rounded border border-gray-200">
+                      <input type="checkbox" name="requiresContamination" checked={formData.requiresContamination || false} onChange={(e) => setFormData({...formData, requiresContamination: e.target.checked})} className="w-4 h-4 text-emerald-600 rounded border-gray-300 focus:ring-emerald-500" />
+                      <span className="text-sm font-bold text-gray-800">Site has History of Industrial Use or Known Contamination (Brownfield)</span>
+                    </label>
+                  </div>
+
+                  {formData.requiresContamination && (
+                    <div className="md:col-span-2 mt-2 p-4 bg-purple-50 border border-purple-200 rounded-lg animate-fadeIn">
+                      <h5 className="font-bold text-purple-800 mb-4 border-b border-purple-200 pb-2">Contaminated Land & Brownfield Details</h5>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="md:col-span-2">
+                          <label className="block text-sm font-medium text-purple-900 mb-1">Prior Site Use & History</label>
+                          <input type="text" name="priorSiteUse" value={formData.priorSiteUse || ''} onChange={handleInputChange} className="w-full rounded-md border-purple-300 shadow-sm p-2 border bg-white" placeholder="e.g. Decommissioned fuel storage depot (1974-2009)" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-purple-900 mb-1">Key Contaminants of Concern</label>
+                          <input type="text" name="contaminantsOfConcern" value={formData.contaminantsOfConcern || ''} onChange={handleInputChange} className="w-full rounded-md border-purple-300 shadow-sm p-2 border bg-white" placeholder="e.g. TPH, Benzene, Heavy Metals" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-purple-900 mb-1">Proposed Remediation Strategy</label>
+                          <input type="text" name="remediationStrategy" value={formData.remediationStrategy || ''} onChange={handleInputChange} className="w-full rounded-md border-purple-300 shadow-sm p-2 border bg-white" placeholder="e.g. Excavation and off-site disposal" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-purple-900 mb-1">Max Soil Contamination Detected</label>
+                          <input type="text" name="maxSoilContamination" value={formData.maxSoilContamination || ''} onChange={handleInputChange} className="w-full rounded-md border-purple-300 shadow-sm p-2 border bg-white" placeholder="e.g. TPH: 3,400 mg/kg" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-purple-900 mb-1">Max Groundwater Contamination</label>
+                          <input type="text" name="maxWaterContamination" value={formData.maxWaterContamination || ''} onChange={handleInputChange} className="w-full rounded-md border-purple-300 shadow-sm p-2 border bg-white" placeholder="e.g. Benzene: 0.08 mg/L" />
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 
                 <div className="mt-4">
@@ -780,6 +815,26 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
                         <span className="text-sm font-medium text-rose-900">Management Plan Compatibility</span>
                         <span className="text-xs text-rose-700 mt-1">{files.management_compatibility ? files.management_compatibility.name : 'Required for Overlap'}</span>
                         <input type="file" className="hidden" onChange={(e) => handleFileChange('management_compatibility', e)} />
+                      </label>
+                    </div>
+                  </>
+                )}
+                {formData.requiresContamination && (
+                  <>
+                    <div className="p-4 border-2 border-dashed border-purple-300 rounded-lg bg-purple-50 hover:bg-purple-100 transition-colors">
+                      <label className="flex flex-col items-center justify-center cursor-pointer text-center h-full">
+                        <Upload className="w-6 h-6 text-purple-500 mb-2" />
+                        <span className="text-sm font-medium text-purple-900">Phase 1 ESA (Site History)</span>
+                        <span className="text-xs text-purple-700 mt-1">{files.phase1_esa ? files.phase1_esa.name : 'Required for Brownfields'}</span>
+                        <input type="file" className="hidden" onChange={(e) => handleFileChange('phase1_esa', e)} />
+                      </label>
+                    </div>
+                    <div className="p-4 border-2 border-dashed border-purple-300 rounded-lg bg-purple-50 hover:bg-purple-100 transition-colors">
+                      <label className="flex flex-col items-center justify-center cursor-pointer text-center h-full">
+                        <Upload className="w-6 h-6 text-purple-500 mb-2" />
+                        <span className="text-sm font-medium text-purple-900">Phase 2 ESA (Remediation)</span>
+                        <span className="text-xs text-purple-700 mt-1">{files.phase2_esa ? files.phase2_esa.name : 'Required for Brownfields'}</span>
+                        <input type="file" className="hidden" onChange={(e) => handleFileChange('phase2_esa', e)} />
                       </label>
                     </div>
                   </>
@@ -1064,6 +1119,19 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
                           <p><span className="font-semibold text-rose-900">Authority:</span> {formData.managingAuthority || 'Missing'}</p>
                           <p><span className="font-semibold text-rose-900">Overlap Area:</span> {formData.overlapArea ? `${formData.overlapArea} ha` : 'Missing'}</p>
                           <p><span className="font-semibold text-rose-900">Affected Components:</span> {formData.affectedComponents || 'Missing'}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {formData.requiresContamination && (
+                      <div className="space-y-2 bg-purple-50 p-4 rounded border border-purple-200 md:col-span-2">
+                        <h5 className="font-bold text-purple-800 border-b border-purple-200 pb-2 mb-3">Contaminated Land & Remediation (Brownfield)</h5>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <p><span className="font-semibold text-purple-900">Prior Use:</span> {formData.priorSiteUse || 'Missing'}</p>
+                          <p><span className="font-semibold text-purple-900">Contaminants:</span> {formData.contaminantsOfConcern || 'Missing'}</p>
+                          <p><span className="font-semibold text-purple-900">Max Soil Level:</span> {formData.maxSoilContamination || 'Missing'}</p>
+                          <p><span className="font-semibold text-purple-900">Max Water Level:</span> {formData.maxWaterContamination || 'Missing'}</p>
+                          <p className="md:col-span-2"><span className="font-semibold text-purple-900">Remediation Strategy:</span> {formData.remediationStrategy || 'Missing'}</p>
                         </div>
                       </div>
                     )}

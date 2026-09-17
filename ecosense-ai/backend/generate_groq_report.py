@@ -110,6 +110,12 @@ async def main():
                     'managingAuthority': getattr(project, 'managing_authority', 'Missing'),
                     'overlapArea': getattr(project, 'overlap_area', 'Missing'),
                     'affectedComponents': getattr(project, 'affected_components', 'Missing'),
+                    'requiresContamination': getattr(project, 'requires_contamination', False),
+                    'priorSiteUse': getattr(project, 'prior_site_use', 'Missing'),
+                    'contaminantsOfConcern': getattr(project, 'contaminants_of_concern', 'Missing'),
+                    'maxSoilContamination': getattr(project, 'max_soil_contamination', 'Missing'),
+                    'maxWaterContamination': getattr(project, 'max_water_contamination', 'Missing'),
+                    'remediationStrategy': getattr(project, 'remediation_strategy', 'Missing'),
                 }
 
             engineering_lines = []
@@ -139,6 +145,17 @@ async def main():
     Affected Project Components: {project_data.get('affectedComponents', 'Missing')}
     """
             
+            contamination_text = ""
+            if project_data.get('requiresContamination'):
+                contamination_text = f"""
+    CONTAMINATED LAND & REMEDIATION DETAILS (CRITICAL REGULATORY CONSTRAINT):
+    Prior Site Use: {project_data.get('priorSiteUse', 'Missing')}
+    Contaminants of Concern: {project_data.get('contaminantsOfConcern', 'Missing')}
+    Max Soil Contamination Detected: {project_data.get('maxSoilContamination', 'Missing')}
+    Max Groundwater Contamination Detected: {project_data.get('maxWaterContamination', 'Missing')}
+    Proposed Remediation Strategy: {project_data.get('remediationStrategy', 'Missing')}
+    """
+            
             raw_intake_data = f"""
     Project Name: {project_data.get('projectName')}
     Proponent: {project_data.get('proponentName')} (PIN: {project_data.get('pin')})
@@ -156,6 +173,7 @@ async def main():
     {engineering_text}
     {rap_text}
     {protected_area_text}
+    {contamination_text}
     Baseline Conditions:   """
 
             project_context = raw_intake_data
