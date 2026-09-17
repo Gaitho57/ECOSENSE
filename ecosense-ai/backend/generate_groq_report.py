@@ -8,7 +8,7 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')
 import django
 django.setup()
 
-from apps.reports.models import Project, ProjectDocument
+from apps.projects.models import Project, ProjectDocument
 from apps.predictions.ml.engine import KENYAN_LEGAL_DB
 
 GROQ_API_KEY = ""
@@ -47,7 +47,7 @@ async def call_groq(prompt):
         "max_tokens": 3000
     }
     
-    retries = 6
+    retries = 15
     while retries > 0:
         try:
             def do_req():
@@ -58,17 +58,19 @@ async def call_groq(prompt):
             if resp.status_code == 200:
                 return resp.json()["choices"][0]["message"]["content"].strip()
             elif resp.status_code == 429:
-                print(f"      [!] Rate limit hit. Sleeping for 25 seconds...")
-                await asyncio.sleep(25)
+                print(f"      [!] Rate limit hit (Free Tier). Sleeping for 40 seconds to allow token bucket to refill...")
+                await asyncio.sleep(40)
                 retries -= 1
             else:
-                await asyncio.sleep(8)
+                print(f"      [!] API Error {resp.status_code}. Retrying in 10s...")
+                await asyncio.sleep(10)
                 retries -= 1
         except Exception as e:
-            await asyncio.sleep(8)
+            print(f"      [!] Network Error: {e}. Retrying in 10s...")
+            await asyncio.sleep(10)
             retries -= 1
             
-    return "[Content generation failed due to repeated rate limits.]"
+    return "[Content generation failed due to repeated rate limits after 15 retries.]"
 
 async def main():
     parser = argparse.ArgumentParser()
