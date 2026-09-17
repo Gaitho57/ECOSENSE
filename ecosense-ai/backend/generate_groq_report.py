@@ -105,6 +105,11 @@ async def main():
                     'rapStructures': getattr(project, 'rap_structures', 'Missing'),
                     'rapCutoffDate': getattr(project, 'rap_cutoff_date', 'Missing'),
                     'rapMethodology': getattr(project, 'rap_methodology', 'Missing'),
+                    'requiresProtectedArea': getattr(project, 'requires_protected_area', False),
+                    'protectedAreaName': getattr(project, 'protected_area_name', 'Missing'),
+                    'managingAuthority': getattr(project, 'managing_authority', 'Missing'),
+                    'overlapArea': getattr(project, 'overlap_area', 'Missing'),
+                    'affectedComponents': getattr(project, 'affected_components', 'Missing'),
                 }
 
             engineering_lines = []
@@ -124,6 +129,16 @@ async def main():
     Compensation Methodology: {project_data.get('rapMethodology', 'Missing')}
     """
             
+            protected_area_text = ""
+            if project_data.get('requiresProtectedArea'):
+                protected_area_text = f"""
+    PROTECTED AREA OVERLAP DETAILS (CRITICAL REGULATORY CONSTRAINT):
+    Protected Area Name: {project_data.get('protectedAreaName', 'Missing')}
+    Managing Authority: {project_data.get('managingAuthority', 'Missing')}
+    Overlap Area: {project_data.get('overlapArea', 'Missing')} hectares
+    Affected Project Components: {project_data.get('affectedComponents', 'Missing')}
+    """
+            
             raw_intake_data = f"""
     Project Name: {project_data.get('projectName')}
     Proponent: {project_data.get('proponentName')} (PIN: {project_data.get('pin')})
@@ -140,6 +155,7 @@ async def main():
     ENGINEERING SPECS:
     {engineering_text}
     {rap_text}
+    {protected_area_text}
     Baseline Conditions:   """
 
             project_context = raw_intake_data

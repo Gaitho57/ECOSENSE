@@ -502,6 +502,43 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
                       </div>
                     </div>
                   )}
+
+                  <div className="md:col-span-2 mt-2">
+                    <label className="flex items-center space-x-2 cursor-pointer bg-gray-50 p-3 rounded border border-gray-200">
+                      <input type="checkbox" name="requiresProtectedArea" checked={formData.requiresProtectedArea || false} onChange={(e) => setFormData({...formData, requiresProtectedArea: e.target.checked})} className="w-4 h-4 text-emerald-600 rounded border-gray-300 focus:ring-emerald-500" />
+                      <span className="text-sm font-bold text-gray-800">Site Overlaps with Protected Area (Forest Reserve, National Park, Riparian)</span>
+                    </label>
+                  </div>
+
+                  {formData.requiresProtectedArea && (
+                    <div className="md:col-span-2 mt-2 p-4 bg-rose-50 border border-rose-200 rounded-lg animate-fadeIn">
+                      <h5 className="font-bold text-rose-800 mb-4 border-b border-rose-200 pb-2">Protected Area Overlap Details</h5>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-rose-900 mb-1">Protected Area Name</label>
+                          <input type="text" name="protectedAreaName" value={formData.protectedAreaName || ''} onChange={handleInputChange} className="w-full rounded-md border-rose-300 shadow-sm p-2 border bg-white" placeholder="e.g. Kieni Forest Reserve" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-rose-900 mb-1">Managing Authority</label>
+                          <select name="managingAuthority" value={formData.managingAuthority || ''} onChange={handleInputChange} className="w-full rounded-md border-rose-300 shadow-sm p-2 border bg-white">
+                              <option value="">Select Authority</option>
+                              <option value="KFS">Kenya Forest Service (KFS)</option>
+                              <option value="KWS">Kenya Wildlife Service (KWS)</option>
+                              <option value="WRA">Water Resources Authority (WRA)</option>
+                              <option value="NMK">National Museums of Kenya (NMK)</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-rose-900 mb-1">Overlap Area (Hectares)</label>
+                          <input type="number" step="0.1" name="overlapArea" value={formData.overlapArea || ''} onChange={handleInputChange} className="w-full rounded-md border-rose-300 shadow-sm p-2 border bg-white" placeholder="e.g. 0.9" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-rose-900 mb-1">Affected Project Components</label>
+                          <input type="text" name="affectedComponents" value={formData.affectedComponents || ''} onChange={handleInputChange} className="w-full rounded-md border-rose-300 shadow-sm p-2 border bg-white" placeholder="e.g. 6 guest cottages" />
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 
                 <div className="mt-4">
@@ -723,6 +760,26 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
                         <span className="text-sm font-medium text-amber-900">Asset Valuation Report</span>
                         <span className="text-xs text-amber-700 mt-1">{files.valuation_report ? files.valuation_report.name : 'Required for RAP'}</span>
                         <input type="file" className="hidden" onChange={(e) => handleFileChange('valuation_report', e)} />
+                      </label>
+                    </div>
+                  </>
+                )}
+                {formData.requiresProtectedArea && (
+                  <>
+                    <div className="p-4 border-2 border-dashed border-rose-300 rounded-lg bg-rose-50 hover:bg-rose-100 transition-colors">
+                      <label className="flex flex-col items-center justify-center cursor-pointer text-center h-full">
+                        <Upload className="w-6 h-6 text-rose-500 mb-2" />
+                        <span className="text-sm font-medium text-rose-900">Statutory Consent ({formData.managingAuthority || 'Authority'})</span>
+                        <span className="text-xs text-rose-700 mt-1">{files.statutory_consent ? files.statutory_consent.name : 'Required for Overlap'}</span>
+                        <input type="file" className="hidden" onChange={(e) => handleFileChange('statutory_consent', e)} />
+                      </label>
+                    </div>
+                    <div className="p-4 border-2 border-dashed border-rose-300 rounded-lg bg-rose-50 hover:bg-rose-100 transition-colors">
+                      <label className="flex flex-col items-center justify-center cursor-pointer text-center h-full">
+                        <Upload className="w-6 h-6 text-rose-500 mb-2" />
+                        <span className="text-sm font-medium text-rose-900">Management Plan Compatibility</span>
+                        <span className="text-xs text-rose-700 mt-1">{files.management_compatibility ? files.management_compatibility.name : 'Required for Overlap'}</span>
+                        <input type="file" className="hidden" onChange={(e) => handleFileChange('management_compatibility', e)} />
                       </label>
                     </div>
                   </>
@@ -995,6 +1052,18 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
                           <p><span className="font-semibold text-amber-900">Cut-off Date:</span> {formData.rapCutoffDate || 'Missing'}</p>
                           <p><span className="font-semibold text-amber-900">Structures:</span> {formData.rapStructures || 'Missing'}</p>
                           <p><span className="font-semibold text-amber-900">Methodology:</span> {formData.rapMethodology || 'Missing'}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {formData.requiresProtectedArea && (
+                      <div className="space-y-2 bg-rose-50 p-4 rounded border border-rose-200 md:col-span-2">
+                        <h5 className="font-bold text-rose-800 border-b border-rose-200 pb-2 mb-3">Protected Area Overlap</h5>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <p><span className="font-semibold text-rose-900">Protected Area:</span> {formData.protectedAreaName || 'Missing'}</p>
+                          <p><span className="font-semibold text-rose-900">Authority:</span> {formData.managingAuthority || 'Missing'}</p>
+                          <p><span className="font-semibold text-rose-900">Overlap Area:</span> {formData.overlapArea ? `${formData.overlapArea} ha` : 'Missing'}</p>
+                          <p><span className="font-semibold text-rose-900">Affected Components:</span> {formData.affectedComponents || 'Missing'}</p>
                         </div>
                       </div>
                     )}
