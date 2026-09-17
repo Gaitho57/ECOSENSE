@@ -124,6 +124,7 @@ async def main():
                     'consultationSchedule': getattr(project, 'consultation_schedule', 'Missing'),
                     'barazaDate': getattr(project, 'baraza_date', 'Missing'),
                     'barazaVenue': getattr(project, 'baraza_venue', 'Missing'),
+                    'newspaperWaiver': getattr(project, 'newspaper_waiver', False),
                 }
 
             engineering_lines = []
@@ -176,6 +177,8 @@ async def main():
                 baseline_text = "Baseline Conditions (Point-Specific):" # (The original code didn't actually inject the baseline points into raw_intake_data, they were processed separately. We'll leave it as is or add it).
                 consultation_text = f"Baraza Date: {project_data.get('barazaDate', 'Missing')}, Venue: {project_data.get('barazaVenue', 'Missing')}"
             
+            notification_text = "Public Notification: Reg 17 Newspaper Publication WAIVED (Low Risk / Community Project)." if project_data.get('newspaperWaiver') else "Public Notification: Statutory Reg 17 Newspaper Publication required."
+            
             raw_intake_data = f"""
     Project Name: {project_data.get('projectName')}
     Proponent: {project_data.get('proponentName')} (PIN: {project_data.get('pin')})
@@ -195,7 +198,8 @@ async def main():
     {protected_area_text}
     {contamination_text}
     {baseline_text}
-    {consultation_text}   """
+    {consultation_text}
+    {notification_text}   """
 
             project_context = raw_intake_data
             

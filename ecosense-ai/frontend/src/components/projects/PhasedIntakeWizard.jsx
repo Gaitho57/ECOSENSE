@@ -279,6 +279,7 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
                     <label className="block text-sm font-medium text-gray-700 mb-1">Project Category *</label>
                     <select name="projectCategory" value={formData.projectCategory} onChange={handleInputChange} className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border bg-white">
                         <option value="Infrastructure">Infrastructure (Roads/Bridges)</option>
+                        <option value="Water">Water & Sanitation (Boreholes, Dams, Pipelines)</option>
                         <option value="Energy">Energy (Solar/Wind/Geothermal)</option>
                         <option value="Real Estate">Real Estate & Housing</option>
                         <option value="Mining">Mining & Quarrying</option>
@@ -384,6 +385,27 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">Right-of-Way Width (m) *</label>
                           <input type="text" name="rowWidth" value={formData.engineeringSpecs?.rowWidth || ''} onChange={handleSpecChange} className="w-full rounded-md border-gray-300 shadow-sm p-2 border" placeholder="e.g. 30 meters" />
+                        </div>
+                      </div>
+                    )}
+                    
+                    {formData.projectCategory === 'Water' && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Target Drilling Depth (m)</label>
+                          <input type="text" name="targetDepth" value={formData.engineeringSpecs?.targetDepth || ''} onChange={handleSpecChange} className="w-full rounded-md border-gray-300 shadow-sm p-2 border" placeholder="e.g. 200 m" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Expected Yield (m³/hr)</label>
+                          <input type="text" name="expectedYield" value={formData.engineeringSpecs?.expectedYield || ''} onChange={handleSpecChange} className="w-full rounded-md border-gray-300 shadow-sm p-2 border" placeholder="e.g. 15 m³/hr" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Storage Tank Capacity (Liters)</label>
+                          <input type="text" name="storageTankCapacity" value={formData.engineeringSpecs?.storageTankCapacity || ''} onChange={handleSpecChange} className="w-full rounded-md border-gray-300 shadow-sm p-2 border" placeholder="e.g. 10,000 L" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Distribution Network Length (km)</label>
+                          <input type="text" name="distributionLength" value={formData.engineeringSpecs?.distributionLength || ''} onChange={handleSpecChange} className="w-full rounded-md border-gray-300 shadow-sm p-2 border" placeholder="e.g. 2.5 km (Optional)" />
                         </div>
                       </div>
                     )}
@@ -819,8 +841,8 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
                 <div className="p-4 border-2 border-dashed border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors">
                   <label className="flex flex-col items-center justify-center cursor-pointer text-center h-full">
                     <Upload className="w-6 h-6 text-gray-400 mb-2" />
-                    <span className="text-sm font-medium text-gray-600">Hydrology Report</span>
-                    <span className="text-xs text-gray-400 mt-1">{files.hydrology_report ? files.hydrology_report.name : 'Optional'}</span>
+                    <span className="text-sm font-medium text-gray-600">Hydrology / Hydrogeological Survey</span>
+                    <span className="text-xs text-gray-400 mt-1">{files.hydrology_report ? files.hydrology_report.name : 'PDF up to 20MB'}</span>
                     <input type="file" className="hidden" onChange={(e) => handleFileChange('hydrology_report', e)} />
                   </label>
                 </div>
@@ -906,38 +928,46 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
             <div className="bg-white p-4 rounded-lg border border-gray-200">
                 <h4 className="font-bold text-gray-800 mb-4 border-b pb-2 flex justify-between items-center">
                     <span>1. Public Notification (Reg 17)</span>
-                    <span className="text-xs font-normal text-amber-600 bg-amber-50 px-2 py-1 rounded border border-amber-200">Statutory Requirement</span>
+                    <label className="flex items-center space-x-2 text-sm font-normal cursor-pointer bg-gray-50 px-2 py-1 rounded border border-gray-200">
+                        <input type="checkbox" name="newspaperWaiver" checked={formData.newspaperWaiver || false} onChange={(e) => setFormData({...formData, newspaperWaiver: e.target.checked})} className="w-4 h-4 text-emerald-600 rounded border-gray-300 focus:ring-emerald-500" />
+                        <span className="text-gray-700">Waiver / N/A (Low Risk Project)</span>
+                    </label>
                 </h4>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Newspaper Name *</label>
-                    <input type="text" name="newspaperName" value={formData.newspaperName} onChange={handleInputChange} 
-                           className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. Daily Nation" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Publication Date *</label>
-                    <input type="date" name="newspaperDate" value={formData.newspaperDate} onChange={handleInputChange} 
-                           className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Notice (Days) *</label>
-                    <input type="number" name="noticePeriodDays" value={formData.noticePeriodDays} onChange={handleInputChange} 
-                           className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. 14" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Other Notification (Optional)</label>
-                    <input type="text" name="otherNotificationMethod" value={formData.otherNotificationMethod} onChange={handleInputChange} 
-                           className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. Local Radio / Chief Baraza" />
-                  </div>
-                </div>
-                <div className="p-3 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50 hover:bg-white transition-colors">
-                  <label className="flex items-center justify-center cursor-pointer">
-                    <Upload className="w-5 h-5 text-gray-400 mr-2" />
-                    <span className="text-sm font-medium text-gray-600 mr-2">Upload Newspaper Tear-sheet (PDF/Image) *</span>
-                    <span className="text-xs text-gray-400">{files.newspaper_notice ? files.newspaper_notice.name : 'Missing'}</span>
-                    <input type="file" className="hidden" onChange={(e) => handleFileChange('newspaper_notice', e)} />
-                  </label>
-                </div>
+                
+                {!formData.newspaperWaiver && (
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Newspaper Name *</label>
+                        <input type="text" name="newspaperName" value={formData.newspaperName} onChange={handleInputChange} 
+                               className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. Daily Nation" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Publication Date *</label>
+                        <input type="date" name="publicationDate" value={formData.publicationDate} onChange={handleInputChange} 
+                               className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Notice Period (Days) *</label>
+                        <input type="number" name="noticePeriod" value={formData.noticePeriod} onChange={handleInputChange} 
+                               className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. 14 or 30" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Other Notification Medium</label>
+                        <input type="text" name="otherNotification" value={formData.otherNotification} onChange={handleInputChange} 
+                               className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. Local Radio / Chief Baraza" />
+                      </div>
+                    </div>
+                    <div className="p-3 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50 hover:bg-white transition-colors">
+                      <label className="flex items-center justify-center cursor-pointer">
+                        <Upload className="w-5 h-5 text-gray-400 mr-2" />
+                        <span className="text-sm font-medium text-gray-600 mr-2">Upload Newspaper Tear-sheet (PDF/Image) *</span>
+                        <span className="text-xs text-gray-400">{files.newspaper_notice ? files.newspaper_notice.name : 'Missing'}</span>
+                        <input type="file" className="hidden" onChange={(e) => handleFileChange('newspaper_notice', e)} />
+                      </label>
+                    </div>
+                  </>
+                )}
             </div>
 
             {/* Baraza Logistics & Attendance */}
