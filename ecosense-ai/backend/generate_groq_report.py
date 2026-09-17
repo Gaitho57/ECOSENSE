@@ -116,6 +116,14 @@ async def main():
                     'maxSoilContamination': getattr(project, 'max_soil_contamination', 'Missing'),
                     'maxWaterContamination': getattr(project, 'max_water_contamination', 'Missing'),
                     'remediationStrategy': getattr(project, 'remediation_strategy', 'Missing'),
+                    'isMegaProject': getattr(project, 'is_mega_project', False),
+                    'countiesTraversed': getattr(project, 'counties_traversed', 'Missing'),
+                    'alignmentCoordinates': getattr(project, 'alignment_coordinates', 'Missing'),
+                    'landTenureSummary': getattr(project, 'land_tenure_summary', 'Missing'),
+                    'baselineSummary': getattr(project, 'baseline_summary', 'Missing'),
+                    'consultationSchedule': getattr(project, 'consultation_schedule', 'Missing'),
+                    'barazaDate': getattr(project, 'baraza_date', 'Missing'),
+                    'barazaVenue': getattr(project, 'baraza_venue', 'Missing'),
                 }
 
             engineering_lines = []
@@ -156,13 +164,25 @@ async def main():
     Proposed Remediation Strategy: {project_data.get('remediationStrategy', 'Missing')}
     """
             
+            # Location Formatting
+            if project_data.get('isMegaProject'):
+                location_text = f"Counties Traversed: {project_data.get('countiesTraversed', 'Missing')}\n    Alignment Coordinates: {project_data.get('alignmentCoordinates', 'Missing')}"
+                plot_text = f"Land Tenure Summary: {project_data.get('landTenureSummary', 'Missing')}"
+                baseline_text = f"Corridor Baseline Summary: {project_data.get('baselineSummary', 'Missing')}"
+                consultation_text = f"Consultation Schedule: {project_data.get('consultationSchedule', 'Missing')}"
+            else:
+                location_text = f"Location: {project_data.get('ward')}, {project_data.get('subCounty')}, {project_data.get('county')}"
+                plot_text = f"Plot: {project_data.get('plotNumber')} (Tenure: {project_data.get('landOwnership')})"
+                baseline_text = "Baseline Conditions (Point-Specific):" # (The original code didn't actually inject the baseline points into raw_intake_data, they were processed separately. We'll leave it as is or add it).
+                consultation_text = f"Baraza Date: {project_data.get('barazaDate', 'Missing')}, Venue: {project_data.get('barazaVenue', 'Missing')}"
+            
             raw_intake_data = f"""
     Project Name: {project_data.get('projectName')}
     Proponent: {project_data.get('proponentName')} (PIN: {project_data.get('pin')})
     Category: {project_data.get('projectCategory')}
     Site Area: {project_data.get('siteArea')} hectares
-    Location: {project_data.get('ward')}, {project_data.get('subCounty')}, {project_data.get('county')}
-    Plot: {project_data.get('plotNumber')} (Tenure: {project_data.get('landOwnership')})
+    {location_text}
+    {plot_text}
     Cost: KES {project_data.get('investmentCost')}
     Construction Duration: {project_data.get('timelineMonths')} months
     Lifespan: {project_data.get('operationalLifespan')} years
@@ -174,7 +194,8 @@ async def main():
     {rap_text}
     {protected_area_text}
     {contamination_text}
-    Baseline Conditions:   """
+    {baseline_text}
+    {consultation_text}   """
 
             project_context = raw_intake_data
             

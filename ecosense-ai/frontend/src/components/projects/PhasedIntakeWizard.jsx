@@ -256,6 +256,16 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
         {currentPhase === 1 && (
           <div className="space-y-6 animate-fadeIn">
             
+            <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-200">
+              <label className="flex items-center space-x-3 cursor-pointer">
+                <input type="checkbox" name="isMegaProject" checked={formData.isMegaProject || false} onChange={(e) => setFormData({...formData, isMegaProject: e.target.checked})} className="w-5 h-5 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500" />
+                <div>
+                  <span className="text-base font-bold text-indigo-900">Linear Infrastructure / Mega-Project Mode</span>
+                  <p className="text-xs text-indigo-700 mt-1">Check this for multi-county projects, highways, or transmission lines. It replaces strict single-point fields with flexible summaries.</p>
+                </div>
+              </label>
+            </div>
+
             {/* Project Details */}
             <div className="bg-white p-4 rounded-lg border border-gray-200">
                 <h4 className="font-bold text-gray-800 mb-4 border-b pb-2">1. Project Identity & Scope</h4>
@@ -434,30 +444,48 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
                     <span>3. Administrative & Spatial Location</span>
                     <span className="text-xs text-gray-400 font-normal">Lead Expert: {formData.leadExpertReg}</span>
                 </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">County *</label>
-                    <input type="text" name="county" value={formData.county} onChange={handleInputChange} 
-                           className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. Kajiado" />
+                
+                {!formData.isMegaProject ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">County *</label>
+                      <input type="text" name="county" value={formData.county} onChange={handleInputChange} 
+                             className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. Kajiado" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Sub-county *</label>
+                      <input type="text" name="subCounty" value={formData.subCounty} onChange={handleInputChange} 
+                             className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. Kajiado North" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Ward *</label>
+                      <input type="text" name="ward" value={formData.ward} onChange={handleInputChange} 
+                             className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. Ongata Rongai" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Plot / LR Number *</label>
+                      <input type="text" name="plotNumber" value={formData.plotNumber} onChange={handleInputChange} 
+                             className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. LR No. 1234/56" />
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Sub-county *</label>
-                    <input type="text" name="subCounty" value={formData.subCounty} onChange={handleInputChange} 
-                           className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. Kajiado North" />
+                ) : (
+                  <div className="grid grid-cols-1 gap-4 mb-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Counties & Wards Traversed *</label>
+                      <textarea name="countiesTraversed" value={formData.countiesTraversed || ''} onChange={handleInputChange} rows={2}
+                             className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. Nakuru County (Naivasha, Gilgil), Narok County (Suswa)" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Alignment Coordinates / Chainage Summary *</label>
+                      <textarea name="alignmentCoordinates" value={formData.alignmentCoordinates || ''} onChange={handleInputChange} rows={2}
+                             className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. Starts at Suswa (-1.158, 36.339), ends at Naivasha (-0.717, 36.431)" />
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Ward *</label>
-                    <input type="text" name="ward" value={formData.ward} onChange={handleInputChange} 
-                           className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. Ongata Rongai" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Plot / LR Number *</label>
-                    <input type="text" name="plotNumber" value={formData.plotNumber} onChange={handleInputChange} 
-                           className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. LR No. 1234/56" />
-                  </div>
+                )}
                   <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-1">Land Ownership Status *</label>
-                    <select name="landOwnership" value={formData.landOwnership} onChange={handleInputChange} className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border bg-white">
+                    {!formData.isMegaProject ? (
+                      <select name="landOwnership" value={formData.landOwnership} onChange={handleInputChange} className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border bg-white">
                         <option value="">Select Ownership Status</option>
                         <option value="Private Land - Freehold">Private Land - Freehold</option>
                         <option value="Private Land - Leasehold">Private Land - Leasehold</option>
@@ -465,7 +493,11 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
                         <option value="Community Land">Community Land</option>
                         <option value="Public Land">Public Land</option>
                         <option value="Mixed">Mixed</option>
-                    </select>
+                      </select>
+                    ) : (
+                      <textarea name="landTenureSummary" value={formData.landTenureSummary || ''} onChange={handleInputChange} rows={2}
+                             className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. Mixed - Government road reserve, community group ranches, and compulsory acquisition of private freeholds" />
+                    )}
                   </div>
                   
                   <div className="md:col-span-2 mt-2">
@@ -576,32 +608,34 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
                   )}
                 </div>
                 
-                <div className="mt-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
-                    <MapPin className="w-4 h-4 mr-1 text-emerald-600" />
-                    Spatial Boundary (Drop a pin for Sentinel-2 centroid) *
-                  </label>
-              <div className="h-[250px] w-full rounded-md border border-gray-300 overflow-hidden relative z-0">
-                <MapContainer center={[-1.2921, 36.8219]} zoom={11} className="w-full h-full">
-                  <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                  <LocationPicker position={position} setPosition={setPosition} />
-                </MapContainer>
-              </div>
-              <div className="grid grid-cols-2 gap-4 mt-2">
-                <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Latitude</label>
-                  <input type="number" step="0.0001" value={position ? position[0] : ''} 
-                         onChange={(e) => setPosition([parseFloat(e.target.value) || 0, position ? position[1] : 36.8219])}
-                         className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 p-1.5 border text-sm" placeholder="e.g. -1.2921" />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Longitude</label>
-                  <input type="number" step="0.0001" value={position ? position[1] : ''} 
-                         onChange={(e) => setPosition([position ? position[0] : -1.2921, parseFloat(e.target.value) || 0])}
-                         className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 p-1.5 border text-sm" placeholder="e.g. 36.8219" />
-                </div>
-              </div>
-            </div>
+                {!formData.isMegaProject && (
+                  <div className="mt-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+                      <MapPin className="w-4 h-4 mr-1 text-emerald-600" />
+                      Spatial Boundary (Drop a pin for Sentinel-2 centroid) *
+                    </label>
+                    <div className="h-[250px] w-full rounded-md border border-gray-300 overflow-hidden relative z-0">
+                      <MapContainer center={[-1.2921, 36.8219]} zoom={11} className="w-full h-full">
+                        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                        <LocationPicker position={position} setPosition={setPosition} />
+                      </MapContainer>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 mt-2">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">Latitude</label>
+                        <input type="number" step="0.0001" value={position ? position[0] : ''} 
+                               onChange={(e) => setPosition([parseFloat(e.target.value) || 0, position ? position[1] : 36.8219])}
+                               className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 p-1.5 border text-sm" placeholder="e.g. -1.2921" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">Longitude</label>
+                        <input type="number" step="0.0001" value={position ? position[1] : ''} 
+                               onChange={(e) => setPosition([position ? position[0] : -1.2921, parseFloat(e.target.value) || 0])}
+                               className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 p-1.5 border text-sm" placeholder="e.g. 36.8219" />
+                      </div>
+                    </div>
+                  </div>
+                )}
             </div>
 
             <div className="bg-white p-4 rounded-lg border border-gray-200">
@@ -639,57 +673,68 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
             {/* Baseline Conditions */}
             <div className="bg-white p-4 rounded-lg border border-gray-200">
                 <h4 className="font-bold text-gray-800 mb-4 border-b pb-2">1. Baseline Conditions</h4>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Air Quality: PM2.5 (µg/m³)</label>
-                    <input type="number" name="airQualityPM25" value={formData.airQualityPM25} onChange={handleInputChange} 
-                           className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. 12" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Air Quality: PM10 (µg/m³)</label>
-                    <input type="number" name="airQualityPM10" value={formData.airQualityPM10} onChange={handleInputChange} 
-                           className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. 25" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Noise Level (Leq in dBA)</label>
-                    <input type="number" name="noiseLevel" value={formData.noiseLevel} onChange={handleInputChange} 
-                           className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. 45" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Existing Land Use / Cover</label>
-                    <input type="text" name="existingLandUse" value={formData.existingLandUse} onChange={handleInputChange} 
-                           className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. Mixed Agriculture" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Groundwater Depth (m)</label>
-                    <input type="number" name="groundwaterDepth" value={formData.groundwaterDepth} onChange={handleInputChange} 
-                           className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. 50" />
-                  </div>
-                </div>
                 
-                <div className="bg-gray-50 p-3 rounded-lg grid grid-cols-1 md:grid-cols-3 gap-4 border border-gray-100">
+                {!formData.isMegaProject ? (
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Air Quality: PM2.5 (µg/m³)</label>
+                        <input type="number" name="airQualityPM25" value={formData.airQualityPM25} onChange={handleInputChange} 
+                               className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. 12" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Air Quality: PM10 (µg/m³)</label>
+                        <input type="number" name="airQualityPM10" value={formData.airQualityPM10} onChange={handleInputChange} 
+                               className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. 25" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Noise Level (Leq in dBA)</label>
+                        <input type="number" name="noiseLevel" value={formData.noiseLevel} onChange={handleInputChange} 
+                               className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. 45" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Existing Land Use / Cover</label>
+                        <input type="text" name="existingLandUse" value={formData.existingLandUse} onChange={handleInputChange} 
+                               className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. Mixed Agriculture" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Groundwater Depth (m)</label>
+                        <input type="number" name="groundwaterDepth" value={formData.groundwaterDepth} onChange={handleInputChange} 
+                               className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. 50" />
+                      </div>
+                    </div>
+                    
+                    <div className="bg-gray-50 p-3 rounded-lg grid grid-cols-1 md:grid-cols-3 gap-4 border border-gray-100">
+                      <div>
+                        <label className="block text-xs text-gray-500 mb-1">Measurement Date / Month</label>
+                        <input type="month" name="baselineDate" value={formData.baselineDate} onChange={handleInputChange} 
+                               className="w-full rounded border-gray-300 p-1.5 border text-sm bg-white" />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-500 mb-1">Season</label>
+                        <select name="baselineSeason" value={formData.baselineSeason} onChange={handleInputChange} className="w-full rounded border-gray-300 p-1.5 border text-sm bg-white">
+                            <option value="Dry Season">Dry Season</option>
+                            <option value="Wet Season">Wet Season</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-500 mb-1">Data Source / Method</label>
+                        <select name="baselineSource" value={formData.baselineSource} onChange={handleInputChange} className="w-full rounded border-gray-300 p-1.5 border text-sm bg-white">
+                            <option value="Field Instrument">Field Instrument</option>
+                            <option value="Desktop Estimate">Desktop Estimate</option>
+                            <option value="Satellite Derived">Satellite Derived</option>
+                            <option value="Secondary Literature">Secondary Literature</option>
+                        </select>
+                      </div>
+                    </div>
+                  </>
+                ) : (
                   <div>
-                    <label className="block text-xs text-gray-500 mb-1">Measurement Date / Month</label>
-                    <input type="month" name="baselineDate" value={formData.baselineDate} onChange={handleInputChange} 
-                           className="w-full rounded border-gray-300 p-1.5 border text-sm bg-white" />
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Segmented Baseline / Corridor Summary *</label>
+                    <textarea name="baselineSummary" value={formData.baselineSummary || ''} onChange={handleInputChange} rows={4}
+                           className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. Air quality ranges from 9 µg/m³ (Suswa segment) to 31 µg/m³ (Naivasha). Groundwater varies from 15-90m. Predominantly rangeland crossing into escarpment." />
                   </div>
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">Season</label>
-                    <select name="baselineSeason" value={formData.baselineSeason} onChange={handleInputChange} className="w-full rounded border-gray-300 p-1.5 border text-sm bg-white">
-                        <option value="Dry Season">Dry Season</option>
-                        <option value="Wet Season">Wet Season</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">Data Source / Method</label>
-                    <select name="baselineSource" value={formData.baselineSource} onChange={handleInputChange} className="w-full rounded border-gray-300 p-1.5 border text-sm bg-white">
-                        <option value="Field Instrument">Field Instrument</option>
-                        <option value="Desktop Estimate">Desktop Estimate</option>
-                        <option value="Satellite Derived">Satellite Derived</option>
-                        <option value="Secondary Literature">Secondary Literature</option>
-                    </select>
-                  </div>
-                </div>
+                )}
             </div>
 
             {/* Sensitive Receptors */}
@@ -839,6 +884,16 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
                     </div>
                   </>
                 )}
+                {formData.isMegaProject && (
+                  <div className="p-4 border-2 border-dashed border-indigo-300 rounded-lg bg-indigo-50 hover:bg-indigo-100 transition-colors md:col-span-3">
+                    <label className="flex flex-col items-center justify-center cursor-pointer text-center h-full">
+                      <Upload className="w-6 h-6 text-indigo-500 mb-2" />
+                      <span className="text-sm font-medium text-indigo-900">Other Specialized Study (e.g. Seismic, SIA)</span>
+                      <span className="text-xs text-indigo-700 mt-1">{files.other_study ? files.other_study.name : 'Optional for Mega-Projects'}</span>
+                      <input type="file" className="hidden" onChange={(e) => handleFileChange('other_study', e)} />
+                    </label>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -888,29 +943,38 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
             {/* Baraza Logistics & Attendance */}
             <div className="bg-white p-4 rounded-lg border border-gray-200">
                 <h4 className="font-bold text-gray-800 mb-4 border-b pb-2">2. Baraza Logistics & Stakeholders</h4>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Date of Meeting *</label>
-                    <input type="date" name="barazaDate" value={formData.barazaDate} onChange={handleInputChange} 
-                           className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" />
+                
+                {!formData.isMegaProject ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Date of Meeting *</label>
+                      <input type="date" name="barazaDate" value={formData.barazaDate} onChange={handleInputChange} 
+                             className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Venue / Location *</label>
+                      <input type="text" name="barazaVenue" value={formData.barazaVenue} onChange={handleInputChange} 
+                             className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. Chief's Camp, Rongai" />
+                    </div>
                   </div>
+                ) : (
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Consultation Schedule & Venues Summary *</label>
+                    <textarea name="consultationSchedule" value={formData.consultationSchedule || ''} onChange={handleInputChange} rows={3}
+                           className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. 2026-05-04 (Suswa Trading Centre), 2026-05-11 (Mai Mahiu), 2026-05-18 (Naivasha). Total 3 barazas." />
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Venue / Location *</label>
-                    <input type="text" name="barazaVenue" value={formData.barazaVenue} onChange={handleInputChange} 
-                           className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. Chief's Camp, Ruiru" />
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Total Attendees *</label>
+                    <input type="number" name="attendeeCount" value={formData.attendeeCount} onChange={handleInputChange} 
+                           className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. 150" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Facilitator / Lead Expert *</label>
                     <input type="text" name="facilitatingOfficer" value={formData.facilitatingOfficer} onChange={handleInputChange} 
                            className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. John Doe (NEMA/EIA/123)" />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Total Attendees *</label>
-                    <input type="number" name="attendeeCount" value={formData.attendeeCount} onChange={handleInputChange} 
-                           className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. 150" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Male</label>
@@ -1083,8 +1147,17 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
                       <h5 className="font-bold text-gray-700 border-b pb-2 mb-3">Project Summary</h5>
                       <p><span className="font-semibold text-gray-600">Name:</span> {formData.projectName || 'Missing'}</p>
                       <p><span className="font-semibold text-gray-600">Category:</span> {formData.projectCategory}</p>
-                      <p><span className="font-semibold text-gray-600">Location:</span> {formData.ward}, {formData.subCounty}, {formData.county}</p>
-                      <p><span className="font-semibold text-gray-600">Coordinates:</span> {position ? `${position[0].toFixed(4)}, ${position[1].toFixed(4)}` : 'Missing'}</p>
+                      {!formData.isMegaProject ? (
+                        <>
+                          <p><span className="font-semibold text-gray-600">Location:</span> {formData.ward}, {formData.subCounty}, {formData.county}</p>
+                          <p><span className="font-semibold text-gray-600">Coordinates:</span> {position ? `${position[0].toFixed(4)}, ${position[1].toFixed(4)}` : 'Missing'}</p>
+                        </>
+                      ) : (
+                        <>
+                          <p><span className="font-semibold text-indigo-700">Counties Traversed:</span> {formData.countiesTraversed || 'Missing'}</p>
+                          <p><span className="font-semibold text-indigo-700">Alignment:</span> {formData.alignmentCoordinates || 'Missing'}</p>
+                        </>
+                      )}
                       <p><span className="font-semibold text-gray-600">Investment:</span> KES {formData.investmentCost ? Number(formData.investmentCost).toLocaleString() : 'Missing'}</p>
                       <p><span className="font-semibold text-gray-600">Lifespan:</span> {formData.operationalLifespan ? `${formData.operationalLifespan} years` : 'Missing'}</p>
                     </div>
@@ -1093,7 +1166,11 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
                       <h5 className="font-bold text-gray-700 border-b pb-2 mb-3">Proponent Details</h5>
                       <p><span className="font-semibold text-gray-600">Name:</span> {formData.proponentName || 'Missing'}</p>
                       <p><span className="font-semibold text-gray-600">PIN:</span> {formData.pin || 'Missing'}</p>
-                      <p><span className="font-semibold text-gray-600">Plot:</span> {formData.plotNumber || 'Missing'} ({formData.landOwnership || 'Missing Tenure'})</p>
+                      {!formData.isMegaProject ? (
+                        <p><span className="font-semibold text-gray-600">Plot:</span> {formData.plotNumber || 'Missing'} ({formData.landOwnership || 'Missing Tenure'})</p>
+                      ) : (
+                        <p><span className="font-semibold text-indigo-700">Land Tenure:</span> {formData.landTenureSummary || 'Missing'}</p>
+                      )}
                       <p><span className="font-semibold text-gray-600">Lead Expert:</span> {formData.leadExpertReg}</p>
                       <p><span className="font-semibold text-gray-600">Receptors Found:</span> {Object.keys(formData.sensitiveReceptors).length}</p>
                       <p><span className="font-semibold text-gray-600">Stakeholder Groups:</span> {Object.keys(formData.stakeholderGroups).length}</p>
