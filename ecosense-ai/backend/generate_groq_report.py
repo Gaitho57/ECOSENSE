@@ -79,13 +79,70 @@ async def main():
     if args.project_id:
         try:
             project = Project.objects.get(id=args.project_id)
-            project_context = f"""
-            PROJECT NAME: {project.name}
-            PROJECT TYPE: {project.get_project_type_display()}
-            CATEGORY: {project.get_nema_category_display()}
-            DESCRIPTION: {project.description}
-            PROPONENT: {project.proponent_name}
-            """
+            project_data = getattr(project, 'data', project) if not isinstance(project, dict) else project
+            if not hasattr(project_data, 'get'):
+                project_data = {
+                    'projectName': getattr(project, 'name', ''),
+                    'proponentName': getattr(project, 'proponent_name', ''),
+                    'pin': getattr(project, 'pin', ''),
+                    'projectCategory': getattr(project, 'get_nema_category_display', lambda: getattr(project, 'nema_category', ''))(),
+                    'siteArea': getattr(project, 'site_area', ''),
+                    'ward': getattr(project, 'ward', ''),
+                    'subCounty': getattr(project, 'sub_county', ''),
+                    'county': getattr(project, 'county', ''),
+                    'plotNumber': getattr(project, 'plot_number', ''),
+                    'landOwnership': getattr(project, 'land_ownership', ''),
+                    'investmentCost': getattr(project, 'investment_cost', ''),
+                    'timelineMonths': getattr(project, 'timeline_months', ''),
+                    'operationalLifespan': getattr(project, 'operational_lifespan', ''),
+                    'proponentPhone': getattr(project, 'proponent_phone', ''),
+                    'proponentEmail': getattr(project, 'proponent_email', ''),
+                    'leadExpertReg': getattr(project, 'lead_expert_reg', ''),
+                    'engineeringSpecs': getattr(project, 'engineering_specs', {}),
+                    'requiresRAP': getattr(project, 'requires_rap', False),
+                    'rapPAHs': getattr(project, 'rap_pahs', 'Missing'),
+                    'rapPAPs': getattr(project, 'rap_paps', 'Missing'),
+                    'rapStructures': getattr(project, 'rap_structures', 'Missing'),
+                    'rapCutoffDate': getattr(project, 'rap_cutoff_date', 'Missing'),
+                    'rapMethodology': getattr(project, 'rap_methodology', 'Missing'),
+                }
+
+            engineering_lines = []
+            if project_data.get('engineeringSpecs'):
+                for key, value in project_data.get('engineeringSpecs').items():
+                    engineering_lines.append(f"{key}: {value}")
+            engineering_text = "\n    ".join(engineering_lines) if engineering_lines else "None provided."
+            
+            rap_text = ""
+            if project_data.get('requiresRAP'):
+                rap_text = f"""
+    RESETTLEMENT ACTION PLAN (RAP) DETAILS:
+    Project-Affected Households (PAHs): {project_data.get('rapPAHs', 'Missing')}
+    Project-Affected Persons (PAPs): {project_data.get('rapPAPs', 'Missing')}
+    Structures Affected: {project_data.get('rapStructures', 'Missing')}
+    Cut-off Date: {project_data.get('rapCutoffDate', 'Missing')}
+    Compensation Methodology: {project_data.get('rapMethodology', 'Missing')}
+    """
+            
+            raw_intake_data = f"""
+    Project Name: {project_data.get('projectName')}
+    Proponent: {project_data.get('proponentName')} (PIN: {project_data.get('pin')})
+    Category: {project_data.get('projectCategory')}
+    Site Area: {project_data.get('siteArea')} hectares
+    Location: {project_data.get('ward')}, {project_data.get('subCounty')}, {project_data.get('county')}
+    Plot: {project_data.get('plotNumber')} (Tenure: {project_data.get('landOwnership')})
+    Cost: KES {project_data.get('investmentCost')}
+    Construction Duration: {project_data.get('timelineMonths')} months
+    Lifespan: {project_data.get('operationalLifespan')} years
+    Proponent Address/Phone/Email: {project_data.get('proponentPhone')} / {project_data.get('proponentEmail')}
+    Lead Expert: {project_data.get('leadExpertReg')}
+    
+    ENGINEERING SPECS:
+    {engineering_text}
+    {rap_text}
+    Baseline Conditions:   """
+
+            project_context = raw_intake_data
             
             # Fetch attached documents and extract text
             docs = ProjectDocument.objects.filter(project=project)

@@ -464,11 +464,47 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
                         <option value="Government Land - Way Leave">Government Land - Way Leave</option>
                         <option value="Community Land">Community Land</option>
                         <option value="Public Land">Public Land</option>
+                        <option value="Mixed">Mixed</option>
                     </select>
                   </div>
+                  
+                  <div className="md:col-span-2 mt-2">
+                    <label className="flex items-center space-x-2 cursor-pointer bg-gray-50 p-3 rounded border border-gray-200">
+                      <input type="checkbox" name="requiresRAP" checked={formData.requiresRAP || false} onChange={(e) => setFormData({...formData, requiresRAP: e.target.checked})} className="w-4 h-4 text-emerald-600 rounded border-gray-300 focus:ring-emerald-500" />
+                      <span className="text-sm font-bold text-gray-800">Requires Compulsory Acquisition or Displacement (Triggers RAP)</span>
+                    </label>
+                  </div>
+
+                  {formData.requiresRAP && (
+                    <div className="md:col-span-2 mt-2 p-4 bg-amber-50 border border-amber-200 rounded-lg animate-fadeIn">
+                      <h5 className="font-bold text-amber-800 mb-4 border-b border-amber-200 pb-2">Resettlement Action Plan (RAP) Details</h5>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-amber-900 mb-1">Project-Affected Households (PAHs)</label>
+                          <input type="number" name="rapPAHs" value={formData.rapPAHs || ''} onChange={handleInputChange} className="w-full rounded-md border-amber-300 shadow-sm p-2 border bg-white" placeholder="e.g. 46" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-amber-900 mb-1">Project-Affected Persons (PAPs)</label>
+                          <input type="number" name="rapPAPs" value={formData.rapPAPs || ''} onChange={handleInputChange} className="w-full rounded-md border-amber-300 shadow-sm p-2 border bg-white" placeholder="e.g. 211" />
+                        </div>
+                        <div className="md:col-span-2">
+                          <label className="block text-sm font-medium text-amber-900 mb-1">Structures Affected</label>
+                          <input type="text" name="rapStructures" value={formData.rapStructures || ''} onChange={handleInputChange} className="w-full rounded-md border-amber-300 shadow-sm p-2 border bg-white" placeholder="e.g. 31 residential, 8 commercial kiosks" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-amber-900 mb-1">Cut-off Date</label>
+                          <input type="date" name="rapCutoffDate" value={formData.rapCutoffDate || ''} onChange={handleInputChange} className="w-full rounded-md border-amber-300 shadow-sm p-2 border bg-white" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-amber-900 mb-1">Compensation Methodology</label>
+                          <input type="text" name="rapMethodology" value={formData.rapMethodology || ''} onChange={handleInputChange} className="w-full rounded-md border-amber-300 shadow-sm p-2 border bg-white" placeholder="e.g. Replacement cost, no depreciation" />
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 
-                <div>
+                <div className="mt-4">
                   <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
                     <MapPin className="w-4 h-4 mr-1 text-emerald-600" />
                     Spatial Boundary (Drop a pin for Sentinel-2 centroid) *
@@ -671,6 +707,26 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
                     <input type="file" className="hidden" onChange={(e) => handleFileChange('hydrology_report', e)} />
                   </label>
                 </div>
+                {formData.requiresRAP && (
+                  <>
+                    <div className="p-4 border-2 border-dashed border-amber-300 rounded-lg bg-amber-50 hover:bg-amber-100 transition-colors">
+                      <label className="flex flex-col items-center justify-center cursor-pointer text-center h-full">
+                        <Upload className="w-6 h-6 text-amber-500 mb-2" />
+                        <span className="text-sm font-medium text-amber-900">Resettlement Action Plan (RAP)</span>
+                        <span className="text-xs text-amber-700 mt-1">{files.rap_report ? files.rap_report.name : 'Required for RAP'}</span>
+                        <input type="file" className="hidden" onChange={(e) => handleFileChange('rap_report', e)} />
+                      </label>
+                    </div>
+                    <div className="p-4 border-2 border-dashed border-amber-300 rounded-lg bg-amber-50 hover:bg-amber-100 transition-colors">
+                      <label className="flex flex-col items-center justify-center cursor-pointer text-center h-full">
+                        <Upload className="w-6 h-6 text-amber-500 mb-2" />
+                        <span className="text-sm font-medium text-amber-900">Asset Valuation Report</span>
+                        <span className="text-xs text-amber-700 mt-1">{files.valuation_report ? files.valuation_report.name : 'Required for RAP'}</span>
+                        <input type="file" className="hidden" onChange={(e) => handleFileChange('valuation_report', e)} />
+                      </label>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -930,6 +986,18 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
                       <p><span className="font-semibold text-gray-600">Receptors Found:</span> {Object.keys(formData.sensitiveReceptors).length}</p>
                       <p><span className="font-semibold text-gray-600">Stakeholder Groups:</span> {Object.keys(formData.stakeholderGroups).length}</p>
                     </div>
+
+                    {formData.requiresRAP && (
+                      <div className="space-y-2 bg-amber-50 p-4 rounded border border-amber-200 md:col-span-2">
+                        <h5 className="font-bold text-amber-800 border-b border-amber-200 pb-2 mb-3">Resettlement & Land Acquisition (RAP)</h5>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <p><span className="font-semibold text-amber-900">PAHs / PAPs:</span> {formData.rapPAHs || 'Missing'} Households / {formData.rapPAPs || 'Missing'} Persons</p>
+                          <p><span className="font-semibold text-amber-900">Cut-off Date:</span> {formData.rapCutoffDate || 'Missing'}</p>
+                          <p><span className="font-semibold text-amber-900">Structures:</span> {formData.rapStructures || 'Missing'}</p>
+                          <p><span className="font-semibold text-amber-900">Methodology:</span> {formData.rapMethodology || 'Missing'}</p>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div className="mt-6 p-4 bg-gray-50 border border-gray-200 rounded-lg">
