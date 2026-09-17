@@ -125,6 +125,9 @@ async def main():
                     'barazaDate': getattr(project, 'baraza_date', 'Missing'),
                     'barazaVenue': getattr(project, 'baraza_venue', 'Missing'),
                     'newspaperWaiver': getattr(project, 'newspaper_waiver', False),
+                    'sensitiveReceptors': getattr(project, 'sensitive_receptors', {}),
+                    'stakeholderGroups': getattr(project, 'stakeholder_groups', {}),
+                    'communityConcerns': getattr(project, 'community_concerns', []),
                 }
 
             engineering_lines = []
@@ -179,6 +182,12 @@ async def main():
             
             notification_text = "Public Notification: Reg 17 Newspaper Publication WAIVED (Low Risk / Community Project)." if project_data.get('newspaperWaiver') else "Public Notification: Statutory Reg 17 Newspaper Publication required."
             
+            receptors_list = [f"{k}: {v['name']} ({v['distance']}m {v['direction']})" for k, v in project_data.get('sensitiveReceptors', {}).items() if v.get('checked')]
+            receptors_text = "Sensitive Receptors: " + (", ".join(receptors_list) if receptors_list else "None identified within 1km")
+            
+            concerns_list = [f"Concern: {c.get('concern')} -> Mitigation: {c.get('response')}" for c in project_data.get('communityConcerns', []) if c.get('concern')]
+            concerns_text = "Documented Community Concerns & Mitigations:\n    " + ("\n    ".join(concerns_list) if concerns_list else "None documented.")
+            
             raw_intake_data = f"""
     Project Name: {project_data.get('projectName')}
     Proponent: {project_data.get('proponentName')} (PIN: {project_data.get('pin')})
@@ -198,8 +207,10 @@ async def main():
     {protected_area_text}
     {contamination_text}
     {baseline_text}
+    {receptors_text}
     {consultation_text}
-    {notification_text}   """
+    {notification_text}
+    {concerns_text}   """
 
             project_context = raw_intake_data
             

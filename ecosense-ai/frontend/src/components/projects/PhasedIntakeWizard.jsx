@@ -280,6 +280,7 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
                     <select name="projectCategory" value={formData.projectCategory} onChange={handleInputChange} className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border bg-white">
                         <option value="Infrastructure">Infrastructure (Roads/Bridges)</option>
                         <option value="Water">Water & Sanitation (Boreholes, Dams, Pipelines)</option>
+                        <option value="Waste">Waste Management (Landfills, Incinerators)</option>
                         <option value="Energy">Energy (Solar/Wind/Geothermal)</option>
                         <option value="Real Estate">Real Estate & Housing</option>
                         <option value="Mining">Mining & Quarrying</option>
@@ -406,6 +407,37 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">Distribution Network Length (km)</label>
                           <input type="text" name="distributionLength" value={formData.engineeringSpecs?.distributionLength || ''} onChange={handleSpecChange} className="w-full rounded-md border-gray-300 shadow-sm p-2 border" placeholder="e.g. 2.5 km (Optional)" />
+                        </div>
+                      </div>
+                    )}
+
+                    {formData.projectCategory === 'Waste' && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Waste Characterization *</label>
+                          <input type="text" name="wasteCharacterization" value={formData.engineeringSpecs?.wasteCharacterization || ''} onChange={handleSpecChange} className="w-full rounded-md border-gray-300 shadow-sm p-2 border" placeholder="e.g. MSW, Medical, Hazardous" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Daily Intake Tonnage (t/day) *</label>
+                          <input type="text" name="dailyIntake" value={formData.engineeringSpecs?.dailyIntake || ''} onChange={handleSpecChange} className="w-full rounded-md border-gray-300 shadow-sm p-2 border" placeholder="e.g. 150 t/day" />
+                        </div>
+                        <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4 border-t pt-4 mt-2 border-gray-100">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Liner System Specifications *</label>
+                            <input type="text" name="linerSpecs" value={formData.engineeringSpecs?.linerSpecs || ''} onChange={handleSpecChange} className="w-full rounded-md border-gray-300 shadow-sm p-2 border" placeholder="e.g. 2mm HDPE Geomembrane + GCL" />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Leachate Management Plan *</label>
+                            <input type="text" name="leachatePlan" value={formData.engineeringSpecs?.leachatePlan || ''} onChange={handleSpecChange} className="w-full rounded-md border-gray-300 shadow-sm p-2 border" placeholder="e.g. Collection pipes to onsite aerobic PSTP" />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Landfill Gas / Methane Management *</label>
+                            <input type="text" name="gasManagement" value={formData.engineeringSpecs?.gasManagement || ''} onChange={handleSpecChange} className="w-full rounded-md border-gray-300 shadow-sm p-2 border" placeholder="e.g. Passive venting / Active flaring" />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Lifespan per Cell (Years) *</label>
+                            <input type="text" name="cellLifespan" value={formData.engineeringSpecs?.cellLifespan || ''} onChange={handleSpecChange} className="w-full rounded-md border-gray-300 shadow-sm p-2 border" placeholder="e.g. 5 years per cell" />
+                          </div>
                         </div>
                       </div>
                     )}
@@ -681,7 +713,9 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
             <div className="p-4 border-2 border-dashed border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors">
               <label className="flex flex-col items-center justify-center cursor-pointer">
                 <Upload className="w-8 h-8 text-gray-400 mb-2" />
-                <span className="text-sm font-medium text-gray-600">Upload Engineering / Architectural Designs (PDF)</span>
+                <span className="text-sm font-bold text-gray-700">
+                  {formData.projectCategory === 'Waste' ? 'Upload Landfill Cell & Leachate Designs (PDF)' : 'Upload Engineering / Architectural Designs (PDF)'}
+                </span>
                 <span className="text-xs text-gray-400 mt-1">{files.engineering_design ? files.engineering_design.name : 'No file selected'}</span>
                 <input type="file" className="hidden" onChange={(e) => handleFileChange('engineering_design', e)} />
               </label>
@@ -1043,7 +1077,6 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
                     <span className="text-xs text-gray-400">{files.baraza_minutes ? files.baraza_minutes.name : 'Missing'}</span>
                     <input type="file" className="hidden" onChange={(e) => handleFileChange('baraza_minutes', e)} />
                   </label>
-                </div>
             </div>
 
             {/* Inclusion & Grievance */}
