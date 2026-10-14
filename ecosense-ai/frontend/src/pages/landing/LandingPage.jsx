@@ -44,10 +44,34 @@ export default function LandingPage() {
                  </Link>
              </div>
 
-             {/* TODO: Replace this placeholder div with an actual <img> tag of your dashboard screenshot */}
-             <div className="w-full max-w-5xl mt-20 relative z-10 perspective-1000">
-                  <div className="bg-gray-900/80 backdrop-blur-md rounded-2xl border border-gray-700 shadow-2xl overflow-hidden text-left transform rotateX-12 h-96 flex items-center justify-center">
-                       <p className="text-gray-500 text-xl font-bold">[ Your Dashboard Screenshot Goes Here ]</p>
+             {/* Live Dashboard Preview */}
+             <div className="w-full max-w-5xl mt-16 relative z-10">
+                  {/* Glowing backdrop halo */}
+                  <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500/20 via-blue-500/20 to-teal-500/20 rounded-3xl blur-2xl opacity-75"></div>
+                  
+                  <div className="relative bg-slate-950/90 rounded-2xl border border-slate-800 shadow-2xl overflow-hidden group">
+                       {/* Subtle browser mockup header bar */}
+                       <div className="flex items-center justify-between px-4 py-3 bg-slate-900/90 border-b border-slate-800/80 backdrop-blur-sm">
+                            <div className="flex items-center space-x-2">
+                                 <span className="w-3 h-3 rounded-full bg-red-500/80 inline-block"></span>
+                                 <span className="w-3 h-3 rounded-full bg-amber-500/80 inline-block"></span>
+                                 <span className="w-3 h-3 rounded-full bg-emerald-500/80 inline-block"></span>
+                            </div>
+                            <div className="flex items-center bg-slate-950/80 px-4 py-1 rounded-md border border-slate-800 text-[11px] font-mono text-slate-400">
+                                 <span className="text-emerald-400 mr-1.5">🔒</span> app.ecosense.ke/dashboard/projects/corridor-alpha
+                            </div>
+                            <div className="flex items-center space-x-1.5 text-slate-500 text-xs font-bold">
+                                 <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] uppercase tracking-wider">LIVE TELEMETRY</span>
+                            </div>
+                       </div>
+                       
+                       {/* Dashboard Screenshot Image */}
+                       <img 
+                            src="/dashboard_preview.jpg" 
+                            alt="EcoSense AI Live Environmental Impact Assessment Dashboard" 
+                            className="w-full h-auto object-cover block shadow-inner transition-transform duration-700 ease-out group-hover:scale-[1.01]"
+                            loading="eager"
+                       />
                   </div>
              </div>
 
