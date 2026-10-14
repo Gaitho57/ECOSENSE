@@ -214,6 +214,29 @@ async def main():
     - Newspaper Advertisement: {'WAIVED under Legal Notices 31 & 32 of 2019 for SPR' if track == 'SPR' else 'Mandatory in 2 National Dailies with 14-day notice'}
     - Baraza Logistics: {'Localized one-on-one neighbor dialogue and Chief visit (SPR standard)' if track == 'SPR' else 'Formal Public Baraza observing Constitution Two-Thirds Gender Rule'}"""
 
+            expert_tier = project_data.get('expertTier', 'LEAD')
+            supervising_lead = project_data.get('supervisingLeadExpert', '')
+            water_source = project_data.get('waterSupplySource', 'Municipal / County Water Utility (e.g. NCWSC)')
+            effluent_m3 = project_data.get('effluentDischargeM3Day', '0')
+            effluent_method = project_data.get('effluentDisposalMethod', 'Municipal Sewer Mains Connection')
+            effluent_edl = project_data.get('effluentDischargePermitStatus', 'Not Applicable')
+            try:
+                cost_val = float(project_data.get('investmentCost') or 10000000)
+            except (ValueError, TypeError):
+                cost_val = 10000000.0
+            nema_levy = max(10000, cost_val * 0.001)
+
+            consultant_text = f"Consultant: {project_data.get('leadExpertReg')} ({'Associate Expert - LN 101 Reg 2 & 7(3)' if expert_tier == 'ASSOCIATE' else 'Lead Expert - LN 101 Reg 13(2)'})"
+            if expert_tier == 'ASSOCIATE' and supervising_lead:
+                consultant_text += f"\n    Supervising Lead Expert: {supervising_lead} (LN 101 Reg 13(2) CPR requirement)"
+
+            utilities_text = f"""
+    WATER SUPPLY & EFFLUENT MANAGEMENT SPECIFICATIONS:
+    - Primary Water Supply Source: {water_source} ({'Requires WRA Abstraction Permit & Hydrogeological Survey under Water Act 2016 Section 36' if water_source in ['Commercial Groundwater Borehole', 'River / Surface Water Abstraction'] else 'Connected to licensed municipal water utility mains'})
+    - Estimated Effluent Volume: {effluent_m3} m3/day
+    - Effluent Treatment & Disposal Method: {effluent_method}
+    - NEMA Effluent Discharge License (EDL) Status: {effluent_edl} (Complies with EMCA Water Quality Regulations 2006 Third Schedule)"""
+
             raw_intake_data = f"""
     Project Name: {project_data.get('projectName')}
     Proponent: {project_data.get('proponentName')} (PIN: {project_data.get('pin')})
@@ -221,14 +244,15 @@ async def main():
     Site Area: {project_data.get('siteArea')} hectares
     {location_text}
     {plot_text}
-    Cost: KES {project_data.get('investmentCost')}
+    Cost: KES {cost_val:,.0f} (Statutory NEMA Processing Fee Reference: KES {nema_levy:,.0f} under Gazette Notice 13211)
     Construction Duration: {project_data.get('timelineMonths')} months
     Lifespan: {project_data.get('operationalLifespan')} years
     Proponent Address/Phone/Email: {project_data.get('proponentPhone')} / {project_data.get('proponentEmail')}
-    Lead Expert: {project_data.get('leadExpertReg')}
+    {consultant_text}
     
     ENGINEERING SPECS:
     {engineering_text}
+    {utilities_text}
     {rap_text}
     {protected_area_text}
     {contamination_text}

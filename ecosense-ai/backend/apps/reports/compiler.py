@@ -13,6 +13,8 @@ from apps.compliance.engine import ComplianceEngine
 from apps.predictions.ml.engine import PredictionEngine
 from apps.reports.models import EIAReport, ReportSection
 from apps.reports.utils.maps import MapGenerator
+import os
+import json
 import logging
 import hashlib
 import random
@@ -49,6 +51,31 @@ def compile_report_data(project_id: str) -> dict:
     project_type = getattr(project, "project_type", "Infrastructure")
     scale = float(getattr(project, "scale_ha", 0) or 0)
     
+    # Load dynamic intake data from wizard if cached on disk
+    intake_data = {}
+    from django.conf import settings
+    intake_file = os.path.join(settings.MEDIA_ROOT, 'intake', f'intake_{project_id}.json')
+    if os.path.exists(intake_file):
+        try:
+            with open(intake_file, 'r', encoding='utf-8') as f:
+                intake_data = json.load(f)
+        except Exception as e:
+            logger.warning(f"Failed to read intake file {intake_file}: {e}")
+
+    expert_tier = intake_data.get('expertTier', 'LEAD')
+    supervising_lead_expert = intake_data.get('supervisingLeadExpert', '')
+    water_supply_source = intake_data.get('waterSupplySource', 'Municipal / County Water Utility (e.g. NCWSC)')
+    effluent_discharge_m3_day = intake_data.get('effluentDischargeM3Day', 0)
+    effluent_disposal_method = intake_data.get('effluentDisposalMethod', 'Municipal Sewer Mains Connection')
+    effluent_discharge_permit_status = intake_data.get('effluentDischargePermitStatus', 'Not Applicable')
+    is_mega_project = intake_data.get('isMegaProject', False)
+    counties_traversed = intake_data.get('countiesTraversed', '')
+    plot_number = intake_data.get('plotNumber', getattr(project, 'plot_number', 'Registered Cadastral Plot'))
+    land_ownership = intake_data.get('landOwnership', getattr(project, 'land_ownership', 'Private Land - Freehold'))
+    project_scale_area = float(intake_data.get('siteArea') or 0)
+    if project_scale_area > 0:
+        scale = project_scale_area
+
     # 0. Global Fallbacks & Fidelity Tracker
     compliance_package = {"acts": [], "regulations": [], "permits": [], "agencies": []}
     region_data_captured = False
@@ -59,8 +86,14 @@ def compile_report_data(project_id: str) -> dict:
     raw_investment = 10_000_000
     nema_fee = 10_000
 
-    if lat is not None and lng is not None:
-        # 0.1 Financial Calculation Engine (Gazette Notice 13211 - 0.1% Fee)
+    # 0.1 Financial Calculation Engine (Gazette Notice 13211 - 0.1% Fee)
+    if intake_data.get('investmentCost'):
+        try:
+            raw_investment = float(intake_data['investmentCost'])
+            nema_fee = max(10000, raw_investment * 0.001)
+        except (ValueError, TypeError):
+            pass
+    elif lat is not None and lng is not None:
         multipliers = {
             "construction": 150_000_000, 
             "infrastructure": 250_000_000,
@@ -74,6 +107,8 @@ def compile_report_data(project_id: str) -> dict:
         raw_investment = float(project.scale_value or 0) * unit_cost if project.scale_value else scale * unit_cost
         if raw_investment == 0: raw_investment = 10_000_000 
         nema_fee = max(10000, raw_investment * 0.001)
+
+    if lat is not None and lng is not None:
 
         # 1. Geographic Guard: Verify coordinates are within Kenya's rough sovereignty bounds
         is_within_kenya = (33.9 <= lng <= 41.9) and (-4.7 <= lat <= 5.5)
@@ -138,6 +173,18 @@ def compile_report_data(project_id: str) -> dict:
             compliance_package = reg_client.get_compliance_package(project_type, county_name)
         except Exception as e:
             logger.error(f"Regulatory Fallback Failed: {e}")
+
+        # Refinements C & D: Statutory Triggers
+        if water_supply_source in ['Commercial Groundwater Borehole', 'River / Surface Water Abstraction']:
+            compliance_package.setdefault("acts", []).append("Water Act 2016 (Section 36 Ground/Surface Abstraction Permit)")
+            compliance_package.setdefault("permits", []).append("WRA Water Abstraction Permit (Hydrogeological Survey Required)")
+
+        if effluent_disposal_method and effluent_disposal_method != "Not Applicable":
+            compliance_package.setdefault("regulations", []).append("EMCA (Water Quality) Regulations 2006 (Third Schedule Effluent Standards)")
+            compliance_package.setdefault("permits", []).append("NEMA Effluent Discharge License (EDL)")
+
+        if is_mega_project and counties_traversed:
+            compliance_package.setdefault("acts", []).append("EMCA Cap 387 Section 40 & Physical Planning Act (Multi-County CEAP Reconciliation)")
 
         # Override with DB data if exists (with Stale Data Guard)
         if not isinstance(baseline.hydrology_data, dict):
@@ -356,7 +403,7 @@ def compile_report_data(project_id: str) -> dict:
              })
     
     # Dynamic Statutory Track: SPR (Low Risk) vs CPR (Medium/High Risk)
-    statutory_track = "SPR" if project.nema_category == "low" else "CPR"
+    statutory_track = intake_data.get('statutoryTrack') or ("SPR" if project.nema_category == "low" else "CPR")
     
     # 2.3 Questionnaire Synthesis & Statutory Annex 5 Data
     # For SPR: 5-15 questionnaires administered, localized neighbor dialogue, newspaper waived
@@ -365,15 +412,45 @@ def compile_report_data(project_id: str) -> dict:
     support_no_res = 8 if statutory_track == "SPR" else 24
     support_with_cond = 2 if statutory_track == "SPR" else 9
     objections_count = 0 if statutory_track == "SPR" else 2
-    
+
+    if intake_data.get('questionnairesAdministered'):
+        try:
+            q_count = int(intake_data['questionnairesAdministered'])
+        except (ValueError, TypeError):
+            pass
+    if intake_data.get('supportWithoutReservation'):
+        try:
+            support_no_res = int(intake_data['supportWithoutReservation'])
+        except (ValueError, TypeError):
+            pass
+    if intake_data.get('supportWithConditions'):
+        try:
+            support_with_cond = int(intake_data['supportWithConditions'])
+        except (ValueError, TypeError):
+            pass
+    if intake_data.get('objectionsCount'):
+        try:
+            objections_count = int(intake_data['objectionsCount'])
+        except (ValueError, TypeError):
+            pass
+
     actual_feedback_count = feedback_objs.count()
-    if actual_feedback_count > 0:
+    if actual_feedback_count > 0 and not intake_data.get('questionnairesAdministered'):
         q_count = max(q_count, actual_feedback_count)
         support_no_res = sentiment_map.get("positive", support_no_res)
         support_with_cond = sentiment_map.get("neutral", support_with_cond)
         objections_count = sentiment_map.get("negative", objections_count)
     
-    if statutory_track == "SPR":
+    if intake_data.get('immediateNeighborsCount') or intake_data.get('acrossRoadCount'):
+        try:
+            immediate_count = int(intake_data.get('immediateNeighborsCount') or 0)
+            road_count = int(intake_data.get('acrossRoadCount') or 0)
+            radius_count = int(intake_data.get('withinRadiusCount') or max(0, q_count - immediate_count - road_count))
+        except (ValueError, TypeError):
+            immediate_count = int(round(q_count * 0.6))
+            road_count = int(round(q_count * 0.3))
+            radius_count = max(0, q_count - immediate_count - road_count)
+    elif statutory_track == "SPR":
         immediate_count = int(round(q_count * 0.6))
         road_count = int(round(q_count * 0.3))
         radius_count = max(0, q_count - immediate_count - road_count)
@@ -756,7 +833,7 @@ def compile_report_data(project_id: str) -> dict:
         "ceap_status": county_profile.get("ceap_status", {}),
         "project": {
             "id": str(project.id),
-            "name": project.name,
+            "name": intake_data.get('projectName') or project.name,
             "type": project_type.replace("_", " ").title(),
             "scale_ha": scale,
             "scale_value": f"{project.scale_value} {'m³/day' if 'borehole' in project_type.lower() else 'Medical Units' if 'hospital' in project_type.lower() else 'Units'}",
@@ -765,20 +842,30 @@ def compile_report_data(project_id: str) -> dict:
             "location_coords": f"LAT: {lat}, LNG: {lng}",
             "elevation_m": 1785.4 if (lat is not None and lng is not None and lat < -0.2 and lat > -0.4 and lng < 36.2 and lng > 35.8 and baseline_data.get('elevation_m', 0) < 100) else baseline_data.get('elevation_m', 0),
             "date": timezone.now().strftime("%B %d, %Y %H:%M:%S"),
-            "lead_consultant": project.lead_consultant.full_name if project.lead_consultant else "Lead EIA Expert (Certified)",
-            "consultant_reg": getattr(project.lead_consultant, 'nema_registration_no', "NEMA/EIA/ER/1542"),
-            "consultant_rank": project.lead_consultant.get_expert_rank_display() if project.lead_consultant else "Lead Expert",
-            "consultant_license": "2024-12-31",
+            "lead_consultant": intake_data.get('leadExpertReg') or (project.lead_consultant.full_name if project.lead_consultant else "Lead EIA Expert (Certified)"),
+            "consultant_reg": intake_data.get('leadExpertReg') or getattr(project.lead_consultant, 'nema_registration_no', "NEMA/EIA/ER/1542"),
+            "consultant_rank": "Associate Expert (Reg 2 & 7(3))" if expert_tier == "ASSOCIATE" else (project.lead_consultant.get_expert_rank_display() if project.lead_consultant else "Lead Expert (Reg 13(2))"),
+            "expert_tier": expert_tier,
+            "supervising_lead_expert": supervising_lead_expert,
+            "water_supply_source": water_supply_source,
+            "effluent_discharge_m3_day": effluent_discharge_m3_day,
+            "effluent_disposal_method": effluent_disposal_method,
+            "effluent_discharge_permit_status": effluent_discharge_permit_status,
+            "is_mega_project": is_mega_project,
+            "counties_traversed": counties_traversed,
+            "plot_number": plot_number,
+            "land_ownership": land_ownership,
+            "consultant_license": "2026-12-31",
             "consultant_stamp": project.lead_consultant.digital_stamp.path if project.lead_consultant and project.lead_consultant.digital_stamp else None,
             "consultant_signature": project.lead_consultant.digital_signature.path if project.lead_consultant and project.lead_consultant.digital_signature else None,
             "maps": mapping_data,
             "media": project_media,
             "statutory_docs": statutory_docs,
-            "category": "High Risk (Full EIA Study Required)" if (scale > 10 or (project_type == "construction" and project.scale_value > 100)) else project.get_nema_category_display(),
-            "category_id": "high" if (scale > 10 or (project_type == "construction" and project.scale_value > 100)) else project.nema_category,
+            "category": "Summary Project Report (Low Risk)" if statutory_track == "SPR" else ("High Risk (Full EIA Study Required)" if (scale > 10 or (project_type == "construction" and project.scale_value > 100)) else project.get_nema_category_display()),
+            "category_id": "low" if statutory_track == "SPR" else ("high" if (scale > 10 or (project_type == "construction" and project.scale_value > 100)) else project.nema_category),
             "proponent": {
-                "name": project.proponent_name or (project.lead_consultant.tenant.name if project.lead_consultant and project.lead_consultant.tenant else "EcoSense Private Proponent"),
-                "pin": project.proponent_pin or "A001234567Z",
+                "name": intake_data.get('proponentName') or project.proponent_name or (project.lead_consultant.tenant.name if project.lead_consultant and project.lead_consultant.tenant else "EcoSense Private Proponent"),
+                "pin": intake_data.get('pin') or project.proponent_pin or "A001234567Z",
                 "id_no": project.proponent_id_no or "28456123"
             },
             "county_name": county_name,

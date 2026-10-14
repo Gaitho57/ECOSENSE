@@ -136,9 +136,13 @@ def generate_docx_report(project_id: str, tenant_id: str, version: int, report_d
     p.runs[0].font.size = Pt(24)
     p.runs[0].bold = True
     
+    expert_tier = report_data.get('project', {}).get('expert_tier', 'LEAD')
+    consultant_tier_title = "Associate Expert (LN 101 Reg 2 & 7(3))" if expert_tier == 'ASSOCIATE' else "Lead Expert (LN 101 Reg 13(2))"
     doc.add_paragraph(f"Proponent: {report_data['project']['proponent']['name']}").alignment = WD_ALIGN_PARAGRAPH.CENTER
-    doc.add_paragraph(f"Prepared by: {report_data['project']['lead_consultant']}").alignment = WD_ALIGN_PARAGRAPH.CENTER
-    doc.add_paragraph(f"Consultant Reg: {report_data['project']['consultant_reg']}").alignment = WD_ALIGN_PARAGRAPH.CENTER
+    doc.add_paragraph(f"Prepared by: {report_data['project']['lead_consultant']} ({consultant_tier_title})").alignment = WD_ALIGN_PARAGRAPH.CENTER
+    doc.add_paragraph(f"NEMA Registration Number: {report_data['project']['consultant_reg']}").alignment = WD_ALIGN_PARAGRAPH.CENTER
+    if expert_tier == 'ASSOCIATE' and report_data.get('project', {}).get('supervising_lead_expert'):
+        doc.add_paragraph(f"Supervising Lead Expert of Record: {report_data['project']['supervising_lead_expert']}").alignment = WD_ALIGN_PARAGRAPH.CENTER
     doc.add_paragraph(f"Date: {current_date}").alignment = WD_ALIGN_PARAGRAPH.CENTER
 
     if not is_unlocked:
@@ -196,6 +200,53 @@ def generate_docx_report(project_id: str, tenant_id: str, version: int, report_d
 
     # CHAPTER 2: PROJECT DESCRIPTION & SITE LAYOUT
     doc.add_heading('Chapter 2: Project Description & Site Layout', level=1)
+
+    # 2.1 Project Particulars & Statutory Compliance Matrix
+    doc.add_heading('2.1 Project Particulars & Statutory Intake Matrix', level=2)
+    doc.add_paragraph(
+        "Table 2.1 summarizes the core administrative, engineering, spatial, and statutory planning parameters "
+        "declared by the proponent and locked for regulatory verification:"
+    )
+    t_proj = doc.add_table(rows=1, cols=2)
+    t_proj.style = 'Table Grid'
+    t_proj_hdr = t_proj.rows[0].cells
+    t_proj_hdr[0].text = "Project & Statutory Parameter"
+    t_proj_hdr[1].text = "Declared Baseline / Engineering Specification"
+    t_proj_hdr[0].paragraphs[0].runs[0].bold = True
+    t_proj_hdr[1].paragraphs[0].runs[0].bold = True
+
+    proj_dict = report_data.get('project', {})
+    is_mega = proj_dict.get('is_mega_project', False)
+    stat_track = report_data.get('statutory_track', 'SPR')
+
+    particulars = [
+        ("Project Undertaking / Title:", proj_name),
+        ("Project Proponent:", f"{proj_dict.get('proponent', {}).get('name', 'EcoSense Proponent')} (KRA PIN: {proj_dict.get('proponent', {}).get('pin', 'A001234567Z')})"),
+        ("EIA Expert Practitioner:", f"{proj_dict.get('lead_consultant', 'Lead Expert')} ({consultant_tier_title})"),
+        ("NEMA Registration Number:", proj_dict.get('consultant_reg', 'NEMA/EIA/0876')),
+    ]
+    if expert_tier == 'ASSOCIATE' and proj_dict.get('supervising_lead_expert'):
+        particulars.append(("Supervising Lead Expert of Record:", f"{proj_dict.get('supervising_lead_expert')} (LN 101 Reg 13(2))"))
+
+    particulars.extend([
+        ("Administrative Jurisdiction:", f"{county_name} County, {sub_county} Sub-County" if not is_mega else f"Cross-County Linear Corridor: {proj_dict.get('counties_traversed', county_name)}"),
+        ("Cadastral Reference / Plot:", f"L.R. No. {plot_no}" if not is_mega else "Corridor Right-of-Way / Multi-Plot Alignment"),
+        ("Land Tenure & Ownership Status:", proj_dict.get('land_ownership', 'Private Land - Freehold')),
+        ("Declared Total Footprint / Area:", f"{area_ha} Hectares"),
+        ("Estimated Capital Investment Cost:", proj_dict.get('investment_value', 'KES 10,000,000')),
+        ("Statutory NEMA Processing Levy (0.1%):", f"{proj_dict.get('nema_fee', 'KES 10,000')} (Reference: Gazette Notice 13211)"),
+        ("Primary Water Supply Source:", proj_dict.get('water_supply_source', 'Municipal / County Water Utility (e.g. NCWSC)')),
+        ("Trade & Domestic Effluent Management:", f"{proj_dict.get('effluent_disposal_method', 'Municipal Sewer Connection')} (EDL Status: {proj_dict.get('effluent_discharge_permit_status', 'Not Applicable')})"),
+        ("Statutory EIA Track & Governance:", "Summary Project Report (SPR - Low Risk under Legal Notices 31 & 32 of 2019)" if stat_track == 'SPR' else "Comprehensive Project Report (CPR - Medium/High Risk under EMCA §59 & Reg 17)"),
+    ])
+
+    for label, val in particulars:
+        r = t_proj.add_row().cells
+        r[0].text = label
+        r[0].paragraphs[0].runs[0].bold = True
+        r[1].text = str(val)
+
+    doc.add_paragraph()
     if report_data.get('project_description'):
         _parse_html_to_docx(doc, report_data['project_description'])
     else:
@@ -253,6 +304,38 @@ def generate_docx_report(project_id: str, tenant_id: str, version: int, report_d
             f"Under Section 29 of EMCA Cap 387, in the absence of a standalone gazetted 5-year CEAP for {county_name} County, "
             f"the development aligns directly with the {ceap_data.get('fallback_policy', 'National Environmental Action Plan (NEAP)')} "
             f"and the relevant Water Resources Authority (WRA) Sub-basin Catchment Management Plan."
+        )
+
+    # 3.2 Water Resources Act 2016 & Abstraction Permitting
+    doc.add_heading('3.2 Water Resources Act 2016 & Abstraction Permitting (Section 36)', level=2)
+    doc.add_paragraph(
+        f"The proposed development relies upon '{proj_dict.get('water_supply_source', 'Municipal Utility')}' for its operational water requirements. "
+        "Under Section 36 of the Water Act 2016 and the Water Resources Management Rules 2007, any direct abstraction of groundwater "
+        "via a commercial borehole or direct abstraction from a surface watercourse mandates a valid Water Resources Authority (WRA) "
+        "Abstraction Permit supported by a certified Hydrogeological Assessment Report. The proponent is strictly required "
+        "to install calibrated bulk flow meters and observe prescribed extraction thresholds to safeguard regional aquifer yields."
+    )
+
+    # 3.3 EMCA (Water Quality) Regulations 2006 & Effluent Licensing
+    doc.add_heading('3.3 EMCA (Water Quality) Regulations 2006 & Effluent Discharge Licensing', level=2)
+    doc.add_paragraph(
+        f"Effluent generated from the undertaking will be managed via: '{proj_dict.get('effluent_disposal_method', 'Municipal Sewer Mains Connection')}'. "
+        "Pursuant to the Environmental Management and Co-ordination (Water Quality) Regulations 2006 (Legal Notice No. 120), "
+        "no person shall discharge trade or domestic effluent into any aquatic environment, open stormwater channel, or aquifer without "
+        "a valid Effluent Discharge License (EDL) issued by NEMA. Discharges must strictly comply with the Third Schedule parameters "
+        "(BOD5 < 30 mg/L, COD < 50 mg/L, TSS < 30 mg/L, pH 6.5–8.5). Regular quarterly effluent testing and submission of environmental "
+        "monitoring returns to the NEMA County Director of Environment is mandatory throughout operations."
+    )
+
+    # 3.4 Linear / Corridor Cross-Jurisdictional Governance (EMCA §40)
+    if is_mega:
+        doc.add_heading('3.4 Inter-Jurisdictional Corridor Alignment & EMCA Section 40 Reconciliation', level=2)
+        doc.add_paragraph(
+            f"As a linear infrastructure undertaking traversing multiple administrative jurisdictions ({proj_dict.get('counties_traversed', 'Multiple Counties')}), "
+            "the project is subject to Section 40 of EMCA Cap 387 and the Physical and Land Use Planning Act 2019. "
+            "The ESIA study integrates and reconciles the respective County Environmental Action Plans (CEAPs), devolved County Spatial Plans (CSPs), "
+            "and local development control bylaws across each traversed county. Inter-county administrative coordination and localized "
+            "public barazas have been conducted across all traversed sub-counties to guarantee constitutional public defensibility."
         )
 
     # CHAPTER 4: ENVIRONMENTAL BASELINE CONDITIONS
@@ -649,14 +732,24 @@ def generate_docx_report(project_id: str, tenant_id: str, version: int, report_d
             row[1].paragraphs[0].runs[0].font.color.rgb = RGBColor(185, 28, 28)
             row[1].paragraphs[0].runs[0].font.bold = True
 
-    # FORM 1B: EIA LEAD EXPERT ATTESTATION & STAMP
+    # FORM 1B: EIA EXPERT ATTESTATION & REGISTRATION STAMP
     doc.add_page_break()
-    doc.add_heading('FORM 1B: EIA LEAD EXPERT ATTESTATION & REGISTRATION STAMP', level=2)
-    doc.add_paragraph(
-        "I, the undersigned NEMA Registered Lead Expert, do hereby certify that this Environmental and Social "
-        "Impact Assessment was conducted strictly in accordance with Section 58 of the Environmental Management "
-        "and Co-ordination Act (EMCA Cap 387) and Regulation 7 of the Environmental (Impact Assessment and Audit) Regulations, 2003."
-    )
+    is_associate = (expert_tier == 'ASSOCIATE')
+    doc.add_heading(f"FORM 1B: EIA {'ASSOCIATE' if is_associate else 'LEAD'} EXPERT ATTESTATION & REGISTRATION STAMP", level=2)
+    
+    if is_associate:
+        doc.add_paragraph(
+            "I, the undersigned NEMA Registered Associate Expert, do hereby certify that this Environmental and Social "
+            "Impact Assessment was authored in strict accordance with Regulation 2 and 7(3) of the Environmental (Impact Assessment "
+            "and Audit) Regulations, 2003 (Legal Notice 101) and Legal Notices 31 & 32 of 2019."
+        )
+    else:
+        doc.add_paragraph(
+            "I, the undersigned NEMA Registered Lead Expert, do hereby certify that this Environmental and Social "
+            "Impact Assessment was conducted strictly in accordance with Section 58 of the Environmental Management "
+            "and Co-ordination Act (EMCA Cap 387) and Regulation 7 of the Environmental (Impact Assessment and Audit) Regulations, 2003."
+        )
+
     doc.add_paragraph(
         "To the best of our knowledge and professional judgment, the baseline environmental assessments, ecological "
         "screenings, public stakeholder consultations, and ESMP matrices presented herein represent an objective, "
@@ -672,11 +765,11 @@ def generate_docx_report(project_id: str, tenant_id: str, version: int, report_d
         sig_expert = (
             "\n\n🔒 [ STATUTORY EXPERT SIGNATURE WITHHELD PENDING MILESTONE CLEARANCE ]\n"
             "This signature block is locked. Complete milestone clearance on the Client Review Portal "
-            "to release original Lead Expert blue-ink signature attestation for NEMA submission.\n"
+            "to release original blue-ink signature attestation for NEMA submission.\n"
         )
 
     t2_fields = [
-        ("NEMA Lead Expert Name:", report_data.get('project', {}).get('lead_consultant', 'Lead Expert (NEMA Registered)')),
+        (f"NEMA {'Associate' if is_associate else 'Lead'} Expert Name:", report_data.get('project', {}).get('lead_consultant', 'EIA Expert (NEMA Registered)')),
         ("NEMA Registration Number:", report_data.get('project', {}).get('consultant_reg', 'NEMA/EIA/0876')),
         ("Practicing License Status:", "Certified & Active for 2026/2027 Calendar Year"),
         ("Date of Statutory Signing:", current_date),
@@ -691,18 +784,46 @@ def generate_docx_report(project_id: str, tenant_id: str, version: int, report_d
             row[1].paragraphs[0].runs[0].font.color.rgb = RGBColor(185, 28, 28)
             row[1].paragraphs[0].runs[0].font.bold = True
 
+    # If Associate Expert on CPR, enforce Supervising Lead Expert Counter-Signature Table (LN 101 Reg 13(2))
+    if is_associate and report_data.get('statutory_track') == 'CPR':
+        doc.add_paragraph(
+            "\nSUPERVISING LEAD EXPERT COUNTER-SIGNATURE & ATTESTATION (LN 101 REGULATION 13(2)):"
+        )
+        doc.add_paragraph(
+            "Pursuant to Regulation 13(2) of the Environmental (Impact Assessment and Audit) Regulations, 2003, "
+            "Comprehensive Project Reports (CPR) and full EIA Studies must be supervised, verified, and signed by "
+            "a certified Lead Expert of record:"
+        )
+        t_lead = doc.add_table(rows=5, cols=2)
+        t_lead.style = 'Table Grid'
+        lead_fields = [
+            ("Supervising NEMA Lead Expert:", report_data.get('project', {}).get('supervising_lead_expert', 'Certified Lead Expert of Record')),
+            ("Lead Expert Practicing Category:", "Licensed Lead Expert (EMCA Cap 387 Section 58)"),
+            ("Supervisory Certification:", "I have verified and approved the EIA methodology, impact matrix, and ESMP"),
+            ("Date of Counter-Signing:", current_date),
+            ("Lead Expert Blue-Ink Counter-Signature:", sig_expert)
+        ]
+        for idx, (label, val) in enumerate(lead_fields):
+            row = t_lead.rows[idx].cells
+            row[0].text = label
+            row[0].paragraphs[0].runs[0].bold = True
+            row[1].text = str(val)
+            if not is_unlocked and idx == 4:
+                row[1].paragraphs[0].runs[0].font.color.rgb = RGBColor(185, 28, 28)
+                row[1].paragraphs[0].runs[0].font.bold = True
+
     # Official Rubber Stamp / Embossed Seal Box
-    doc.add_paragraph("\nOFFICIAL NEMA PRACTICING RUBBER STAMP & EMBOSSED SEAL:")
+    doc.add_paragraph(f"\nOFFICIAL NEMA {'ASSOCIATE & SUPERVISING LEAD' if is_associate else 'LEAD'} EXPERT RUBBER STAMP & EMBOSSED SEAL:")
     stamp_table = doc.add_table(rows=1, cols=1)
     stamp_table.style = 'Table Grid'
     cell = stamp_table.rows[0].cells[0]
     if is_unlocked:
-        cell.text = "\n\n\n[ AFFIX OFFICIAL NEMA LEAD EXPERT RUBBER STAMP OR EMBOSSED SEAL HERE ]\n\n\n"
+        cell.text = "\n\n\n[ AFFIX OFFICIAL NEMA PRACTICING RUBBER STAMP OR EMBOSSED SEAL HERE ]\n\n\n"
         cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
     else:
         cell.text = (
             "\n\n🔒 [ OFFICIAL NEMA PRACTICING RUBBER STAMP & EMBOSSED SEAL WITHHELD ]\n"
-            "Pursuant to Milestone Escrow Agreement: Lead Expert practicing stamp & seal are released\n"
+            "Pursuant to Milestone Escrow Agreement: Practicing stamp & seal are released\n"
             "upon proponent milestone clearance. Access Client Review Portal to unlock final bundle.\n\n"
         )
         cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER

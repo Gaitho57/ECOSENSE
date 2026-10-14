@@ -52,6 +52,12 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
     investmentCost: '',
     timelineMonths: '',
     operationalLifespan: '',
+    expertTier: 'LEAD', // 'LEAD' | 'ASSOCIATE'
+    supervisingLeadExpert: '',
+    waterSupplySource: 'Municipal / County Water Utility (e.g. NCWSC)',
+    effluentDischargeM3Day: '',
+    effluentDisposalMethod: '',
+    effluentDischargePermitStatus: 'Not Applicable',
     leadExpertReg: 'NEMA/EIA/1234', // Auto-filled from user context
     // Questionnaire & Public Participation Analytics
     questionnairesAdministered: '',
@@ -503,10 +509,29 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
                       </div>
                     )}
                   </div>
-                  <div>
+                  <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-1">Estimated Investment Cost (KES) *</label>
                     <input type="number" name="investmentCost" value={formData.investmentCost} onChange={handleInputChange} 
-                           className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 p-2 border" placeholder="e.g. 1500000000" />
+                           className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 p-2 border font-medium" placeholder="e.g. 1500000000" />
+                    {Number(formData.investmentCost || 0) > 0 && (
+                      <div className="mt-1.5 flex items-center justify-between text-xs text-emerald-800 bg-emerald-50 px-3 py-1.5 rounded border border-emerald-200">
+                        <span>Statutory NEMA Processing Fee Reference (0.1% Capital Investment):</span>
+                        <strong className="font-mono text-emerald-900">KES {Number(formData.investmentCost * 0.001).toLocaleString(undefined, {maximumFractionDigits: 0})}</strong>
+                      </div>
+                    )}
+                    {(() => {
+                      const cost = Number(formData.investmentCost || 0);
+                      const area = Number(formData.siteArea || 0);
+                      const isSuspiciouslyLow = (cost > 0 && area > 0 && cost < 1000000) || (cost > 0 && ['Real Estate', 'Manufacturing', 'Infrastructure', 'Energy'].includes(formData.projectCategory) && cost < 2500000);
+                      if (isSuspiciouslyLow) {
+                        return (
+                          <div className="mt-2 p-2.5 bg-amber-50 border border-amber-300 rounded-lg text-xs text-amber-800 leading-snug">
+                            <span className="font-bold">⚠️ Certified BQ Alignment Advisory:</span> The declared investment cost (KES {cost.toLocaleString()}) appears unusually low for a {formData.projectCategory} project of this scale ({area} ha). NEMA Technical Advisory Committees cross-examine certified Bills of Quantities (BQs) to prevent statutory levy evasion. Ensure the BQ summary matches this declaration.
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Construction Timeline (Months) *</label>
@@ -526,14 +551,14 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
                 </div>
             </div>
 
-            {/* Proponent Details */}
+            {/* Proponent & Consultant Profile */}
             <div className="bg-white p-4 rounded-lg border border-gray-200">
-                <h4 className="font-bold text-gray-800 mb-4 border-b pb-2">2. Proponent Profile</h4>
+                <h4 className="font-bold text-gray-800 mb-4 border-b pb-2">2. Proponent Profile & EIA Consultant Certification</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Proponent Name (Company/Agency) *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Proponent Name (Company / Agency) *</label>
                     <input type="text" name="proponentName" value={formData.proponentName} onChange={handleInputChange} 
-                           className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. KeNHA" />
+                           className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. KeNHA / Developer Ltd" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Proponent KRA PIN *</label>
@@ -550,6 +575,149 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
                     <input type="text" name="proponentPhone" value={formData.proponentPhone} onChange={handleInputChange} 
                            className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="+254..." />
                   </div>
+
+                  {/* Consultant Tiering (Lead vs Associate Expert) */}
+                  <div className="col-span-1 md:col-span-2 pt-3 border-t border-gray-100">
+                    <span className="text-xs font-bold text-gray-700 uppercase tracking-wide block mb-2">
+                      EIA/EA Consultant Licensing Tier (LN 101 Reg 13(2) vs Reg 2 & 7(3))
+                    </span>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Consultant Registration Tier *</label>
+                        <select
+                          name="expertTier"
+                          value={formData.expertTier || 'LEAD'}
+                          onChange={handleInputChange}
+                          className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border bg-white text-sm"
+                        >
+                          <option value="LEAD">Lead Expert — Licensed for CPR, Full Study & SPR (Reg 13(2))</option>
+                          <option value="ASSOCIATE">Associate Expert — Licensed for Low-Risk SPR only (Reg 2 & 7(3))</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Expert Practicing License / Reg No. *</label>
+                        <input
+                          type="text"
+                          name="leadExpertReg"
+                          value={formData.leadExpertReg}
+                          onChange={handleInputChange}
+                          className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border text-sm"
+                          placeholder="e.g. NEMA/EIA/0876"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Tier-Specific Regulatory Notice */}
+                    {formData.expertTier === 'ASSOCIATE' && formData.statutoryTrack === 'CPR' && (
+                      <div className="mt-3 p-3 bg-amber-50 border border-amber-300 rounded-lg text-xs text-amber-900">
+                        <div className="flex items-start space-x-2">
+                          <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                          <div>
+                            <strong>Regulatory Notice (LN 101 Reg 13(2)):</strong> Comprehensive Project Reports (CPR) and full EIA Studies must be supervised and signed by a certified <strong>Lead Expert</strong>. Please provide the supervising Lead Expert of record:
+                            <input
+                              type="text"
+                              name="supervisingLeadExpert"
+                              value={formData.supervisingLeadExpert || ''}
+                              onChange={handleInputChange}
+                              className="mt-2 w-full rounded border-amber-300 p-1.5 border text-xs bg-white"
+                              placeholder="e.g. Dr. Peninah Wanjiru (Lead Expert - NEMA/EIA/0123)"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {formData.expertTier === 'ASSOCIATE' && formData.statutoryTrack === 'SPR' && (
+                      <div className="mt-3 p-2.5 bg-emerald-50 border border-emerald-200 rounded-lg text-xs text-emerald-800 flex items-center">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 mr-2 flex-shrink-0" />
+                        <span><strong>Statutory Authorization (LN 101 Reg 2 & 7(3)):</strong> Registered Associate Experts are legally authorized to independently author and submit low-risk Summary Project Reports (SPRs).</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+            </div>
+
+            {/* 2B. Water Resources & Trade Effluent Permitting */}
+            <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                <h4 className="font-bold text-gray-800 mb-4 border-b pb-2 flex items-center justify-between">
+                  <span>2B. Water Supply & Trade Effluent Permitting (EMCA 2006 & Water Act 2016)</span>
+                  <span className="text-xs bg-blue-50 text-blue-800 px-2.5 py-0.5 rounded border border-blue-200 font-semibold">WRA & NEMA Compliance</span>
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Primary Water Supply Source *</label>
+                    <select
+                      name="waterSupplySource"
+                      value={formData.waterSupplySource || 'Municipal / County Water Utility (e.g. NCWSC)'}
+                      onChange={handleInputChange}
+                      className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border bg-white text-sm"
+                    >
+                      <option value="Municipal / County Water Utility (e.g. NCWSC)">Municipal / County Water Utility (e.g. NCWSC, RUWASCO)</option>
+                      <option value="Commercial Groundwater Borehole">Commercial Groundwater Borehole (On-site)</option>
+                      <option value="River / Surface Water Abstraction">River / Surface Water Direct Abstraction</option>
+                      <option value="Water Bowsers / Commercial Tankers">Water Bowsers / Private Commercial Tankers</option>
+                      <option value="Rainwater Harvesting & Shallow Well">Rainwater Harvesting & Shallow Well</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Estimated Trade / Domestic Effluent (m³/day)</label>
+                    <input
+                      type="number"
+                      name="effluentDischargeM3Day"
+                      value={formData.effluentDischargeM3Day || ''}
+                      onChange={handleInputChange}
+                      className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border text-sm"
+                      placeholder="e.g. 25 (0 for closed loop / zero discharge)"
+                    />
+                  </div>
+
+                  {/* Water Act Alert for Borehole/River */}
+                  {['Commercial Groundwater Borehole', 'River / Surface Water Abstraction'].includes(formData.waterSupplySource) && (
+                    <div className="md:col-span-2 p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-900">
+                      <strong>Section 36 Water Act 2016 Notice:</strong> Ground or surface water abstraction requires a <strong>Water Resources Authority (WRA) Abstraction Permit</strong> and an accredited Hydrogeological Assessment Report. Ensure the hydrogeological report is attached in Phase 2.
+                    </div>
+                  )}
+
+                  {/* Effluent Disposal Options */}
+                  {(Number(formData.effluentDischargeM3Day) > 0 || ['Manufacturing', 'Industrial', 'Mining', 'Real Estate'].includes(formData.projectCategory)) && (
+                    <>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Effluent Treatment & Disposal Method *</label>
+                        <select
+                          name="effluentDisposalMethod"
+                          value={formData.effluentDisposalMethod || 'Municipal Sewer Mains Connection'}
+                          onChange={handleInputChange}
+                          className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border bg-white text-sm"
+                        >
+                          <option value="Municipal Sewer Mains Connection">Municipal Sewer Mains Connection</option>
+                          <option value="On-site Effluent Treatment Plant (ETP)">On-site Effluent Treatment Plant (ETP)</option>
+                          <option value="Bio-digester & Polishing Reed Bed">Bio-digester & Polishing Reed Bed / Constructed Wetland</option>
+                          <option value="Septic Tank & Soakage Pit">Septic Tank & Soakage Pit (Domestic Only)</option>
+                          <option value="Closed-Loop / Zero Liquid Discharge (ZLD)">Closed-Loop / Zero Liquid Discharge (ZLD)</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Effluent Discharge Licensing Status (EDL)</label>
+                        <select
+                          name="effluentDischargePermitStatus"
+                          value={formData.effluentDischargePermitStatus || 'Application Prepared / Pending'}
+                          onChange={handleInputChange}
+                          className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border bg-white text-sm"
+                        >
+                          <option value="Not Applicable / Zero Discharge">Not Applicable / Zero Liquid Discharge</option>
+                          <option value="Application Prepared / Pending">WRA / NEMA Discharge License Application Prepared / Pending</option>
+                          <option value="NEMA Effluent Discharge License (EDL) Issued">Statutory NEMA Effluent Discharge License (EDL) Issued</option>
+                          <option value="Municipal Sewer Connection Agreement Secured">Municipal Sewer Wayleave / Discharge Agreement Secured</option>
+                        </select>
+                      </div>
+
+                      <div className="md:col-span-2 p-3 bg-gray-50 border border-gray-200 rounded-lg text-xs text-gray-700 leading-relaxed">
+                        <strong>EMCA (Water Quality) Regulations 2006 Notice:</strong> Discharging trade or domestic effluent into any surface water, open storm drain, or aquifer requires a valid <strong>Effluent Discharge License (EDL)</strong> from NEMA and continuous monitoring against Third Schedule discharge benchmarks.
+                      </div>
+                    </>
+                  )}
                 </div>
             </div>
 
@@ -589,6 +757,37 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
                       <label className="block text-sm font-medium text-gray-700 mb-1">Counties & Wards Traversed *</label>
                       <textarea name="countiesTraversed" value={formData.countiesTraversed || ''} onChange={handleInputChange} rows={2}
                              className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. Nakuru County (Naivasha, Gilgil), Narok County (Suswa)" />
+                      {/* Interactive County Badges & Statutory Alignment Alert */}
+                      {(() => {
+                        const raw = formData.countiesTraversed || '';
+                        if (!raw.trim()) return null;
+                        const entries = raw.split(/[,;\n]+/).map(s => s.trim()).filter(Boolean);
+                        if (entries.length === 0) return null;
+                        return (
+                          <div className="mt-2.5 p-3 bg-indigo-50 border border-indigo-200 rounded-lg text-xs space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="font-bold text-indigo-950 flex items-center gap-1.5">
+                                <MapPin className="w-3.5 h-3.5 text-indigo-600" />
+                                Cross-Jurisdictional Corridor Authorities Detected ({entries.length}):
+                              </span>
+                              <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 bg-indigo-200/60 text-indigo-800 rounded">
+                                EMCA §40 Multi-County CEAP
+                              </span>
+                            </div>
+                            <div className="flex flex-wrap gap-1.5 pt-1">
+                              {entries.map((item, idx) => (
+                                <span key={idx} className="inline-flex items-center px-2 py-1 bg-white border border-indigo-200 rounded text-indigo-800 font-medium shadow-xs text-xs">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 mr-1.5"></span>
+                                  {item}
+                                </span>
+                              ))}
+                            </div>
+                            <p className="text-[11px] text-indigo-800 leading-relaxed border-t border-indigo-100 pt-1.5">
+                              <strong>Statutory Requirement (EMCA §40 & Physical and Land Use Planning Act 2019):</strong> For multi-county corridor projects, the ESIA must synthesize and reconcile each traversed County's <strong>County Environment Action Plan (CEAP)</strong> and devolved physical planning zoning bylaws. In Phase 3, distinct public barazas and questionnaire registers must be documented for each traversed sub-county/ward.
+                            </p>
+                          </div>
+                        );
+                      })()}
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Alignment Coordinates / Chainage Summary *</label>
@@ -1648,9 +1847,19 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
           <div className="space-y-6 animate-fadeIn">
             {(() => {
               const isCPR = formData.statutoryTrack === 'CPR';
-              const requiredFields = isCPR
-                ? ['projectName', 'siteArea', 'county', 'plotNumber', 'proponentName', 'pin', 'investmentCost', 'timelineMonths', 'operationalLifespan', 'newspaperName', 'barazaDate', 'questionnairesAdministered']
-                : ['projectName', 'siteArea', 'county', 'plotNumber', 'proponentName', 'pin', 'investmentCost', 'timelineMonths', 'operationalLifespan', 'questionnairesAdministered'];
+              const baseRequired = ['projectName', 'siteArea', 'proponentName', 'pin', 'investmentCost', 'timelineMonths', 'operationalLifespan', 'questionnairesAdministered'];
+              if (formData.isMegaProject) {
+                baseRequired.push('countiesTraversed');
+              } else {
+                baseRequired.push('county', 'plotNumber');
+              }
+              if (isCPR) {
+                baseRequired.push('newspaperName', 'barazaDate');
+                if (formData.expertTier === 'ASSOCIATE') {
+                  baseRequired.push('supervisingLeadExpert');
+                }
+              }
+              const requiredFields = baseRequired;
               const missingFields = requiredFields.filter(f => !formData[f]);
               const isReady = missingFields.length === 0;
 
@@ -1686,6 +1895,9 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
                         </>
                       )}
                       <p><span className="font-semibold text-gray-600">Investment:</span> KES {formData.investmentCost ? Number(formData.investmentCost).toLocaleString() : 'Missing'}</p>
+                      {Number(formData.investmentCost || 0) > 0 && (
+                        <p><span className="font-semibold text-emerald-700">NEMA Processing Levy (0.1%):</span> KES {Number(formData.investmentCost * 0.001).toLocaleString(undefined, {maximumFractionDigits: 0})}</p>
+                      )}
                       <p><span className="font-semibold text-gray-600">Lifespan:</span> {formData.operationalLifespan ? `${formData.operationalLifespan} years` : 'Missing'}</p>
                     </div>
 
@@ -1698,7 +1910,15 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
                       ) : (
                         <p><span className="font-semibold text-indigo-700">Land Tenure:</span> {formData.landTenureSummary || 'Missing'}</p>
                       )}
-                      <p><span className="font-semibold text-gray-600">Lead Expert:</span> {formData.leadExpertReg}</p>
+                      <p><span className="font-semibold text-gray-600">Consultant Tier:</span> <span className="font-bold">{formData.expertTier === 'ASSOCIATE' ? 'Associate Expert (Reg 2 & 7(3))' : 'Lead Expert (Reg 13(2))'}</span></p>
+                      <p><span className="font-semibold text-gray-600">Practicing Reg:</span> {formData.leadExpertReg}</p>
+                      {formData.expertTier === 'ASSOCIATE' && formData.statutoryTrack === 'CPR' && (
+                        <p><span className="font-semibold text-amber-700">Supervising Lead:</span> {formData.supervisingLeadExpert || <span className="text-red-500 font-bold">Missing Required Lead Expert</span>}</p>
+                      )}
+                      <p><span className="font-semibold text-gray-600">Water Supply:</span> {formData.waterSupplySource || 'Municipal Utility'}</p>
+                      {formData.effluentDisposalMethod && (
+                        <p><span className="font-semibold text-gray-600">Effluent Disposal:</span> {formData.effluentDisposalMethod} ({formData.effluentDischargePermitStatus || 'Pending'})</p>
+                      )}
                       <p><span className="font-semibold text-gray-600">Receptors Found:</span> {Object.keys(formData.sensitiveReceptors).length}</p>
                     </div>
 
@@ -1783,9 +2003,11 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
                              checked={formData.attestation || false} 
                              onChange={(e) => setFormData({...formData, attestation: e.target.checked})} />
                       <div>
-                        <span className="text-sm font-bold text-gray-800">Lead Expert Attestation</span>
+                        <span className="text-sm font-bold text-gray-800">
+                          {formData.expertTier === 'ASSOCIATE' ? 'Associate & Supervising Lead Expert Attestation' : 'Lead Expert Attestation'}
+                        </span>
                         <p className="text-xs text-gray-500 mt-1">
-                          I, {formData.leadExpertReg}, confirm that the data provided in this wizard accurately reflects the baseline conditions, engineering designs, and stakeholder engagement records for this project. I authorize the EcoSense AI to generate a pre-approval ESIA draft based solely on this locked dataset.
+                          I, {formData.leadExpertReg} {formData.expertTier === 'ASSOCIATE' && formData.supervisingLeadExpert ? `(under the direct supervision and counter-signature of ${formData.supervisingLeadExpert})` : ''}, confirm that the data provided in this wizard accurately reflects the baseline conditions, engineering designs, and stakeholder engagement records for this project. I authorize the EcoSense AI to generate a pre-approval ESIA draft based solely on this locked dataset.
                         </p>
                       </div>
                     </label>
@@ -1813,10 +2035,21 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
             (currentPhase === 1 && !position) || 
             (currentPhase === 5 && (
               !formData.attestation || 
-              (formData.statutoryTrack === 'CPR' 
-                ? ['projectName', 'siteArea', 'county', 'plotNumber', 'proponentName', 'pin', 'investmentCost', 'timelineMonths', 'operationalLifespan', 'newspaperName', 'barazaDate', 'questionnairesAdministered'] 
-                : ['projectName', 'siteArea', 'county', 'plotNumber', 'proponentName', 'pin', 'investmentCost', 'timelineMonths', 'operationalLifespan', 'questionnairesAdministered']
-              ).some(f => !formData[f])
+              (() => {
+                const baseRequired = ['projectName', 'siteArea', 'proponentName', 'pin', 'investmentCost', 'timelineMonths', 'operationalLifespan', 'questionnairesAdministered'];
+                if (formData.isMegaProject) {
+                  baseRequired.push('countiesTraversed');
+                } else {
+                  baseRequired.push('county', 'plotNumber');
+                }
+                if (formData.statutoryTrack === 'CPR') {
+                  baseRequired.push('newspaperName', 'barazaDate');
+                  if (formData.expertTier === 'ASSOCIATE') {
+                    baseRequired.push('supervisingLeadExpert');
+                  }
+                }
+                return baseRequired.some(f => !formData[f]);
+              })()
             ))
           }
           className="flex items-center px-6 py-2 rounded-lg font-medium text-white transition-colors shadow-sm bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed"
