@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Upload, FileText, Users, FlaskConical, CheckCircle2, ChevronRight, ChevronLeft, MapPin, Building, Loader2 } from 'lucide-react';
+import { Upload, FileText, Users, FlaskConical, CheckCircle2, ChevronRight, ChevronLeft, MapPin, Building, Loader2, Printer, ShieldAlert, FileCheck, X, Eye } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
@@ -34,6 +34,7 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
   const [files, setFiles] = useState({});
   const [position, setPosition] = useState(null); // Map coordinates
   const [mapTileMode, setMapTileMode] = useState('satellite'); // 'satellite' | 'streets'
+  const [showQuestionnaireModal, setShowQuestionnaireModal] = useState(false);
   const [formData, setFormData] = useState({
     statutoryTrack: 'SPR', // 'SPR' (Summary Project Report - Low Risk) | 'CPR' (Comprehensive Project Report - Medium/High Risk)
     projectName: '',
@@ -52,6 +53,16 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
     timelineMonths: '',
     operationalLifespan: '',
     leadExpertReg: 'NEMA/EIA/1234', // Auto-filled from user context
+    // Questionnaire & Public Participation Analytics
+    questionnairesAdministered: '',
+    supportWithoutReservation: '',
+    supportWithConditions: '',
+    objectionsCount: '',
+    objectionReasons: '',
+    immediateNeighborsCount: '',
+    acrossRoadCount: '',
+    withinRadiusCount: '',
+    areaChiefConsulted: '',
     communityConcerns: [{ concern: '', category: 'Social', response: '' }], // Structured list
     barazaDate: '',
     barazaVenue: '',
@@ -1062,186 +1073,530 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
         {currentPhase === 3 && (
           <div className="space-y-6 animate-fadeIn">
             
-            {/* Public Notification (Reg 17) */}
-            <div className="bg-white p-4 rounded-lg border border-gray-200">
-                <h4 className="font-bold text-gray-800 mb-4 border-b pb-2 flex justify-between items-center">
-                    <span>1. Public Notification (Reg 17)</span>
-                    <label className="flex items-center space-x-2 text-sm font-normal cursor-pointer bg-gray-50 px-2 py-1 rounded border border-gray-200">
-                        <input type="checkbox" name="newspaperWaiver" checked={formData.newspaperWaiver || false} onChange={(e) => setFormData({...formData, newspaperWaiver: e.target.checked})} className="w-4 h-4 text-emerald-600 rounded border-gray-300 focus:ring-emerald-500" />
-                        <span className="text-gray-700">Waiver / N/A (Low Risk Project)</span>
-                    </label>
-                </h4>
-                
-                {!formData.newspaperWaiver && (
-                  <>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Newspaper Name *</label>
-                        <input type="text" name="newspaperName" value={formData.newspaperName} onChange={handleInputChange} 
-                               className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. Daily Nation" />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Publication Date *</label>
-                        <input type="date" name="publicationDate" value={formData.publicationDate} onChange={handleInputChange} 
-                               className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Notice Period (Days) *</label>
-                        <input type="number" name="noticePeriod" value={formData.noticePeriod} onChange={handleInputChange} 
-                               className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. 14 or 30" />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Other Notification Medium</label>
-                        <input type="text" name="otherNotification" value={formData.otherNotification} onChange={handleInputChange} 
-                               className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. Local Radio / Chief Baraza" />
-                      </div>
-                    </div>
-                    <div className="p-3 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50 hover:bg-white transition-colors">
-                      <label className="flex items-center justify-center cursor-pointer">
-                        <Upload className="w-5 h-5 text-gray-400 mr-2" />
-                        <span className="text-sm font-medium text-gray-600 mr-2">Upload Newspaper Tear-sheet (PDF/Image) *</span>
-                        <span className="text-xs text-gray-400">{files.newspaper_notice ? files.newspaper_notice.name : 'Missing'}</span>
-                        <input type="file" className="hidden" onChange={(e) => handleFileChange('newspaper_notice', e)} />
-                      </label>
-                    </div>
-                  </>
-                )}
+            {/* Dynamic Statutory Track Banner */}
+            {formData.statutoryTrack === 'SPR' ? (
+              <div className="bg-emerald-50 border-l-4 border-emerald-500 p-4 rounded-r-lg">
+                <div className="flex items-start">
+                  <ShieldAlert className="w-5 h-5 text-emerald-600 mt-0.5 mr-3 flex-shrink-0" />
+                  <div>
+                    <h4 className="text-sm font-bold text-emerald-900">Summary Project Report (SPR) — Low-Risk Track (LN 31 & 32 of 2019)</h4>
+                    <p className="text-xs text-emerald-800 mt-1 leading-relaxed">
+                      Under Legal Notices No. 31 and 32 of 2019, low-risk undertakings (boreholes, boundary walls, single residential dwellings) require localized Consultation and Public Participation (CPP) administered with <strong>5 to 15 immediate boundary neighbors</strong> and local administration (Area Chief / Nyumba Kumi). 
+                      <span className="font-semibold text-emerald-950"> National daily newspaper advertisements and mass public barazas are statutory waived.</span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg">
+                <div className="flex items-start">
+                  <Users className="w-5 h-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" />
+                  <div>
+                    <h4 className="text-sm font-bold text-blue-900">Comprehensive Project Report (CPR / Full Study) — High-Risk Track (EMCA §59 & LN 101 Reg 17)</h4>
+                    <p className="text-xs text-blue-800 mt-1 leading-relaxed">
+                      For medium to high-impact projects, NEMA mandates a multi-tiered consultation strategy: <strong>minimum 30+ stakeholder questionnaires</strong> across multiple catchments, <strong>mandatory publication in two (2) national daily newspapers</strong> with a 14-day notice window, and <strong>formal public baraza(s)</strong> with local leadership observing the two-thirds gender rule.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* 1. NEMA Questionnaires & Audit Trail Dossier */}
+            <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-3 border-b mb-4 gap-2">
+                <div>
+                  <h4 className="font-bold text-gray-800 text-base">1. Stakeholder Questionnaires & Verification Dossier</h4>
+                  <p className="text-xs text-gray-500 mt-0.5">Primary physical evidence required by NEMA TAC under EMCA Section 59 & LN 101 Reg 17</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowQuestionnaireModal(true)}
+                  className="flex items-center text-xs bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-300 font-semibold px-3 py-1.5 rounded-lg shadow-sm transition"
+                >
+                  <Eye className="w-3.5 h-3.5 mr-1" />
+                  <Printer className="w-3.5 h-3.5 mr-1" />
+                  Print Official NEMA Questionnaire (7 Sections)
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Questionnaires Administered *
+                  </label>
+                  <input
+                    type="number"
+                    name="questionnairesAdministered"
+                    value={formData.questionnairesAdministered || ''}
+                    onChange={handleInputChange}
+                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border font-semibold text-emerald-900"
+                    placeholder={formData.statutoryTrack === 'SPR' ? 'e.g. 10 (5-15 required)' : 'e.g. 35 (30+ required)'}
+                  />
+                  <span className="text-[11px] text-gray-500 mt-0.5 block">
+                    {formData.statutoryTrack === 'SPR' ? 'Statutory SPR quota: 5 - 15 forms' : 'Statutory CPR quota: 30+ forms'}
+                  </span>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Support Without Reservation *</label>
+                  <input
+                    type="number"
+                    name="supportWithoutReservation"
+                    value={formData.supportWithoutReservation || ''}
+                    onChange={handleInputChange}
+                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border text-green-700 font-medium"
+                    placeholder="e.g. 8"
+                  />
+                  <span className="text-[11px] text-gray-500 mt-0.5 block">Unconditional endorsement</span>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Support With Conditions *</label>
+                  <input
+                    type="number"
+                    name="supportWithConditions"
+                    value={formData.supportWithConditions || ''}
+                    onChange={handleInputChange}
+                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border text-amber-700 font-medium"
+                    placeholder="e.g. 2"
+                  />
+                  <span className="text-[11px] text-gray-500 mt-0.5 block">E.g., dust, noise, local jobs</span>
+                </div>
+              </div>
+
+              {/* Spatial Proximity Breakdown */}
+              <div className="bg-gray-50 p-3 rounded-lg border border-gray-200 mb-4">
+                <span className="text-xs font-bold text-gray-700 block mb-2 uppercase tracking-wide">
+                  Physical Proximity of Respondents to Site Boundary
+                </span>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Immediate Boundary Neighbors</label>
+                    <input
+                      type="number"
+                      name="immediateNeighborsCount"
+                      value={formData.immediateNeighborsCount || ''}
+                      onChange={handleInputChange}
+                      className="w-full rounded border-gray-300 p-1.5 border text-sm bg-white"
+                      placeholder="e.g. 5"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Across the Access Road</label>
+                    <input
+                      type="number"
+                      name="acrossRoadCount"
+                      value={formData.acrossRoadCount || ''}
+                      onChange={handleInputChange}
+                      className="w-full rounded border-gray-300 p-1.5 border text-sm bg-white"
+                      placeholder="e.g. 3"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Within 500m – 1km Radius</label>
+                    <input
+                      type="number"
+                      name="withinRadiusCount"
+                      value={formData.withinRadiusCount || ''}
+                      onChange={handleInputChange}
+                      className="w-full rounded border-gray-300 p-1.5 border text-sm bg-white"
+                      placeholder="e.g. 2"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Objections Tracking */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Objections Count</label>
+                  <input
+                    type="number"
+                    name="objectionsCount"
+                    value={formData.objectionsCount || ''}
+                    onChange={handleInputChange}
+                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 p-2 border text-red-600 font-medium"
+                    placeholder="0"
+                  />
+                  <span className="text-[11px] text-gray-500 mt-0.5 block">Total adverse/dissenting returns</span>
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Area Administration Consulted (Chief / Nyumba Kumi)
+                  </label>
+                  <input
+                    type="text"
+                    name="areaChiefConsulted"
+                    value={formData.areaChiefConsulted || ''}
+                    onChange={handleInputChange}
+                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border text-sm"
+                    placeholder="e.g. Chief Francis Mwangi (0722XXXXXX) & Nyumba Kumi Elder J. Kamau"
+                  />
+                </div>
+              </div>
+
+              {parseInt(formData.objectionsCount || 0) > 0 && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <label className="block text-xs font-bold text-red-800 mb-1">
+                    Grounds for Objections & Proponent Conflict Resolution Proposal *
+                  </label>
+                  <textarea
+                    name="objectionReasons"
+                    value={formData.objectionReasons || ''}
+                    onChange={handleInputChange}
+                    rows={2}
+                    className="w-full rounded border-red-300 p-2 border text-sm bg-white"
+                    placeholder="Detail specific grounds (e.g. stormwater runoff direction, boundary setback concerns) and engineering commitments made."
+                  />
+                </div>
+              )}
+
+              {/* Upload Scanned Questionnaires */}
+              <div className="p-4 border-2 border-dashed border-emerald-300 rounded-lg bg-emerald-50/50 hover:bg-emerald-50 transition-colors">
+                <label className="flex flex-col items-center justify-center cursor-pointer">
+                  <Upload className="w-6 h-6 text-emerald-600 mb-1" />
+                  <span className="text-sm font-semibold text-emerald-900">
+                    Upload Scanned Filled & Signed Questionnaires [PDF] *
+                  </span>
+                  <span className="text-xs text-emerald-700 mt-0.5">
+                    {files.signed_questionnaires ? files.signed_questionnaires.name : 'Bound into Statutory Annex 5 as physical proof of consultation'}
+                  </span>
+                  <input type="file" accept=".pdf" className="hidden" onChange={(e) => handleFileChange('signed_questionnaires', e)} />
+                </label>
+              </div>
             </div>
 
-            {/* Baraza Logistics & Attendance */}
-            <div className="bg-white p-4 rounded-lg border border-gray-200">
-                <h4 className="font-bold text-gray-800 mb-4 border-b pb-2">2. Baraza Logistics & Stakeholders</h4>
-                
-                {!formData.isMegaProject ? (
+            {/* 2. Public Notification (Reg 17) - Dynamic SPR vs CPR */}
+            <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+              <h4 className="font-bold text-gray-800 mb-3 border-b pb-2 flex justify-between items-center">
+                <span>2. Public Notification (Reg 17)</span>
+                {formData.statutoryTrack === 'SPR' ? (
+                  <span className="text-xs font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded border border-emerald-300">
+                    LN 31/32 Statutory Waiver Active
+                  </span>
+                ) : (
+                  <span className="text-xs font-bold bg-blue-100 text-blue-800 px-2 py-0.5 rounded border border-blue-300">
+                    Mandatory 2 Dailies (14-Day Notice)
+                  </span>
+                )}
+              </h4>
+
+              {formData.statutoryTrack === 'SPR' ? (
+                <div className="space-y-3">
+                  <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg text-xs text-gray-600 leading-relaxed">
+                    <strong>Statutory Exemption Applied:</strong> Summary Project Reports (SPRs) for low-risk developments do not legally require newspaper advertisements in national dailies. Notification is conducted directly via on-site neighbor visits and local administrative notice.
+                  </div>
+                  <label className="flex items-center space-x-2 text-xs text-gray-700 cursor-pointer pt-1">
+                    <input
+                      type="checkbox"
+                      checked={formData.showOptionalNotice || false}
+                      onChange={(e) => setFormData({ ...formData, showOptionalNotice: e.target.checked })}
+                      className="w-4 h-4 text-emerald-600 rounded border-gray-300 focus:ring-emerald-500"
+                    />
+                    <span>Optional: Proponent voluntarily published an on-site signboard, local radio, or newspaper notice</span>
+                  </label>
+                  {formData.showOptionalNotice && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Notification Medium</label>
+                        <input
+                          type="text"
+                          name="otherNotification"
+                          value={formData.otherNotification || ''}
+                          onChange={handleInputChange}
+                          className="w-full rounded border-gray-300 p-2 border text-sm"
+                          placeholder="e.g. On-site Signboard, Chief's Notice Board"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Date Erected / Broadcast</label>
+                        <input
+                          type="date"
+                          name="publicationDate"
+                          value={formData.publicationDate || ''}
+                          onChange={handleInputChange}
+                          className="w-full rounded border-gray-300 p-2 border text-sm"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Date of Meeting *</label>
-                      <input type="date" name="barazaDate" value={formData.barazaDate} onChange={handleInputChange} 
-                             className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" />
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Newspaper Name *</label>
+                      <input
+                        type="text"
+                        name="newspaperName"
+                        value={formData.newspaperName || ''}
+                        onChange={handleInputChange}
+                        className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border"
+                        placeholder="e.g. Daily Nation / The Standard"
+                      />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Venue / Location *</label>
-                      <input type="text" name="barazaVenue" value={formData.barazaVenue} onChange={handleInputChange} 
-                             className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. Chief's Camp, Rongai" />
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Publication Date *</label>
+                      <input
+                        type="date"
+                        name="publicationDate"
+                        value={formData.publicationDate || ''}
+                        onChange={handleInputChange}
+                        className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Notice Period (Days) *</label>
+                      <input
+                        type="number"
+                        name="noticePeriod"
+                        value={formData.noticePeriod || '14'}
+                        onChange={handleInputChange}
+                        className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border"
+                        placeholder="14"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Second Medium (e.g. Radio / Kenya Gazette)</label>
+                      <input
+                        type="text"
+                        name="otherNotification"
+                        value={formData.otherNotification || ''}
+                        onChange={handleInputChange}
+                        className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border"
+                        placeholder="e.g. Local Vernacular Radio / Chief Baraza"
+                      />
                     </div>
                   </div>
-                ) : (
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Consultation Schedule & Venues Summary *</label>
-                    <textarea name="consultationSchedule" value={formData.consultationSchedule || ''} onChange={handleInputChange} rows={3}
-                           className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. 2026-05-04 (Suswa Trading Centre), 2026-05-11 (Mai Mahiu), 2026-05-18 (Naivasha). Total 3 barazas." />
+                  <div className="p-3 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50 hover:bg-white transition-colors">
+                    <label className="flex items-center justify-center cursor-pointer">
+                      <Upload className="w-5 h-5 text-gray-400 mr-2" />
+                      <span className="text-sm font-medium text-gray-600 mr-2">Upload Newspaper Tear-sheet (PDF/Image) *</span>
+                      <span className="text-xs text-gray-400">{files.newspaper_notice ? files.newspaper_notice.name : 'Missing'}</span>
+                      <input type="file" className="hidden" onChange={(e) => handleFileChange('newspaper_notice', e)} />
+                    </label>
                   </div>
-                )}
+                </>
+              )}
+            </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Total Attendees *</label>
-                    <input type="number" name="attendeeCount" value={formData.attendeeCount} onChange={handleInputChange} 
-                           className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. 150" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Facilitator / Lead Expert *</label>
-                    <input type="text" name="facilitatingOfficer" value={formData.facilitatingOfficer} onChange={handleInputChange} 
-                           className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. John Doe (NEMA/EIA/123)" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Male</label>
-                    <input type="number" name="attendeesMale" value={formData.attendeesMale} onChange={handleInputChange} 
-                           className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. 80" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Female</label>
-                    <input type="number" name="attendeesFemale" value={formData.attendeesFemale} onChange={handleInputChange} 
-                           className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. 70" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Language(s) Used</label>
-                    <input type="text" name="barazaLanguage" value={formData.barazaLanguage} onChange={handleInputChange} 
-                           className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. Kiswahili, Kikuyu" />
-                  </div>
-                </div>
+            {/* 3. Consultation Meetings / Baraza Logistics */}
+            <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+              <h4 className="font-bold text-gray-800 mb-4 border-b pb-2">
+                {formData.statutoryTrack === 'SPR' ? '3. Localized Neighbor Consultation & Administration Dialogue' : '3. Public Baraza Logistics & Stakeholder Representation'}
+              </h4>
 
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Stakeholder Groups Consulted (Check all present)</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {['Local Administration (Chief/DO)', 'County Government Officials', 'Project Affected Persons (PAPs)', 'Neighbors / Immediate Community', 'CBOs / NGOs', 'Youth Representatives', 'Women Representatives', 'Other Agencies (e.g. KWS, WRMA)'].map((group) => (
-                      <label key={group} className="flex items-center space-x-2 p-2 border rounded bg-gray-50 hover:bg-white cursor-pointer text-sm">
-                        <input type="checkbox" checked={!!formData.stakeholderGroups[group]} onChange={() => handleStakeholderToggle(group)} 
-                               className="text-emerald-600 rounded" />
-                        <span className="text-gray-700">{group}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-                
-                <div className="p-3 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50 hover:bg-white transition-colors">
-                  <label className="flex flex-col items-center justify-center cursor-pointer">
-                    <Upload className="w-6 h-6 text-gray-400 mb-1" />
-                    <span className="text-sm font-medium text-gray-600">Upload Signed Attendance Sheets & Minutes (PDF) *</span>
-                    <span className="text-xs text-gray-400">{files.baraza_minutes ? files.baraza_minutes.name : 'Missing'}</span>
-                    <input type="file" className="hidden" onChange={(e) => handleFileChange('baraza_minutes', e)} />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {formData.statutoryTrack === 'SPR' ? 'Date of Neighbor Consultation Visit *' : 'Date of Public Baraza *'}
                   </label>
-            </div>
-
-            {/* Inclusion & Grievance */}
-            <div className="bg-white p-4 rounded-lg border border-gray-200">
-                <h4 className="font-bold text-gray-800 mb-4 border-b pb-2">3. Inclusion & Grievance Redress</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Vulnerable/Marginalized Groups Addressed</label>
-                    <input type="text" name="vulnerableGroups" value={formData.vulnerableGroups} onChange={handleInputChange} 
-                           className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. Provisions made for PWDs access..." />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Grievance Redress Mechanism (GRM) Proposed?</label>
-                    <select name="grmEstablished" value={formData.grmEstablished} onChange={handleInputChange} className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border bg-white mb-2">
-                        <option value="Yes">Yes - GRM Committee Formed/Proposed</option>
-                        <option value="No">No GRM</option>
-                    </select>
-                    {formData.grmEstablished === 'Yes' && (
-                        <input type="text" name="grmContact" value={formData.grmContact} onChange={handleInputChange} 
-                               className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border text-sm" placeholder="GRM Contact Person / Phone Number" />
-                    )}
-                  </div>
+                  <input
+                    type="date"
+                    name="barazaDate"
+                    value={formData.barazaDate || ''}
+                    onChange={handleInputChange}
+                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border"
+                  />
                 </div>
-            </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {formData.statutoryTrack === 'SPR' ? 'Venue / Meeting Location *' : 'Venue / Baraza Location *'}
+                  </label>
+                  <input
+                    type="text"
+                    name="barazaVenue"
+                    value={formData.barazaVenue || ''}
+                    onChange={handleInputChange}
+                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border"
+                    placeholder={formData.statutoryTrack === 'SPR' ? 'e.g. On-Site & Immediate Boundaries' : "e.g. Chief's Camp, Rongai"}
+                  />
+                </div>
+              </div>
 
-            {/* Documented Concerns & Responses */}
-            <div className="bg-white p-4 rounded-lg border border-gray-200">
-                <h4 className="font-bold text-gray-800 mb-4 border-b pb-2">4. Documented Concerns & Proponent Mitigations</h4>
-                <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
-                  {formData.communityConcerns.map((item, index) => (
-                    <div key={index} className="flex flex-col gap-3 border p-3 rounded-lg bg-gray-50">
-                      <div className="flex flex-col md:flex-row gap-3">
-                          <div className="flex-1">
-                            <label className="block text-xs text-gray-500 mb-1">Community Concern #{index + 1}</label>
-                            <textarea value={item.concern} onChange={(e) => handleConcernChange(index, 'concern', e.target.value)} rows={2}
-                                      className="w-full rounded border-gray-300 p-2 border text-sm bg-white" placeholder="e.g. Dust during construction affecting local shops" />
-                          </div>
-                          <div className="w-full md:w-1/3">
-                            <label className="block text-xs text-gray-500 mb-1">Category</label>
-                            <select value={item.category} onChange={(e) => handleConcernChange(index, 'category', e.target.value)}
-                                    className="w-full rounded border-gray-300 p-2 border text-sm bg-white">
-                                <option value="Environmental">Environmental</option>
-                                <option value="Social">Social</option>
-                                <option value="Economic">Economic</option>
-                                <option value="Labor">Labor / Health</option>
-                            </select>
-                          </div>
-                      </div>
-                      <div>
-                        <label className="block text-xs text-emerald-600 mb-1 font-medium">Proponent Response / Mitigation</label>
-                        <textarea value={item.response} onChange={(e) => handleConcernChange(index, 'response', e.target.value)} rows={2}
-                                  className="w-full rounded border-gray-300 p-2 border text-sm bg-white" placeholder="e.g. Water bowsers will sprinkle the road 3x daily" />
-                      </div>
-                    </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Total Persons Consulted / Attendees *</label>
+                  <input
+                    type="number"
+                    name="attendeeCount"
+                    value={formData.attendeeCount || ''}
+                    onChange={handleInputChange}
+                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border"
+                    placeholder={formData.statutoryTrack === 'SPR' ? 'e.g. 12' : 'e.g. 150'}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Male Count</label>
+                  <input
+                    type="number"
+                    name="attendeesMale"
+                    value={formData.attendeesMale || ''}
+                    onChange={handleInputChange}
+                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border"
+                    placeholder="e.g. 7"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Female Count</label>
+                  <input
+                    type="number"
+                    name="attendeesFemale"
+                    value={formData.attendeesFemale || ''}
+                    onChange={handleInputChange}
+                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border"
+                    placeholder="e.g. 5"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Facilitator / Lead Expert *</label>
+                  <input
+                    type="text"
+                    name="facilitatingOfficer"
+                    value={formData.facilitatingOfficer || ''}
+                    onChange={handleInputChange}
+                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border"
+                    placeholder="e.g. Dr. Peninah Wanjiru (NEMA/EIA/0876)"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Language(s) Used</label>
+                  <input
+                    type="text"
+                    name="barazaLanguage"
+                    value={formData.barazaLanguage || ''}
+                    onChange={handleInputChange}
+                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border"
+                    placeholder="e.g. English, Kiswahili"
+                  />
+                </div>
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Stakeholder Groups Consulted (Check all present)</label>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  {['Local Administration (Chief/Nyumba Kumi)', 'Immediate Neighbors (Boundaries)', 'Area Residents Association', 'Business Operators', 'County Officials', 'Women Representatives', 'Youth Representatives', 'Lead Agencies (WRMA/KWS/NCA)'].map((group) => (
+                    <label key={group} className="flex items-center space-x-2 p-2 border rounded bg-gray-50 hover:bg-white cursor-pointer text-xs">
+                      <input
+                        type="checkbox"
+                        checked={!!formData.stakeholderGroups[group]}
+                        onChange={() => handleStakeholderToggle(group)}
+                        className="text-emerald-600 rounded"
+                      />
+                      <span className="text-gray-700">{group}</span>
+                    </label>
                   ))}
                 </div>
-                <button type="button" onClick={addConcern} className="mt-4 text-sm text-emerald-600 font-medium hover:text-emerald-700 flex items-center">
-                  + Add Another Concern
-                </button>
+              </div>
+
+              <div className="p-3 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50 hover:bg-white transition-colors">
+                <label className="flex flex-col items-center justify-center cursor-pointer">
+                  <Upload className="w-6 h-6 text-gray-400 mb-1" />
+                  <span className="text-sm font-medium text-gray-600">
+                    {formData.statutoryTrack === 'SPR' ? 'Upload Signed Consultation Notes / Register (PDF) *' : 'Upload Signed Baraza Attendance Sheets & Minutes (PDF) *'}
+                  </span>
+                  <span className="text-xs text-gray-400">{files.baraza_minutes ? files.baraza_minutes.name : 'Missing'}</span>
+                  <input type="file" className="hidden" onChange={(e) => handleFileChange('baraza_minutes', e)} />
+                </label>
+              </div>
             </div>
-          </div>
+
+            {/* 4. Inclusion & Grievance Redress */}
+            <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+              <h4 className="font-bold text-gray-800 mb-4 border-b pb-2">4. Inclusion & Grievance Redress</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Vulnerable / Marginalized Groups Addressed</label>
+                  <input
+                    type="text"
+                    name="vulnerableGroups"
+                    value={formData.vulnerableGroups || ''}
+                    onChange={handleInputChange}
+                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border text-sm"
+                    placeholder="e.g. Universal ramps provided, vulnerable elderly neighbors consulted"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Grievance Redress Mechanism (GRM) Proposed?</label>
+                  <select
+                    name="grmEstablished"
+                    value={formData.grmEstablished || 'Yes'}
+                    onChange={handleInputChange}
+                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border bg-white mb-2 text-sm"
+                  >
+                    <option value="Yes">Yes - GRM Committee Formed / Proposed</option>
+                    <option value="No">No GRM</option>
+                  </select>
+                  {formData.grmEstablished === 'Yes' && (
+                    <input
+                      type="text"
+                      name="grmContact"
+                      value={formData.grmContact || ''}
+                      onChange={handleInputChange}
+                      className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border text-sm"
+                      placeholder="GRM Contact Officer / Phone Number"
+                    />
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* 5. Documented Concerns & Responses */}
+            <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+              <h4 className="font-bold text-gray-800 mb-4 border-b pb-2">5. Documented Concerns & Proponent Mitigations</h4>
+              <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
+                {formData.communityConcerns.map((item, index) => (
+                  <div key={index} className="flex flex-col gap-3 border p-3 rounded-lg bg-gray-50">
+                    <div className="flex flex-col md:flex-row gap-3">
+                      <div className="flex-1">
+                        <label className="block text-xs text-gray-500 mb-1">Community Concern #{index + 1}</label>
+                        <textarea
+                          value={item.concern}
+                          onChange={(e) => handleConcernChange(index, 'concern', e.target.value)}
+                          rows={2}
+                          className="w-full rounded border-gray-300 p-2 border text-sm bg-white"
+                          placeholder="e.g. Dust during construction affecting neighboring residential homes"
+                        />
+                      </div>
+                      <div className="w-full md:w-1/3">
+                        <label className="block text-xs text-gray-500 mb-1">Category</label>
+                        <select
+                          value={item.category}
+                          onChange={(e) => handleConcernChange(index, 'category', e.target.value)}
+                          className="w-full rounded border-gray-300 p-2 border text-sm bg-white"
+                        >
+                          <option value="Environmental">Environmental</option>
+                          <option value="Social">Social</option>
+                          <option value="Economic">Economic</option>
+                          <option value="Labor">Labor / Health</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-emerald-600 mb-1 font-medium">Proponent Response / ESMP Mitigation</label>
+                      <textarea
+                        value={item.response}
+                        onChange={(e) => handleConcernChange(index, 'response', e.target.value)}
+                        rows={2}
+                        className="w-full rounded border-gray-300 p-2 border text-sm bg-white"
+                        placeholder="e.g. Daily water sprinkling 3x daily and perimeter dust-screens erected"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={addConcern}
+                className="mt-4 text-sm text-emerald-600 font-medium hover:text-emerald-700 flex items-center"
+              >
+                + Add Another Concern
+              </button>
+            </div>
           </div>
         )}
 
@@ -1292,7 +1647,10 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
         {currentPhase === 5 && (
           <div className="space-y-6 animate-fadeIn">
             {(() => {
-              const requiredFields = ['projectName', 'siteArea', 'county', 'plotNumber', 'proponentName', 'pin', 'investmentCost', 'timelineMonths', 'operationalLifespan', 'newspaperName', 'barazaDate'];
+              const isCPR = formData.statutoryTrack === 'CPR';
+              const requiredFields = isCPR
+                ? ['projectName', 'siteArea', 'county', 'plotNumber', 'proponentName', 'pin', 'investmentCost', 'timelineMonths', 'operationalLifespan', 'newspaperName', 'barazaDate', 'questionnairesAdministered']
+                : ['projectName', 'siteArea', 'county', 'plotNumber', 'proponentName', 'pin', 'investmentCost', 'timelineMonths', 'operationalLifespan', 'questionnairesAdministered'];
               const missingFields = requiredFields.filter(f => !formData[f]);
               const isReady = missingFields.length === 0;
 
@@ -1332,7 +1690,7 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
                     </div>
 
                     <div className="space-y-2 bg-white p-4 rounded border border-gray-200">
-                      <h5 className="font-bold text-gray-700 border-b pb-2 mb-3">Proponent Details</h5>
+                      <h5 className="font-bold text-gray-700 border-b pb-2 mb-3">Proponent & Consultant</h5>
                       <p><span className="font-semibold text-gray-600">Name:</span> {formData.proponentName || 'Missing'}</p>
                       <p><span className="font-semibold text-gray-600">PIN:</span> {formData.pin || 'Missing'}</p>
                       {!formData.isMegaProject ? (
@@ -1342,7 +1700,43 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
                       )}
                       <p><span className="font-semibold text-gray-600">Lead Expert:</span> {formData.leadExpertReg}</p>
                       <p><span className="font-semibold text-gray-600">Receptors Found:</span> {Object.keys(formData.sensitiveReceptors).length}</p>
-                      <p><span className="font-semibold text-gray-600">Stakeholder Groups:</span> {Object.keys(formData.stakeholderGroups).length}</p>
+                    </div>
+
+                    {/* Stakeholder Consultation Summary Card */}
+                    <div className="space-y-2 bg-white p-4 rounded border border-gray-200 md:col-span-2">
+                      <h5 className="font-bold text-gray-700 border-b pb-2 mb-3 flex justify-between items-center">
+                        <span>Stakeholder Consultation & Questionnaire Ledger (Statutory Annex 5)</span>
+                        <span className={`text-xs px-2 py-0.5 rounded font-semibold ${isCPR ? 'bg-blue-100 text-blue-800' : 'bg-emerald-100 text-emerald-800'}`}>
+                          {isCPR ? 'CPR Multi-Tier Track' : 'SPR Low-Risk Track (LN 31/32 Waiver Active)'}
+                        </span>
+                      </h5>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+                        <div className="bg-gray-50 p-2.5 rounded border border-gray-200">
+                          <span className="text-gray-500 block">Questionnaires Administered</span>
+                          <span className="text-base font-bold text-emerald-800">{formData.questionnairesAdministered || '0'}</span>
+                          <span className="text-[11px] text-gray-500 block mt-1">
+                            Direct: {formData.immediateNeighborsCount || 0} | Road: {formData.acrossRoadCount || 0} | Radius: {formData.withinRadiusCount || 0}
+                          </span>
+                        </div>
+                        <div className="bg-gray-50 p-2.5 rounded border border-gray-200">
+                          <span className="text-gray-500 block">Sentiment Breakdown</span>
+                          <span className="text-xs font-semibold text-gray-800 block mt-1">
+                            Endorse: <strong className="text-green-700">{formData.supportWithoutReservation || 0}</strong> | Conditional: <strong className="text-amber-700">{formData.supportWithConditions || 0}</strong> | Objections: <strong className="text-red-700">{formData.objectionsCount || 0}</strong>
+                          </span>
+                          <span className="text-[11px] text-gray-500 block mt-1">
+                            Admin Consulted: {formData.areaChiefConsulted ? 'Yes' : 'Pending'}
+                          </span>
+                        </div>
+                        <div className="bg-gray-50 p-2.5 rounded border border-gray-200">
+                          <span className="text-gray-500 block">Statutory Evidence Attached</span>
+                          <span className="text-xs font-semibold text-gray-800 block mt-1">
+                            Questionnaires: {files.signed_questionnaires ? <span className="text-emerald-700 font-bold">PDF Attached</span> : <span className="text-amber-600 font-medium">Pending Upload</span>}
+                          </span>
+                          <span className="text-[11px] text-gray-500 block mt-1">
+                            {isCPR ? `Newspaper: ${formData.newspaperName || 'Missing'}` : 'Newspaper: Waived (LN 31/32)'}
+                          </span>
+                        </div>
+                      </div>
                     </div>
 
                     {formData.requiresRAP && (
@@ -1414,7 +1808,17 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
         
         <button 
           onClick={submitPhase}
-          disabled={isUploading || (currentPhase === 1 && !position) || (currentPhase === 5 && (!formData.attestation || ['projectName', 'siteArea', 'county', 'plotNumber', 'proponentName', 'pin', 'investmentCost', 'timelineMonths', 'operationalLifespan', 'newspaperName', 'barazaDate'].some(f => !formData[f])))}
+          disabled={
+            isUploading || 
+            (currentPhase === 1 && !position) || 
+            (currentPhase === 5 && (
+              !formData.attestation || 
+              (formData.statutoryTrack === 'CPR' 
+                ? ['projectName', 'siteArea', 'county', 'plotNumber', 'proponentName', 'pin', 'investmentCost', 'timelineMonths', 'operationalLifespan', 'newspaperName', 'barazaDate', 'questionnairesAdministered'] 
+                : ['projectName', 'siteArea', 'county', 'plotNumber', 'proponentName', 'pin', 'investmentCost', 'timelineMonths', 'operationalLifespan', 'questionnairesAdministered']
+              ).some(f => !formData[f])
+            ))
+          }
           className="flex items-center px-6 py-2 rounded-lg font-medium text-white transition-colors shadow-sm bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isUploading ? (
@@ -1426,6 +1830,180 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
           )}
         </button>
       </div>
+
+      {/* Official 7-Section NEMA Questionnaire Printable Modal */}
+      {showQuestionnaireModal && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/70 backdrop-blur-sm flex justify-center items-start p-4 sm:p-6 print:p-0 print:bg-white print:static">
+          <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full border border-gray-200 overflow-hidden my-8 print:my-0 print:border-none print:shadow-none">
+            {/* Modal Controls Bar (Hidden during print) */}
+            <div className="bg-gray-900 text-white px-6 py-3 flex justify-between items-center print:hidden">
+              <div className="flex items-center space-x-2">
+                <FileCheck className="w-5 h-5 text-emerald-400" />
+                <span className="font-bold text-sm tracking-wide">Official NEMA Stakeholder Consultation Instrument</span>
+              </div>
+              <div className="flex items-center space-x-3">
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="flex items-center px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs font-semibold shadow transition"
+                >
+                  <Printer className="w-3.5 h-3.5 mr-1.5" />
+                  Print Field Questionnaires
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowQuestionnaireModal(false)}
+                  className="p-1 hover:bg-gray-800 rounded text-gray-400 hover:text-white transition"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Printable Questionnaire Body */}
+            <div className="p-8 text-gray-900 text-xs sm:text-sm font-serif print:text-black">
+              {/* Header */}
+              <div className="text-center border-b-2 border-black pb-4 mb-4">
+                <p className="font-bold text-base tracking-wider uppercase">Republic of Kenya</p>
+                <p className="font-bold text-sm uppercase text-gray-700">National Environment Management Authority (NEMA)</p>
+                <h3 className="font-extrabold text-base sm:text-lg uppercase mt-1">
+                  Environmental Impact Assessment (EIA) Stakeholder Consultation Questionnaire
+                </h3>
+                <p className="text-[11px] italic text-gray-600 mt-1">
+                  (Administered pursuant to Section 59 of EMCA, Cap 387 and Regulation 17 of Legal Notice No. 101: EIA/EA Regulations & Legal Notices 31/32 of 2019)
+                </p>
+              </div>
+
+              {/* Project Particulars */}
+              <div className="bg-gray-50 print:bg-transparent border border-gray-300 p-3 mb-4 rounded text-xs">
+                <div className="grid grid-cols-2 gap-2">
+                  <p><strong>Proposed Project:</strong> {formData.projectName || '____________________________________________'}</p>
+                  <p><strong>Project Proponent:</strong> {formData.proponentName || '____________________________________________'}</p>
+                  <p><strong>Plot / L.R. No:</strong> {formData.plotNumber || '________________________'} | <strong>County:</strong> {formData.county || '________________________'}</p>
+                  <p><strong>Sub-County:</strong> {formData.subCounty || '________________________'} | <strong>Ward:</strong> {formData.ward || '________________________'}</p>
+                  <p className="col-span-2"><strong>Lead Expert / Firm of Experts:</strong> {formData.leadExpertReg || 'NEMA Registered Expert'} | <strong>Track:</strong> {formData.statutoryTrack === 'SPR' ? 'Summary Project Report (SPR - Low Risk)' : 'Comprehensive Project Report (CPR)'}</p>
+                </div>
+              </div>
+
+              {/* Section A */}
+              <div className="mb-4">
+                <h5 className="font-bold text-xs uppercase bg-gray-200 print:bg-gray-100 p-1 mb-2 border border-gray-400">
+                  Section A: Respondent Particulars (Mandatory for NEMA Audit Trail Verification)
+                </h5>
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div>1. Full Name of Respondent: _____________________________________________</div>
+                  <div>2. National ID / Passport No: ____________________________________________</div>
+                  <div>3. Mobile / Telephone Number: ___________________________________________</div>
+                  <div>4. Gender: [  ] Male    [  ] Female    [  ] Youth / Vulnerable</div>
+                  <div className="col-span-2">
+                    5. Relationship to Project Site:<br />
+                    <span className="inline-block mr-4">[  ] Immediate Neighbor (Direct Boundary)</span>
+                    <span className="inline-block mr-4">[  ] Neighbor Across Access Road</span>
+                    <span className="inline-block mr-4">[  ] Resident within 500m–1km</span>
+                    <span className="inline-block mr-4">[  ] Local Trader/Business</span>
+                    <span className="inline-block">[  ] Area Leader (Chief / Nyumba Kumi)</span>
+                  </div>
+                  <div>6. Approximate Distance from Site: ________ Meters / Km</div>
+                  <div>7. Duration lived/operated in area: ________ Years</div>
+                </div>
+              </div>
+
+              {/* Section B */}
+              <div className="mb-4">
+                <h5 className="font-bold text-xs uppercase bg-gray-200 print:bg-gray-100 p-1 mb-2 border border-gray-400">
+                  Section B: Project Awareness & Perception
+                </h5>
+                <div className="space-y-1 text-xs">
+                  <p>8. Are you aware of the proposed project mentioned above? &nbsp;&nbsp;&nbsp;&nbsp; [  ] YES &nbsp;&nbsp;&nbsp;&nbsp; [  ] NO</p>
+                  <p>9. If YES, how did you first learn of this undertaking?</p>
+                  <p className="pl-4">
+                    [  ] Consultant / Enumerator Visit &nbsp;&nbsp;&nbsp;&nbsp;
+                    [  ] On-site Poster / Signboard &nbsp;&nbsp;&nbsp;&nbsp;
+                    [  ] Area Chief / Baraza &nbsp;&nbsp;&nbsp;&nbsp;
+                    [  ] Newspaper Notice &nbsp;&nbsp;&nbsp;&nbsp;
+                    [  ] Word of Mouth
+                  </p>
+                </div>
+              </div>
+
+              {/* Section C */}
+              <div className="mb-4">
+                <h5 className="font-bold text-xs uppercase bg-gray-200 print:bg-gray-100 p-1 mb-2 border border-gray-400">
+                  Section C: Anticipated Positive Impacts (Benefits)
+                </h5>
+                <p className="text-xs mb-1">10. What positive environmental, social, or economic benefits do you anticipate from the project?</p>
+                <div className="space-y-1 text-xs pl-2">
+                  <p>[  ] Creation of direct & indirect employment opportunities for local youth and women</p>
+                  <p>[  ] Improvement of local access roads, drainage, and public utility infrastructure</p>
+                  <p>[  ] Growth of local commerce, retail trading, and demand for construction materials</p>
+                  <p>[  ] Enhancement of property values and neighborhood security</p>
+                  <p>Other anticipated benefits: ____________________________________________________________________________________</p>
+                </div>
+              </div>
+
+              {/* Section D */}
+              <div className="mb-4">
+                <h5 className="font-bold text-xs uppercase bg-gray-200 print:bg-gray-100 p-1 mb-2 border border-gray-400">
+                  Section D: Anticipated Negative Environmental & Social Concerns
+                </h5>
+                <p className="text-xs mb-1">11. What negative impacts or concerns do you anticipate during construction and operation?</p>
+                <div className="space-y-1 text-xs pl-2">
+                  <p>[  ] Generation of dust, exhaust emissions, and degraded air quality</p>
+                  <p>[  ] Excessive noise and ground vibrations from machinery, excavation, or heavy haulage</p>
+                  <p>[  ] Increased stormwater runoff, localized soil erosion, or blockage of natural drainage channels</p>
+                  <p>[  ] Disruption of traffic flow and potential damage to existing community access tracks</p>
+                  <p>[  ] Pressure on public utilities (municipal water supply mains or electricity grid)</p>
+                  <p>[  ] Accumulation of solid waste, construction debris, or inadequate sewage management</p>
+                  <p>Other specific concerns: ____________________________________________________________________________________</p>
+                </div>
+              </div>
+
+              {/* Section E */}
+              <div className="mb-4">
+                <h5 className="font-bold text-xs uppercase bg-gray-200 print:bg-gray-100 p-1 mb-2 border border-gray-400">
+                  Section E: Recommended Mitigation Measures
+                </h5>
+                <p className="text-xs mb-1">12. What specific measures should the project proponent and contractor implement to prevent or mitigate these concerns?</p>
+                <div className="border border-dashed border-gray-400 p-2 min-h-[48px] text-xs">
+                  ________________________________________________________________________________________________________________________<br />
+                  ________________________________________________________________________________________________________________________
+                </div>
+              </div>
+
+              {/* Section F */}
+              <div className="mb-4">
+                <h5 className="font-bold text-xs uppercase bg-gray-200 print:bg-gray-100 p-1 mb-2 border border-gray-400">
+                  Section F: Overall Perception & Verdict
+                </h5>
+                <div className="space-y-1.5 text-xs">
+                  <p>13. Given the proposed mitigation measures, what is your overall recommendation regarding this project?</p>
+                  <p className="pl-4">[  ] <strong>I SUPPORT the project without reservation</strong> (it will benefit our community)</p>
+                  <p className="pl-4">[  ] <strong>I SUPPORT the project with conditions</strong> (mitigations specified above must be strictly implemented)</p>
+                  <p className="pl-4">[  ] <strong>I OBJECT to the proposed project</strong> (reasons stated in Section D/E above)</p>
+                </div>
+              </div>
+
+              {/* Section G */}
+              <div className="border-t-2 border-black pt-3">
+                <h5 className="font-bold text-xs uppercase mb-2">Section G: Respondent Solemn Declaration & Sign-Off</h5>
+                <p className="text-[11px] italic mb-3">
+                  I solemnly confirm that the views and opinions expressed in this questionnaire are given freely, accurately reflect my genuine sentiments regarding the proposed undertaking, and may be submitted to NEMA as verifiable public participation evidence.
+                </p>
+                <div className="grid grid-cols-2 gap-4 text-xs pt-2">
+                  <div>
+                    Respondent Signature / Thumbprint: _______________________<br /><br />
+                    Date: ________________________________________________
+                  </div>
+                  <div>
+                    Consultant / Enumerator Name: __________________________<br /><br />
+                    Enumerator Signature & Date: ___________________________
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
