@@ -238,7 +238,10 @@ GEE_SERVICE_ACCOUNT = env("GEE_SERVICE_ACCOUNT", default="")
 GEE_KEY_PATH = env("GEE_KEY_PATH", default="")
 # Optional: official 47-county boundary GeoJSON for sub-county-precise county
 # resolution. If unset, EcoSense resolves by nearest administrative centroid.
-COUNTY_GEOJSON_PATH = env("COUNTY_GEOJSON_PATH", default="")
+COUNTY_GEOJSON_PATH = env(
+    "COUNTY_GEOJSON_PATH", 
+    default=os.path.join(BASE_DIR, "apps", "baseline", "regulatory_data", "kenya_counties.geojson")
+)
 OPENWEATHER_API_KEY = env("OPENWEATHER_API_KEY", default="")
 AFRICAS_TALKING_API_KEY = env("AFRICAS_TALKING_API_KEY", default="")
 AFRICAS_TALKING_USERNAME = env("AFRICAS_TALKING_USERNAME", default="")

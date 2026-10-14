@@ -17,6 +17,7 @@ const ProjectOverviewPage = lazy(() => import('./pages/projects/ProjectOverviewP
 const MonitoringPage = lazy(() => import('./pages/projects/MonitoringPage'));
 const ESGPage = lazy(() => import('./pages/projects/ESGPage'));
 const AnalyticsPage = lazy(() => import('./pages/dashboard/AnalyticsPage'));
+const NEMARadarPage = lazy(() => import('./pages/dashboard/NEMARadarPage'));
 
 // Sub-Module Activations
 const BaselinePage = lazy(() => import('./pages/projects/BaselinePage'));
@@ -32,6 +33,7 @@ const SettingsPage = lazy(() => import('./pages/settings/SettingsPage'));
 const BillingPage = lazy(() => import('./pages/billing/BillingPage'));
 const VerificationPage = lazy(() => import('./pages/public/VerificationPage'));
 const ParticipationPortal = lazy(() => import('./pages/public/ParticipationPortal'));
+const ClientReviewPortal = lazy(() => import('./pages/public/ClientReviewPortal'));
 
 const LoadingFallback = () => (
   <div className="h-screen w-full bg-[#0f172a] flex flex-col items-center justify-center">
@@ -81,6 +83,7 @@ function App() {
             {/* Public pages — no authentication required */}
             <Route path="/verify/:projectToken" element={<VerificationPage />} />
             <Route path="/public/participate/:projectToken" element={<ParticipationPortal />} />
+            <Route path="/portal/:projectToken" element={<ClientReviewPortal />} />
 
             {/* Authenticated Application Architecture */}
             <Route path="/dashboard" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
@@ -103,6 +106,7 @@ function App() {
                  
                  <Route path="settings" element={<SettingsPage />} />
                  <Route path="billing" element={<BillingPage />} />
+                 <Route path="radar" element={<NEMARadarPage />} />
                  {/* Sprint 4C — Firm-wide analytics */}
                  <Route path="analytics" element={<AnalyticsPage />} />
             </Route>

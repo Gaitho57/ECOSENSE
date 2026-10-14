@@ -41,6 +41,7 @@ urlpatterns = [
     path("api/v1/public/", include("apps.community.urls_public")),
     path("api/v1/public/esg/", include("apps.esg.urls_public")),
     path("api/v1/reports/", include("apps.reports.urls")),
+    path("api/reports/", include("apps.reports.urls")),
     path("api/v1/compliance/", include("apps.compliance.urls")),
     path("api/v1/emp/", include("apps.emp.urls")),
     path("api/v1/esg/", include("apps.esg.urls")),

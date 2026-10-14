@@ -178,6 +178,10 @@ def _load():
             "restoration_flora": eco["restoration_flora"],
             "fauna": eco["fauna"],
             "vulnerability": eco["vulnerability"],
+            "ceap_status": r.get("ceap_status", {
+                "is_gazetted": False,
+                "fallback_policy": "National Environmental Action Plan (NEAP) & Regional Basin Catchment Management Plan"
+            }),
         }
         # Apply authoritative overrides (nicer prose for major counties).
         profile.update(_AUTHORITATIVE.get(name, {}))
@@ -219,22 +223,43 @@ def resolve_county(lat, lng):
     return nearest
 
 
+_shapes_cache = None
+
+
 def _point_in_county(lat, lng, geojson_path):
-    """Point-in-polygon county lookup using shapely (optional, high precision)."""
+    """Point-in-polygon county lookup using shapely (high precision, cached in-memory)."""
+    global _shapes_cache
     from shapely.geometry import shape, Point
 
-    with open(geojson_path, "r", encoding="utf-8") as f:
-        gj = json.load(f)
-    pt = Point(lng, lat)
-    for feat in gj.get("features", []):
+    if _shapes_cache is None:
         try:
-            if shape(feat["geometry"]).contains(pt):
-                props = feat.get("properties", {})
-                # Common property keys for Kenyan county GeoJSONs.
-                for key in ("COUNTY", "county", "NAME_1", "name", "ADM1_EN"):
-                    if props.get(key):
-                        return str(props[key]).title()
-        except Exception:  # noqa: BLE001
+            with open(geojson_path, "r", encoding="utf-8") as f:
+                gj = json.load(f)
+            cached = []
+            for feat in gj.get("features", []):
+                try:
+                    geom = shape(feat["geometry"])
+                    props = feat.get("properties", {})
+                    name = None
+                    for key in ("COUNTY_NAM", "COUNTY", "county", "NAME_1", "name", "ADM1_EN"):
+                        if props.get(key):
+                            name = str(props[key]).title()
+                            break
+                    if name:
+                        cached.append((geom, name))
+                except Exception:
+                    continue
+            _shapes_cache = cached
+        except Exception as e:
+            logger.warning("Failed to load county GeoJSON cache: %s", e)
+            _shapes_cache = []
+
+    pt = Point(lng, lat)
+    for geom, name in _shapes_cache:
+        try:
+            if geom.contains(pt):
+                return name
+        except Exception:
             continue
     return None
 

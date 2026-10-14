@@ -25,6 +25,8 @@ services:
       context: ./backend
       dockerfile: Dockerfile.prod
     command: gunicorn core.wsgi:application --bind 0.0.0.0:8000 --workers 4 --threads 2
+    env_file:
+      - ./backend/.env
     volumes:
       - static_volume:/app/staticfiles
       - media_volume:/app/media
@@ -46,6 +48,8 @@ services:
       context: ./backend
       dockerfile: Dockerfile.prod
     command: celery -A core worker -l INFO
+    env_file:
+      - ./backend/.env
     environment:
       DATABASE_URL: postgis://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
       CELERY_BROKER_URL: redis://redis:6379/1

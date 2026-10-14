@@ -15,12 +15,17 @@ export default function ReportPage() {
   const [activeReportId, setActiveReportId] = useState(null);
   const [showReviewer, setShowReviewer] = useState(false);
   const [submitting, setSubmitting]     = useState(false);
+  const [publicToken, setPublicToken]   = useState('');
+  const [copied, setCopied]             = useState(false);
 
   const loadReports = async () => {
     try {
       const res = await axiosInstance.get(`/reports/${projectId}/reports/`);
       const list = res.data.data || [];
       setReports(list);
+      if (res.data.meta?.public_token) {
+        setPublicToken(res.data.meta.public_token);
+      }
       // Resume polling if a report is still 'generating' (e.g. the user
       // reloaded or navigated back mid-generation) and we aren't already
       // tracking one. Without this the row shows "Compiling…" forever because
@@ -156,6 +161,21 @@ export default function ReportPage() {
                   >
                     👁️ Preview HTML
                   </button>
+                  {publicToken && (
+                    <button
+                      onClick={() => {
+                        const url = `${window.location.origin}/portal/${publicToken}`;
+                        navigator.clipboard.writeText(url);
+                        setCopied(true);
+                        setTimeout(() => setCopied(false), 3000);
+                        window.open(url, '_blank');
+                      }}
+                      className="border border-emerald-500/30 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 font-bold py-2 px-4 rounded-lg transition-colors text-sm flex items-center gap-1.5 shadow-sm"
+                      title="Copy or open proponent review link with dynamic watermarking & M-Pesa escrow"
+                    >
+                      {copied ? '✓ Link Copied!' : '🔗 Client Review Portal'}
+                    </button>
+                  )}
                   {latestReady.status === 'ready_for_submission' && (
                     <button
                       onClick={handleSubmit}
@@ -226,6 +246,7 @@ export default function ReportPage() {
                         <th className="px-4 py-4">Format</th>
                         <th className="px-4 py-4 text-center">Compliance</th>
                         <th className="px-4 py-4">Status</th>
+                        <th className="px-4 py-4">Escrow</th>
                         <th className="px-4 py-4">Generated</th>
                         <th className="px-4 py-4 text-right">Actions</th>
                       </tr>
@@ -281,6 +302,17 @@ export default function ReportPage() {
                               <span className="text-gray-500 font-bold text-[10px] uppercase">{r.status}</span>
                             )}
                           </td>
+                          <td className="px-4 py-4 whitespace-nowrap">
+                            {r.is_unlocked ? (
+                              <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                🔓 Cleared (Clean)
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase bg-red-100 text-red-800 border border-red-200">
+                                🔒 Watermarked Escrow
+                              </span>
+                            )}
+                          </td>
                           <td className="px-4 py-4 whitespace-nowrap text-[10px] text-gray-500">
                             {r.generated_at ? new Date(r.generated_at).toLocaleString() : '—'}
                           </td>
@@ -289,9 +321,10 @@ export default function ReportPage() {
                               {r.download_url && ['ready', 'ready_for_submission', 'pending_expert_review', 'submitted'].includes(r.status) && (
                                 <button
                                   onClick={() => handleDownload(r.download_url, r.version, r.format)}
-                                  className="bg-green-600 hover:bg-green-700 text-white text-[10px] font-black px-3 py-1.5 rounded uppercase shadow-sm transition-all"
+                                  className={`${r.is_unlocked ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-blue-600 hover:bg-blue-700'} text-white text-[10px] font-black px-3 py-1.5 rounded uppercase shadow-sm transition-all`}
+                                  title={r.is_unlocked ? 'Download clean unwatermarked submission package' : 'Download watermarked client draft'}
                                 >
-                                  ⬇ PDF
+                                  ⬇ {r.format.toUpperCase()}
                                 </button>
                               )}
                             </div>

@@ -1,0 +1,59 @@
+# ========================
+# Python
+# ========================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+venv/
+.venv/
+
+# ========================
+# Node / JavaScript
+# ========================
+node_modules/
+dist/
+.npm
+.eslintcache
+
+# ========================
+# Environment Variables
+# ========================
+.env
+.env.*
+
+# ========================
+# Generated Documents / Binaries
+# ========================
+*.docx
+~$*.docx
+*.pdf
+*.exe
+Regulations/
+ecosense-ai/Regulations/
+Project_Files/
+ecosense-ai/backend/Project_Files/
+
+# ========================
+# Temp / Scratch Files
+# ========================
+diff.txt
+*.log
+*.tmp
+*.bak
+scratch.py
+fix*.py
+final_fix.py
+update_jsx.py
+extract.ps1
+outline.txt
+ecosense-ai/backend/test_*.py
+ecosense-ai/backend/test_*.json
+ecosense-ai/backend/generate_athi*.py
+ecosense-ai/backend/generate_clean*.py
+ecosense-ai/backend/generate_kitengela*.py
+ecosense-ai/backend/make_*.py
+ecosense-ai/backend/run_mock.py
+ecosense-ai/backend/verify_*.py
+
+sanitize_commit.py

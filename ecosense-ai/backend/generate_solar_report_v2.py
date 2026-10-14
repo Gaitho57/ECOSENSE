@@ -8,7 +8,7 @@ django.setup()
 
 from apps.predictions.ml.engine import KENYAN_LEGAL_DB
 
-GROQ_API_KEY = ""
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 
 async def call_groq(prompt):

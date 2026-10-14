@@ -19,6 +19,7 @@ import BiodiversityLayer from '../../components/maps/layers/BiodiversityLayer';
 import AirQualityLayer from '../../components/maps/layers/AirQualityLayer';
 import ProjectBoundaryLayer from '../../components/maps/layers/ProjectBoundaryLayer';
 import ProtectedAreaLayer from '../../components/maps/layers/ProtectedAreaLayer';
+import AEZLayer from '../../components/maps/layers/AEZLayer';
 import WaterTowerLayer from '../../components/maps/layers/WaterTowerLayer';
 import SettlementLayer from '../../components/maps/layers/SettlementLayer';
 
@@ -118,6 +119,7 @@ export default function GISPage() {
       air_quality: true,
       boundary: true,
       protected_areas: true,
+      aez: true,
       water_towers: true,
       settlements: true
   });
@@ -302,6 +304,7 @@ export default function GISPage() {
                   <BiodiversityLayer biodiversity_data={baseline?.biodiversity_data} center={mapCenter} isVisible={layers.biodiversity} />
                   <AirQualityLayer air_quality_baseline={baseline?.air_quality_baseline} center={mapCenter} isVisible={layers.air_quality} />
                   <ProtectedAreaLayer protected_areas={baseline?.satellite_data?.protected_area_status?.areas} isVisible={layers.protected_areas} />
+                  <AEZLayer isVisible={layers.aez} />
                   <WaterTowerLayer proximity_data={baseline?.satellite_data?.water_tower_proximity} isVisible={layers.water_towers} />
                   <SettlementLayer settlement_data={baseline?.satellite_data?.settlement_geometries} isVisible={layers.settlements} />
 

@@ -56,15 +56,35 @@ class ProjectMediaViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         project = _get_tenant_project(self.request, self.kwargs['project_id'])
 
-        # Extract metadata from request if present, or fallback to model defaults
+        raw_file = self.request.FILES['file']
         lat = self.request.data.get('latitude')
         lng = self.request.data.get('longitude')
+        caption = self.request.data.get('caption')
+
+        # Auto-extract EXIF metadata from uploaded photo if not provided
+        from apps.projects.utils.media import extract_exif_metadata, process_field_image
+        exif_data = extract_exif_metadata(raw_file)
+
+        if not lat and exif_data.get('latitude'):
+            lat = exif_data['latitude']
+        if not lng and exif_data.get('longitude'):
+            lng = exif_data['longitude']
+
+        heading = exif_data.get('cardinal_direction')
+        captured_at = exif_data.get('captured_at')
+
+        # Auto-populate NEMA statutory caption if empty
+        if not caption:
+            orient_str = f"View facing {heading}" if heading else "On-site reconnaissance view"
+            coords_str = f" (GPS: {exif_data.get('dms_coords')})" if exif_data.get('dms_coords') else ""
+            caption = f"{orient_str} documenting baseline environmental conditions{coords_str}."
 
         # Trigger watermarking and compression utility
         processed_file = process_field_image(
-            self.request.FILES['file'],
+            raw_file,
             latitude=lat,
-            longitude=lng
+            longitude=lng,
+            heading=heading
         )
 
         serializer.save(
@@ -72,7 +92,9 @@ class ProjectMediaViewSet(viewsets.ModelViewSet):
             tenant_id=self.request.user.tenant_id,
             file=processed_file,
             latitude=lat,
-            longitude=lng
+            longitude=lng,
+            captured_at=captured_at,
+            caption=caption
         )
 
 def envelope(data=None, meta=None, error=None, status_code=status.HTTP_200_OK):

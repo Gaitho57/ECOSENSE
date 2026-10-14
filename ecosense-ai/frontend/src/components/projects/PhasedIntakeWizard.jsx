@@ -33,7 +33,9 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
   const [isUploading, setIsUploading] = useState(false);
   const [files, setFiles] = useState({});
   const [position, setPosition] = useState(null); // Map coordinates
+  const [mapTileMode, setMapTileMode] = useState('satellite'); // 'satellite' | 'streets'
   const [formData, setFormData] = useState({
+    statutoryTrack: 'SPR', // 'SPR' (Summary Project Report - Low Risk) | 'CPR' (Comprehensive Project Report - Medium/High Risk)
     projectName: '',
     projectCategory: 'Infrastructure',
     siteArea: '',
@@ -256,6 +258,54 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
         {currentPhase === 1 && (
           <div className="space-y-6 animate-fadeIn">
             
+            {/* STATUTORY REGULATORY TRACK SELECTOR (Legal Notices 31 & 32 of 2019) */}
+            <div className="bg-gradient-to-r from-emerald-50 via-teal-50 to-blue-50 p-5 rounded-xl border-2 border-emerald-300 shadow-sm">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">📜</span>
+                  <span className="text-base font-extrabold text-emerald-950">Statutory NEMA Application Track</span>
+                </div>
+                <span className="text-xs bg-emerald-200 text-emerald-800 font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">EMCA Cap 387 / LN 31 & 32 (2019)</span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div 
+                  onClick={() => setFormData({...formData, statutoryTrack: 'SPR'})}
+                  className={`cursor-pointer p-4 rounded-xl border-2 transition-all ${formData.statutoryTrack === 'SPR' ? 'bg-white border-emerald-600 shadow-md ring-2 ring-emerald-500/20' : 'bg-white/70 border-gray-200 hover:border-emerald-300 opacity-75'}`}
+                >
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="font-bold text-gray-900 flex items-center gap-2 text-sm">
+                      <input type="radio" checked={formData.statutoryTrack === 'SPR'} onChange={() => {}} className="text-emerald-600 focus:ring-emerald-500 w-4 h-4" />
+                      Summary Project Report (SPR)
+                    </span>
+                    <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">Low Risk</span>
+                  </div>
+                  <p className="text-xs text-gray-600 mt-1">Perimeter walls, single residential, boreholes, small commercial retail, access roads.</p>
+                  <div className="mt-3 pt-2 border-t border-gray-100 text-[11px] font-semibold text-emerald-800 flex items-center justify-between">
+                    <span>⚡ 5–7 Day NEMA Review</span>
+                    <span>💵 Flat KES 10,000 Fee</span>
+                  </div>
+                </div>
+
+                <div 
+                  onClick={() => setFormData({...formData, statutoryTrack: 'CPR'})}
+                  className={`cursor-pointer p-4 rounded-xl border-2 transition-all ${formData.statutoryTrack === 'CPR' ? 'bg-white border-blue-600 shadow-md ring-2 ring-blue-500/20' : 'bg-white/70 border-gray-200 hover:border-blue-300 opacity-75'}`}
+                >
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="font-bold text-gray-900 flex items-center gap-2 text-sm">
+                      <input type="radio" checked={formData.statutoryTrack === 'CPR'} onChange={() => {}} className="text-blue-600 focus:ring-blue-500 w-4 h-4" />
+                      Comprehensive Project Report (CPR / Full Study)
+                    </span>
+                    <span className="text-[11px] font-bold text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full">Medium / High Risk</span>
+                  </div>
+                  <p className="text-xs text-gray-600 mt-1">Multi-story apartments, petrol stations, industrial facilities, major infrastructure.</p>
+                  <div className="mt-3 pt-2 border-t border-gray-100 text-[11px] font-semibold text-blue-800 flex items-center justify-between">
+                    <span>📋 30–60 Day Review</span>
+                    <span>📊 Full 10-Chapter ESIA</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-200">
               <label className="flex items-center space-x-3 cursor-pointer">
                 <input type="checkbox" name="isMegaProject" checked={formData.isMegaProject || false} onChange={(e) => setFormData({...formData, isMegaProject: e.target.checked})} className="w-5 h-5 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500" />
@@ -664,33 +714,87 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
                 
                 {!formData.isMegaProject && (
                   <div className="mt-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
-                      <MapPin className="w-4 h-4 mr-1 text-emerald-600" />
-                      Spatial Boundary (Drop a pin for Sentinel-2 centroid) *
-                    </label>
-                    <div className="h-[250px] w-full rounded-md border border-gray-300 overflow-hidden relative z-0">
-                      <MapContainer center={[-1.2921, 36.8219]} zoom={11} className="w-full h-full">
-                        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="block text-sm font-medium text-gray-700 flex items-center">
+                        <MapPin className="w-4 h-4 mr-1 text-emerald-600" />
+                        Spatial Boundary & Aerial Satellite Context *
+                      </label>
+                      <div className="flex items-center bg-gray-100 p-0.5 rounded-lg border border-gray-200 text-xs">
+                        <button
+                          type="button"
+                          onClick={() => setMapTileMode('satellite')}
+                          className={`px-2.5 py-1 rounded-md font-bold transition-all flex items-center gap-1 ${mapTileMode === 'satellite' ? 'bg-emerald-600 text-white shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}
+                        >
+                          <span>🛰️</span> Satellite
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setMapTileMode('streets')}
+                          className={`px-2.5 py-1 rounded-md font-bold transition-all flex items-center gap-1 ${mapTileMode === 'streets' ? 'bg-emerald-600 text-white shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}
+                        >
+                          <span>🗺️</span> Streets
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="h-[280px] w-full rounded-xl border-2 border-gray-300 overflow-hidden relative z-0 shadow-inner">
+                      <MapContainer center={position || [-1.2921, 36.8219]} zoom={position ? 15 : 11} className="w-full h-full">
+                        {mapTileMode === 'satellite' ? (
+                          <TileLayer 
+                            url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}" 
+                            attribution="Tiles &copy; Esri, Maxar, Earthstar Geographics"
+                            maxZoom={18}
+                          />
+                        ) : (
+                          <TileLayer 
+                            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" 
+                            attribution="&copy; OpenStreetMap contributors"
+                          />
+                        )}
                         <LocationPicker position={position} setPosition={setPosition} />
                       </MapContainer>
                     </div>
+
                     <div className="grid grid-cols-2 gap-4 mt-2">
                       <div>
-                        <label className="block text-xs font-medium text-gray-500 mb-1">Latitude</label>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">Centroid Latitude</label>
                         <input type="number" step="0.0001" value={position ? position[0] : ''} 
                                onChange={(e) => setPosition([parseFloat(e.target.value) || 0, position ? position[1] : 36.8219])}
                                className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 p-1.5 border text-sm" placeholder="e.g. -1.2921" />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-500 mb-1">Longitude</label>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">Centroid Longitude</label>
                         <input type="number" step="0.0001" value={position ? position[1] : ''} 
                                onChange={(e) => setPosition([position ? position[0] : -1.2921, parseFloat(e.target.value) || 0])}
                                className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 p-1.5 border text-sm" placeholder="e.g. 36.8219" />
                       </div>
                     </div>
+
+                    {/* SATELLITE SENSITIVITY VERIFICATION CARD */}
+                    {position && (
+                      <div className="mt-3 p-3.5 bg-gradient-to-r from-slate-900 to-slate-800 text-white rounded-xl shadow-md border border-slate-700 animate-fadeIn text-xs">
+                        <div className="flex items-center justify-between border-b border-slate-700 pb-2 mb-2">
+                          <span className="font-extrabold flex items-center gap-1.5 text-emerald-400">
+                            <span>🛰️</span> Aerial Satellite & Statutory Screening Active
+                          </span>
+                          <span className="bg-emerald-500/20 text-emerald-300 text-[10px] px-2 py-0.5 rounded-full font-mono font-bold">
+                            {position[0].toFixed(5)}, {position[1].toFixed(5)}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] text-slate-300">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-blue-400 font-bold">✓</span>
+                            <span>Water Act 2016: 30m Riparian Buffer Layer auto-computed</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-emerald-400 font-bold">✓</span>
+                            <span>Figure 1.2 (Cadastral Boundary on High-Res Aerial) linked to Ch. 2</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
-            </div>
 
             <div className="bg-white p-4 rounded-lg border border-gray-200">
                 <h4 className="font-bold text-gray-800 mb-4 border-b pb-2">4. Project Description & Alternatives</h4>
@@ -1138,6 +1242,7 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
                 </button>
             </div>
           </div>
+          </div>
         )}
 
         {currentPhase === 4 && (
@@ -1209,6 +1314,7 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
                     <div className="space-y-2 bg-white p-4 rounded border border-gray-200">
                       <h5 className="font-bold text-gray-700 border-b pb-2 mb-3">Project Summary</h5>
                       <p><span className="font-semibold text-gray-600">Name:</span> {formData.projectName || 'Missing'}</p>
+                      <p><span className="font-semibold text-gray-600">Track:</span> <span className={`font-bold px-2 py-0.5 rounded text-xs ${formData.statutoryTrack === 'SPR' ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800'}`}>{formData.statutoryTrack === 'SPR' ? 'Summary Project Report (SPR - Low Risk)' : 'Comprehensive Project Report (CPR / Full Study)'}</span></p>
                       <p><span className="font-semibold text-gray-600">Category:</span> {formData.projectCategory}</p>
                       {!formData.isMegaProject ? (
                         <>

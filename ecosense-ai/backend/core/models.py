@@ -101,6 +101,9 @@ class BaseModel(models.Model):
     )
     tenant_id = models.UUIDField(
         db_index=True,
+        null=True,
+        blank=True,
+        default=uuid.uuid4,
         help_text="Tenant identifier for multi-tenant isolation.",
     )
     created_at = models.DateTimeField(

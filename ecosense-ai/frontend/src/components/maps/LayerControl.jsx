@@ -7,6 +7,7 @@ const LAYER_CONFIG = [
   { key: 'air_quality', label: 'Air Quality', color: 'text-red-600', ring: 'focus:ring-red-500' },
   { key: 'boundary', label: 'Site Boundary', color: 'text-emerald-600', ring: 'focus:ring-emerald-500' },
   { key: 'protected_areas', label: 'Protected Areas', color: 'text-emerald-800', ring: 'focus:ring-emerald-700' },
+  { key: 'aez', label: 'Agro-Ecological (AEZ)', color: 'text-amber-600', ring: 'focus:ring-amber-500' },
   { key: 'water_towers', label: 'Water Towers', color: 'text-cyan-600', ring: 'focus:ring-cyan-500' },
   { key: 'settlements', label: 'Settlements', color: 'text-slate-600', ring: 'focus:ring-slate-500' },
 ];

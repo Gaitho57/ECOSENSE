@@ -85,7 +85,7 @@ def perform_report_generation(project_id: str, format: str = 'pdf', jurisdiction
         if format == 'pdf':
              key, size, url = generate_pdf_report(project_id, str(project.tenant_id), new_v, report_data, language=language)
         elif format == 'docx':
-             key, size, url = generate_docx_report(project_id, str(project.tenant_id), new_v, report_data)
+             key, size, url = generate_docx_report(project_id, str(project.tenant_id), new_v, report_data, is_unlocked=report.is_unlocked)
         else:
              raise ValueError("Unsupported format.")
              

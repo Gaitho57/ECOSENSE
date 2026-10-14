@@ -631,15 +631,27 @@ def compile_report_data(project_id: str) -> dict:
     except (ValueError, TypeError):
         ndvi_desc = "Unknown"
     
-    # Use OSM Static Fallback directly to bypass 'transform' AttributeError
-    osm_base = "https://staticmap.openstreetmap.de/staticmap.php"
+    # High-resolution statutory cartographic endpoints for NEMA 4-figure mapping suite
+    d_macro = 0.075
+    d_micro = 0.0035
+    d_rip = 0.0065
+    d_dem = 0.0075
+    esri_base = "https://server.arcgisonline.com/ArcGIS/rest/services"
+
     mapping_data = {
-        "topographic": f"{osm_base}?center={lat},{lng}&zoom=14&size=800x500&maptype=mapnik",
-        "cadastral": f"{osm_base}?center={lat},{lng}&zoom=17&size=800x500&maptype=osmarenderer",
-        "hydrology": f"{osm_base}?center={lat},{lng}&zoom=15&size=800x500&maptype=cyclemap",
-        "zoning": f"{osm_base}?center={lat},{lng}&zoom=14&size=800x500&maptype=mapnik",
-        "satellite": f"{osm_base}?center={lat},{lng}&zoom=16&size=800x500&maptype=mapnik"
+        "topographic": f"{esri_base}/World_Topo_Map/MapServer/export?bbox={lng-d_macro},{lat-d_macro},{lng+d_macro},{lat+d_macro}&bboxSR=4326&imageSR=4326&size=800,500&f=image",
+        "cadastral": f"{esri_base}/World_Imagery/MapServer/export?bbox={lng-d_micro},{lat-d_micro},{lng+d_micro},{lat+d_micro}&bboxSR=4326&imageSR=4326&size=800,500&f=image",
+        "hydrology": f"{esri_base}/World_Imagery/MapServer/export?bbox={lng-d_rip},{lat-d_rip},{lng+d_rip},{lat+d_rip}&bboxSR=4326&imageSR=4326&size=800,500&f=image",
+        "dem": f"{esri_base}/World_Shaded_Relief/MapServer/export?bbox={lng-d_dem},{lat-d_dem},{lng+d_dem},{lat+d_dem}&bboxSR=4326&imageSR=4326&size=800,500&f=image",
+        "zoning": f"{esri_base}/World_Topo_Map/MapServer/export?bbox={lng-0.015},{lat-0.015},{lng+0.015},{lat+0.015}&bboxSR=4326&imageSR=4326&size=800,500&f=image",
+        "satellite": f"{esri_base}/World_Imagery/MapServer/export?bbox={lng-d_micro},{lat-d_micro},{lng+d_micro},{lat+d_micro}&bboxSR=4326&imageSR=4326&size=800,500&f=image"
     }
+
+    from apps.baseline.utils.county_profiles import get_county_profile
+    from apps.baseline.utils.geospatial_atlas import get_official_aez
+
+    county_profile = get_county_profile(county_name, lat, lng)
+    official_aez = get_official_aez(lat, lng) if (lat is not None and lng is not None) else {}
 
     now = timezone.now()
     
@@ -647,6 +659,9 @@ def compile_report_data(project_id: str) -> dict:
         "timestamp": now.isoformat(),
         "audit_hash": hashlib.sha256(now.isoformat().encode()).hexdigest()[:16].upper(),
         "compliance_package": compliance_package,
+        "county_profile": county_profile,
+        "official_aez": official_aez,
+        "ceap_status": county_profile.get("ceap_status", {}),
         "project": {
             "id": str(project.id),
             "name": project.name,

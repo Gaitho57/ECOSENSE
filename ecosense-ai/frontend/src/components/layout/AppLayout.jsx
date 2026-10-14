@@ -13,6 +13,7 @@ export default function AppLayout() {
   const allNavLinks = [
     { name: 'Dashboard', path: '/dashboard', icon: '📊' },
     { name: 'Projects', path: '/dashboard/projects', icon: '📁' },
+    { name: 'NEMA Radar', path: '/dashboard/radar', icon: '📡' },
     { name: 'Analytics', path: '/dashboard/analytics', icon: '📈', premiumOnly: true },
     { name: 'Billing', path: '/dashboard/billing', icon: '💳' },
     { name: 'Settings', path: '/dashboard/settings', icon: '⚙️' },

@@ -25,9 +25,23 @@ app_name = "reports"
 router = DefaultRouter()
 router.register(r'(?P<project_id>[^/.]+)/sections', ReportSectionViewSet, basename='project-sections')
 
-from .views import GenerateGroqReportView
+from .views import (
+    GenerateGroqReportView, NEMARadarListView, NEMARadarScanView,
+    ClientReviewPortalView, ClientDownloadDraftView, ClientDownloadFinalView,
+    ClientMpesaStkPushView, ClientVerifyUnlockView
+)
 
 urlpatterns = [
+    # Sprint 2: Client Review & Milestone Escrow Portal (Module 9)
+    path('portal/<uuid:public_token>/', ClientReviewPortalView.as_view(), name='client-portal-details'),
+    path('portal/<uuid:public_token>/download-draft/', ClientDownloadDraftView.as_view(), name='client-portal-download-draft'),
+    path('portal/<uuid:public_token>/download-final/', ClientDownloadFinalView.as_view(), name='client-portal-download-final'),
+    path('portal/<uuid:public_token>/stk-push/', ClientMpesaStkPushView.as_view(), name='client-portal-stk-push'),
+    path('portal/<uuid:public_token>/verify-unlock/', ClientVerifyUnlockView.as_view(), name='client-portal-verify-unlock'),
+
+    # NEMA Radar — Kenya Gazette Watcher
+    path('radar/', NEMARadarListView.as_view(), name='nema-radar-list'),
+    path('radar/scan/', NEMARadarScanView.as_view(), name='nema-radar-scan'),
     path('projects/<str:project_id>/generate_groq/', GenerateGroqReportView.as_view(), name='generate-groq'),
     path('', include(router.urls)),
     # Core report management
