@@ -26,7 +26,16 @@ class HistoricalArchiveClient:
     def detect_nearest_county(self, lat, lng):
         """
         Dynamically finds the nearest county authority based on spatial proximity.
+        Prioritizes official GeoJSON boundary polygon resolution before Euclidean centroid fallback.
         """
+        try:
+            from apps.baseline.utils.county_profiles import resolve_county
+            poly_county = resolve_county(lat, lng)
+            if poly_county and poly_county in self.county_data:
+                return poly_county, 0.0
+        except Exception as e:
+            logger.debug(f"Polygon boundary lookup unavailable: {e}")
+
         nearest_county = "Kenya"
         min_dist = float('inf')
         
