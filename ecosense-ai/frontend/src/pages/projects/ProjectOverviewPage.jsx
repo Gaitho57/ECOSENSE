@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import axiosInstance from '../../api/axiosInstance';
 import satellitePlaceholder from '../../assets/placeholders/satellite_unavailable.png';
+import { FileSignature, Calculator, Landmark } from 'lucide-react';
+import FeeProposalModal from '../../components/projects/FeeProposalModal';
+import ExpenseEstimatorCard from '../../components/projects/ExpenseEstimatorCard';
 
 // ─── Traffic light helper ──────────────────────────────────────────────────
 
@@ -74,6 +77,7 @@ export default function ProjectOverviewPage() {
   const [project, setProject]   = useState(null);
   const [dashStats, setDashStats] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [showFeeProposalModal, setShowFeeProposalModal] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -156,13 +160,22 @@ export default function ProjectOverviewPage() {
           </div>
           <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight">{project.name}</h1>
           <p className="text-gray-500 max-w-3xl mt-3 text-sm leading-relaxed">{project.description || 'Project initialized for statutory EIA assessment.'}</p>
-          <div className="flex flex-wrap gap-6 mt-6 pt-6 border-t border-gray-100">
-            <span className="text-xs font-bold text-gray-500 flex items-center gap-2">
-              👨‍💼 Expert: <span className="text-gray-800">{project.lead_consultant_name || 'N/A'}</span>
-            </span>
-            <span className="text-xs font-bold text-gray-500 flex items-center gap-2">
-              📜 NEMA Ref: <span className="text-gray-800">{project.nema_ref || 'Pending'}</span>
-            </span>
+          <div className="flex flex-wrap items-center justify-between gap-4 mt-6 pt-6 border-t border-gray-100">
+            <div className="flex flex-wrap gap-6">
+              <span className="text-xs font-bold text-gray-500 flex items-center gap-2">
+                👨‍💼 Expert: <span className="text-gray-800">{project.lead_consultant_name || 'N/A'}</span>
+              </span>
+              <span className="text-xs font-bold text-gray-500 flex items-center gap-2">
+                📜 NEMA Ref: <span className="text-gray-800">{project.nema_ref || 'Pending'}</span>
+              </span>
+            </div>
+            <button
+              onClick={() => setShowFeeProposalModal(true)}
+              className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-sm transition-all"
+            >
+              <FileSignature className="w-4 h-4" />
+              <span>Fee Proposal & Agreement</span>
+            </button>
           </div>
         </div>
         <div className="w-full md:w-64 h-40 bg-gray-100 rounded-xl border-2 border-gray-200 overflow-hidden relative shadow-inner shrink-0 hover:border-blue-400 transition-colors">
@@ -251,6 +264,25 @@ export default function ProjectOverviewPage() {
         </div>
       </div>
 
+      {/* ── Statutory Fees & Expense Estimator ─────────────────────────────── */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="font-extrabold text-gray-700 text-sm uppercase tracking-widest">
+            Statutory Outlay & Expense Reconciliation
+          </h2>
+          <span className="text-xs text-gray-500">
+            EMCA Cap 387 • GN 13211 • LN 31/32 of 2019
+          </span>
+        </div>
+        <ExpenseEstimatorCard
+          statutoryTrack={project.nema_category === 'high' ? 'CPR' : 'SPR'}
+          investmentCost={project.investment_cost || 0}
+          isMegaProject={project.scale_value > 50 || project.project_type === 'transport'}
+          expertTier="LEAD"
+          onOpenContractModal={() => setShowFeeProposalModal(true)}
+        />
+      </div>
+
       {/* ── Blockers + Submission ─────────────────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
@@ -323,6 +355,22 @@ export default function ProjectOverviewPage() {
           )}
         </div>
       </div>
+
+      {/* ── Client Fee Proposal & Retainer Agreement Modal ────────────────── */}
+      <FeeProposalModal
+        isOpen={showFeeProposalModal}
+        onClose={() => setShowFeeProposalModal(false)}
+        projectData={{
+          ...project,
+          projectName: project.name,
+          proponentName: project.proponent_name || project.owner_name,
+          investmentCost: project.investment_cost,
+          statutoryTrack: project.nema_category === 'high' ? 'CPR' : 'SPR',
+          plotNumber: project.location_name,
+          county: project.county,
+          leadExpertReg: project.lead_consultant_name,
+        }}
+      />
 
     </div>
   );

@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { Upload, FileText, Users, FlaskConical, CheckCircle2, ChevronRight, ChevronLeft, MapPin, Building, Loader2, Printer, ShieldAlert, FileCheck, X, Eye } from 'lucide-react';
+import { Upload, FileText, Users, FlaskConical, CheckCircle2, ChevronRight, ChevronLeft, MapPin, Building, Loader2, Printer, ShieldAlert, FileCheck, X, Eye, FileSignature, Calculator } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
+import FeeProposalModal from './FeeProposalModal';
+import ExpenseEstimatorCard from './ExpenseEstimatorCard';
 
 // Fix leaflet icon issue in react
 delete L.Icon.Default.prototype._getIconUrl;
@@ -35,6 +37,7 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
   const [position, setPosition] = useState(null); // Map coordinates
   const [mapTileMode, setMapTileMode] = useState('satellite'); // 'satellite' | 'streets'
   const [showQuestionnaireModal, setShowQuestionnaireModal] = useState(false);
+  const [showFeeProposalModal, setShowFeeProposalModal] = useState(false);
   const [formData, setFormData] = useState({
     statutoryTrack: 'SPR', // 'SPR' (Summary Project Report - Low Risk) | 'CPR' (Comprehensive Project Report - Medium/High Risk)
     projectName: '',
@@ -548,6 +551,17 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
                     <input type="number" name="operationalLifespan" value={formData.operationalLifespan} onChange={handleInputChange} 
                            className="w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 p-2 border" placeholder="e.g. 30" />
                   </div>
+                </div>
+
+                {/* Statutory Expense & Disbursement Reconciliation */}
+                <div className="mt-6 border-t border-gray-100 pt-6">
+                  <ExpenseEstimatorCard 
+                    statutoryTrack={formData.statutoryTrack}
+                    investmentCost={formData.investmentCost}
+                    isMegaProject={formData.isMegaProject}
+                    expertTier={formData.expertTier}
+                    onOpenContractModal={() => setShowFeeProposalModal(true)}
+                  />
                 </div>
             </div>
 
@@ -1997,6 +2011,29 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
                     )}
                   </div>
 
+                  {/* Commercial Retainer & Statutory Proposal Action */}
+                  <div className="mt-6 p-4 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                    <div className="flex items-start space-x-3">
+                      <div className="p-2.5 bg-emerald-700 text-white rounded-lg shrink-0 mt-0.5">
+                        <FileSignature className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h5 className="font-bold text-emerald-950 text-sm">Client Fee Proposal & Statutory Retainer Agreement</h5>
+                        <p className="text-xs text-emerald-800 mt-0.5 leading-relaxed">
+                          Generate the formal Kenyan EIA Consulting Agreement with statutory disbursement schedules (30/30/30/10 milestones), document custody watermark clause, and SPR-to-CPR variation order terms.
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowFeeProposalModal(true)}
+                      className="w-full md:w-auto px-4 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg font-bold text-xs flex items-center justify-center space-x-2 shrink-0 shadow-sm transition-all"
+                    >
+                      <FileSignature className="w-4 h-4" />
+                      <span>Review & Print Agreement</span>
+                    </button>
+                  </div>
+
                   <div className="mt-6 p-4 bg-gray-50 border border-gray-200 rounded-lg">
                     <label className="flex items-start space-x-3 cursor-pointer">
                       <input type="checkbox" name="attestation" className="mt-1 w-4 h-4 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500" 
@@ -2237,6 +2274,16 @@ const PhasedIntakeWizard = ({ projectId, onComplete }) => {
           </div>
         </div>
       )}
+
+      {/* Client Fee Proposal & Retainer Agreement Modal */}
+      <FeeProposalModal
+        isOpen={showFeeProposalModal}
+        onClose={() => setShowFeeProposalModal(false)}
+        projectData={{
+          ...formData,
+          name: formData.projectName,
+        }}
+      />
     </div>
   );
 };
