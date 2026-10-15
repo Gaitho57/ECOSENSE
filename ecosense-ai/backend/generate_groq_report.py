@@ -131,7 +131,11 @@ async def main():
                     'stakeholderGroups': getattr(project, 'stakeholder_groups', {}),
                     'communityConcerns': getattr(project, 'community_concerns', []),
                 }
+        except Exception as e:
+            print(f"Failed to load project {args.project_id}: {e}")
 
+    if project_data:
+        try:
             engineering_lines = []
             if project_data.get('engineeringSpecs'):
                 for key, value in project_data.get('engineeringSpecs').items():
@@ -182,7 +186,7 @@ async def main():
             else:
                 location_text = f"Location: {project_data.get('ward')}, {project_data.get('subCounty')}, {project_data.get('county')}"
                 plot_text = f"Plot: {project_data.get('plotNumber')} (Tenure: {project_data.get('landOwnership')})"
-                baseline_text = "Baseline Conditions (Point-Specific):" # (The original code didn't actually inject the baseline points into raw_intake_data, they were processed separately. We'll leave it as is or add it).
+                baseline_text = "Baseline Conditions (Point-Specific):"
                 consultation_text = f"Baraza Date: {project_data.get('barazaDate', 'Missing')}, Venue: {project_data.get('barazaVenue', 'Missing')}"
             
             notification_text = "Public Notification: Reg 17 Newspaper Publication WAIVED (Low Risk / Community Project)." if project_data.get('newspaperWaiver') else "Public Notification: Statutory Reg 17 Newspaper Publication required."
@@ -265,17 +269,22 @@ async def main():
 
             project_context = raw_intake_data
             
-            # Fetch attached documents and extract text
-            docs = ProjectDocument.objects.filter(project=project)
-            if docs.exists():
-                project_context += "\n--- EXTRACTED BASELINE DATA FROM ATTACHMENTS (Specialist Reports) ---\n"
-                for doc in docs:
-                    if doc.file:
-                        file_path = doc.file.path
-                        project_context += f"\nData from {doc.get_doc_type_display()}:\n"
-                        project_context += extract_text_from_file(file_path)
+            # Fetch attached documents and extract text if project exists
+            if args.project_id:
+                try:
+                    project = Project.objects.get(id=args.project_id)
+                    docs = ProjectDocument.objects.filter(project=project)
+                    if docs.exists():
+                        project_context += "\n--- EXTRACTED BASELINE DATA FROM ATTACHMENTS (Specialist Reports) ---\n"
+                        for doc in docs:
+                            if doc.file:
+                                file_path = doc.file.path
+                                project_context += f"\nData from {doc.get_doc_type_display()}:\n"
+                                project_context += extract_text_from_file(file_path)
+                except Exception:
+                    pass
         except Exception as e:
-            print(f"Failed to load project {args.project_id}: {e}")
+            print(f"Failed to process project data: {e}")
 
     chapters = [
         "Executive Summary",
