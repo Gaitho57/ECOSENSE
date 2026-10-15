@@ -100,6 +100,9 @@ def generate_docx_report(project_id: str, tenant_id: str, version: int, report_d
     centroid_dms = f"{to_dms(lat, True)}, {to_dms(lon, False)}"
 
     proj_name = report_data.get('project', {}).get('name', 'EIA Project')
+    clean_proj_name = re.sub(r'^(the\s+)?proposed\s+', '', str(proj_name).strip(), flags=re.IGNORECASE).strip()
+    if not clean_proj_name:
+        clean_proj_name = proj_name
     plot_no = report_data.get('project', {}).get('plot_number', 'Kajiado/Kaputiei-North/84210')
     area_ha = report_data.get('project', {}).get('scale_ha') or report_data.get('project', {}).get('site_area', 4.5)
     county_name = report_data.get('project', {}).get('county') or report_data.get('project', {}).get('county_name') or report_data.get('county_name') or 'Kajiado'
@@ -449,6 +452,12 @@ def generate_docx_report(project_id: str, tenant_id: str, version: int, report_d
         f"plantings specified in the Chapter 10 Environmental and Social Management Plan (ESMP) will prioritize "
         f"the indigenous species adapted to Zone {aez.get('zone_code')}, namely: {aez.get('recommended_trees')}."
     )
+    
+    # Section 4.4: Ecosystem Services & Ecological Functional Profile
+    eco_services = report_data.get('baseline', {}).get('ecosystem_services')
+    if eco_services:
+        doc.add_heading('4.4 Ecosystem Services & Functional Landscape Profile', level=2)
+        doc.add_paragraph(eco_services)
         
     # CHAPTER 5: SOCIAL AND ECONOMIC BASELINE CONDITIONS
     doc.add_heading('Chapter 5: Social and Economic Baseline Conditions', level=1)
@@ -746,6 +755,8 @@ def generate_docx_report(project_id: str, tenant_id: str, version: int, report_d
             sig = imp.get('significance_label') or imp.get('severity', 'MODERATE')
             doc.add_heading(f"Impact: {cat} (Significance Rating: {sig})", level=2)
             desc = imp.get('description') or f"Potential {cat.lower()} impacts arising from project civil works, site operations, or infrastructure mobilization."
+            desc = re.sub(r'\b(the\s+)?proposed\s+proposed\b', 'The proposed', desc, flags=re.IGNORECASE)
+            desc = re.sub(r'^(the\s+)?proposed\s+the\s+proposed\b', 'The proposed', desc, flags=re.IGNORECASE)
             doc.add_paragraph(f"Impact Pathway & Environmental Receptor: {desc}")
             
             doc.add_paragraph("Prescribed Statutory Mitigation Measures:", style='List Bullet')
@@ -813,7 +824,7 @@ def generate_docx_report(project_id: str, tenant_id: str, version: int, report_d
     doc.add_heading('11.1 Environmental Viability & Technical Conclusion', level=2)
     basin_name = report_data.get('basin_name') or report_data.get('project', {}).get('basin_name') or 'Athi Basin'
     doc.add_paragraph(
-        f"This Environmental and Social Impact Assessment (ESIA) Study concludes that the proposed {proj_name} on Land Reference parcel "
+        f"This Environmental and Social Impact Assessment (ESIA) Study concludes that the proposed {clean_proj_name} on Land Reference parcel "
         f"{plot_no} in {county_name} County is environmentally sound, technically feasible, and socio-economically beneficial. "
         f"The project directly addresses Kenya's acute logistical warehousing and cold-chain deficit, facilitating trade and agro-processing "
         f"without causing irreversible degradation to the regional {basin_name} drainage basin."
@@ -886,12 +897,23 @@ def generate_docx_report(project_id: str, tenant_id: str, version: int, report_d
         }
     ]
 
-    for spec in plate_specs:
+    media_dict = report_data.get('project', {}).get('media', {})
+    available_photos = []
+    if isinstance(media_dict, dict):
+        for sec_key in ['site', 'baseline', 'other', 'impacts']:
+            for item in media_dict.get(sec_key, []):
+                p = item.get('path')
+                if p and os.path.exists(p):
+                    available_photos.append(p)
+
+    for idx, spec in enumerate(plate_specs):
         cell = photo_grid.rows[spec["row"]].cells[spec["col"]]
         cp = cell.paragraphs[0]
         cp.alignment = WD_ALIGN_PARAGRAPH.CENTER
         
-        # Render high-resolution field reconnaissance plate
+        img_src = available_photos[idx] if idx < len(available_photos) else None
+
+        # Render high-resolution field reconnaissance plate (with real photo or realistic daylight HUD telemetry)
         p_img_stream = generate_reconnaissance_plate_image(
             plate_title=spec["title"],
             orientation=spec["orientation"],
@@ -899,7 +921,8 @@ def generate_docx_report(project_id: str, tenant_id: str, version: int, report_d
             lat=lat,
             lon=lon,
             date_str=current_date,
-            theme=spec["theme"]
+            theme=spec["theme"],
+            image_source=img_src
         )
         cp.add_run().add_picture(p_img_stream, width=Inches(3.0))
 

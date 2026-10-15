@@ -11,6 +11,7 @@ import pandas as pd
 import os
 from pathlib import Path
 import uuid
+import re
 
 # Local configuration
 from django.conf import settings
@@ -262,24 +263,66 @@ EXPERT_MITIGATIONS = {
     },
     "biodiversity": {
         "avoidance": [
-            "Avoid placing construction equipment, stockpiles, or camps within the forest/mangrove boundary.",
-            "Prohibit night works (18:00 - 06:00) to avoid disturbance to nocturnal and crepuscular fauna.",
-            "Strict ban on open burning of wastes and forest fires; zero-tolerance for illegal hunting/trafficking."
+            "Avoid placing construction equipment, material stockpiles, or worker camps within designated wildlife dispersal corridors, seasonal drainage swales, or mature acacia stands.",
+            "Prohibit nocturnal operations (18:00 - 06:00) with acoustic disturbance to avoid disrupting regional nocturnal and crepuscular fauna.",
+            "Strict ban on open burning of construction waste and rangeland fires; enforce zero-tolerance for poaching or wildlife harassment."
         ],
         "minimization": [
-            "Engagement of an on-site ecologist to supervise pre-clearance checks and tree marking.",
-            "Installation of silt traps and temporary drainage to prevent sediment discharge into critical habitats.",
-            "Washdown procedures for all equipment to prevent introduction of invasive species/pests."
+            "Pre-construction demarcation of work boundaries; conduct walkthrough checks to safeguard nesting avifauna and mark mature Acacia tortilis / Balanites aegyptiaca trees for retention.",
+            "Installation of geotextile silt traps and temporary drainage attenuation to prevent sediment wash into natural ephemeral drainage channels.",
+            "Vehicle washdown protocols for all heavy haulage trucks entering site to prevent introduction of alien invasive plant species (e.g., Prosopis juliflora)."
         ],
         "restoration": [
-            "Re-vegetation of impacted banks and escarpments using native species (e.g., Obetia radula, Enchephalartos hildebrandtii).",
-            "Establishment of a 1:3 replacement ratio for all cleared indigenous trees.",
-            "Monthly monitoring of sapling survival; replacement of failed individuals if survival < 70%."
+            "Re-vegetation of perimeter buffer zones and exposed cut-slopes using indigenous drought-tolerant flora (Acacia tortilis, Balanites aegyptiaca, and indigenous perennial grasses) with a 1:2 replacement ratio.",
+            "Establishment of a boundary environmental greenbelt using nursery-grown seedlings conforming to Jaetzold Zone UM4 flora.",
+            "Quarterly monitoring of sapling survival rate; replacement of failed saplings to maintain >80% survival over 24 months."
         ],
         "offset": [
-            "Payment of special user license fees to KFS for compensatory reforestation of degraded forest sections.",
-            "Funding of Community Forest Association (CFA) nursery programs for endemic coastal flora."
+            "Establishment of an indigenous boundary greenbelt (minimum 250 saplings) and funding local community woodlot re-greening programs in collaboration with the County Environment Directorate.",
+            "Support for local Community Based Organization (CBO) tree nursery programs focusing on arid and semi-arid indigenous hardwood preservation."
         ],
+        "coastal": {
+            "avoidance": [
+                "Avoid placing construction equipment, stockpiles, or camps within the 100m high-water mark or mangrove wetland conservation buffer.",
+                "Prohibit night works (18:00 - 06:00) with intense illumination to avoid disrupting marine turtle nesting and nocturnal avifauna.",
+                "Strict ban on dredging or clearing within gazetted marine parks, coral reefs, or KFS-managed mangrove forests."
+            ],
+            "minimization": [
+                "Deploy sediment retention barriers and marine silt curtains to prevent turbidity and sedimentation in intertidal and marine habitats.",
+                "Washdown procedures for all marine and terrestrial equipment to prevent introduction of invasive species/pests.",
+                "Continuous monitoring of water column turbidity at adjacent marine/estuarine monitoring stations."
+            ],
+            "restoration": [
+                "Re-vegetation of disturbed coastal buffers with indigenous species (Avicennia marina, Rhizophora mucronata, and Casuarina equisetifolia) under a 3:1 replacement ratio.",
+                "Restoration of natural tidal flow channels to ensure healthy mangrove hydrological flushing.",
+                "Monthly monitoring of mangrove seedling survival with replacement of failed propagules."
+            ],
+            "offset": [
+                "Payment of statutory conservation contribution to KFS for compensatory mangrove reforestation.",
+                "Funding of Community Forest Association (CFA) nursery programs for endemic coastal flora."
+            ]
+        },
+        "highland": {
+            "avoidance": [
+                "Avoid locating civil earthworks or camps on steep slopes (>15%) or within gazetted water-tower forest catchment exclusion buffers.",
+                "Prohibit clearing of indigenous montane canopy trees along steep ridges and headwater springs.",
+                "Strict enforcement of timber harvesting bans under the Forest Conservation and Management Act 2016."
+            ],
+            "minimization": [
+                "Installation of geotextile silt fences, stone bunds, and terracing to prevent soil wash into highland riverine corridors.",
+                "Marking and preservation of old-growth Podocarpus falcatus and Olea africana trees.",
+                "Site boundary fencing to prevent workforce encroachment into adjacent gazetted forest reserves."
+            ],
+            "restoration": [
+                "Re-vegetate cut-slopes with indigenous montane hardwoods (Podocarpus falcatus, Olea africana, Croton megalocarpus) with a 1:3 replacement ratio.",
+                "Establishment of indigenous bamboo riparian buffer zones along perennial drainage swales.",
+                "Monitoring of reforestation plots with required 75% survival threshold at 36 months."
+            ],
+            "offset": [
+                "Funding local Water Resource Users Association (WRUA) indigenous riparian restoration along upper catchment streams.",
+                "Support for KFS catchment rehabilitation programs in degraded gazetted forest compartments."
+            ]
+        },
         "manufacturing": [
             "Zero-diclofenac policy: Strict ban on veterinary anti-inflammatory drugs on site to protect Gyps africanus (Endangered) vulture populations.",
             "Site lighting limited to downward-directed low-pressure sodium fixtures below 2,700K to prevent nocturnal raptor disorientation.",
@@ -809,8 +852,14 @@ class PredictionEngine:
         sev_clean = (severity or "medium").lower()
         nature_score = "CRITICAL" if sev_clean == "critical" else "SIGNIFICANT"
         
+        # Clean project_name to eliminate double "Proposed"
+        pname_str = str(project_name or "the project").strip()
+        clean_pname = re.sub(r'^(the\s+)?proposed\s+', '', pname_str, flags=re.IGNORECASE).strip()
+        if not clean_pname:
+            clean_pname = "project"
+
         desc = (
-            f"The proposed {project_name} activities ({project_type}) present a {nature_score} impact on {category} parameters in {location_name}. "
+            f"The proposed {clean_pname} activities ({project_type}) present a {nature_score} impact on {category} parameters in {location_name}. "
             f"Guided by {laws.get('EMCA')}, the mechanism of impact involves {significance['pathway']} "
             f"Assessment indicates that under Kenyan standard {laws.get('NEMA_REGS')}, this constitutes a regulated disturbance "
             f"to the baseline environmental state. {sections.get('EMCA_58') if sev_clean != 'low' else ''}"
@@ -818,13 +867,24 @@ class PredictionEngine:
         
         # 2. Sector-Specific Mitigation Retrieval
         # Professional Mitigation Hierarchy Logic (IFC PS6 / WB ESS6)
+        county = str(baseline.get("county_name", "")).lower()
+        site_desc = (str(baseline.get("description", "")) + " " + str(baseline.get("ecology_source", ""))).lower()
+
         if category.lower() in ["biodiversity", "ecology", "riparian", "forest"]:
              hierarchy = EXPERT_MITIGATIONS.get("biodiversity", {})
+             if any(c in county for c in ["mombasa", "kwale", "kilifi", "lamu", "tana river"]) or "marine" in site_desc or "mangrove" in site_desc:
+                 sub_source = hierarchy.get("coastal", hierarchy)
+             elif any(c in county for c in ["nyeri", "meru", "kirinyaga", "embu", "nyandarua", "murang'a", "kericho", "nandi"]) or "water_tower" in site_desc:
+                 sub_source = hierarchy.get("highland", hierarchy)
+             else:
+                 # Default inland ASAL rangeland (e.g. Kajiado, Machakos, Nairobi)
+                 sub_source = hierarchy
+
              mitigations = [
-                 f"AVOID: {hierarchy['avoidance'][0]}",
-                 f"MINIMIZE: {hierarchy['minimization'][0]}",
-                 f"RESTORE: {hierarchy['restoration'][0]}",
-                 f"OFFSET: {hierarchy['offset'][0]}"
+                 f"AVOID: {sub_source['avoidance'][0]}",
+                 f"MINIMIZE: {sub_source['minimization'][0]}",
+                 f"RESTORE: {sub_source['restoration'][0]}",
+                 f"OFFSET: {sub_source['offset'][0]}"
              ]
         else:
              p_type = project_type.lower()
@@ -1042,17 +1102,27 @@ class PredictionEngine:
                 measure = "Technical compliance monitoring"
                 indicator = EXPERT_KPIS.get(cat, f"{cat.title()} compliance via monitors")
                 
-                if phase == "Pre-Construction":
-                    measure = f"Baseline verification of {cat} resources and installation of physical boundary markers."
-                elif phase == "Construction":
-                    measure = mitigations[0] if len(mitigations) > 0 else f"Intensive {cat} control measures."
-                elif phase == "Operation":
-                    measure = mitigations[1] if len(mitigations) > 1 else f"Annual {cat} monitoring and auditing."
-                elif phase == "Decommissioning":
-                    if cat == "climate":
-                         measure = f"Final carbon footprint audit and site-wide energy system dismantling."
-                    else:
-                         measure = f"Rehabilitation of {cat} profile via native species re-vegetation (36-month monitoring)."
+                if cat in ("biodiversity", "forest", "ecology"):
+                    if phase == "Pre-Construction":
+                        measure = "Pre-construction ecological walkthrough, boundary demarcation, and tree tagging for retention."
+                    elif phase == "Construction":
+                        measure = "Ecological supervision during site clearance, directional felling, and installation of wildlife-safe fencing."
+                    elif phase == "Operation":
+                        measure = "Maintenance of indigenous boundary greenbelt (min. 250 trees) and quarterly survival monitoring (>80% threshold)."
+                    elif phase == "Decommissioning":
+                        measure = "Ecological rehabilitation and re-vegetation using indigenous drought-tolerant flora under 36-month monitoring."
+                else:
+                    if phase == "Pre-Construction":
+                        measure = f"Baseline verification of {cat} resources and installation of physical boundary markers."
+                    elif phase == "Construction":
+                        measure = mitigations[0] if len(mitigations) > 0 else f"Intensive {cat} control measures."
+                    elif phase == "Operation":
+                        measure = mitigations[2] if len(mitigations) > 2 else (mitigations[1] if len(mitigations) > 1 else f"Annual {cat} monitoring and auditing.")
+                    elif phase == "Decommissioning":
+                        if cat == "climate":
+                             measure = f"Final carbon footprint audit and site-wide energy system dismantling."
+                        else:
+                             measure = f"Rehabilitation of {cat} profile via native species re-vegetation (36-month monitoring)."
 
                 # Technical Monitoring Indicator
                 indicator = MONITORING_STANDARDS.get(cat, f"Compliance with {cat} baseline standards.")
@@ -1061,10 +1131,16 @@ class PredictionEngine:
                 import random
                 p_type_lower = project_type.lower()
                 
-                if cat in ("biodiversity", "forest", "ecology") and phase == "Operation":
-                     # Apply KFS Offset Benchmarking (€36,500 / ha)
-                     ha = float(scale_ha or 1)
-                     final_cost = int(ha * BIODIVERSITY_THRESHOLDS["OFFSET_RATE_EURO_HA"] * 150) # Approx KES conversion
+                if cat in ("biodiversity", "forest", "ecology"):
+                    # Calibrated professional rates (KES 120,000 - 250,000)
+                    if phase == "Pre-Construction":
+                        final_cost = int(150000 * random.uniform(0.9, 1.1))
+                    elif phase == "Construction":
+                        final_cost = int(200000 * random.uniform(0.9, 1.1))
+                    elif phase == "Operation":
+                        final_cost = int(120000 * random.uniform(0.9, 1.1))
+                    else: # Decommissioning
+                        final_cost = int(250000 * random.uniform(0.9, 1.1))
                 elif "road" in p_type_lower or "highway" in p_type_lower or "rehabilitation" in p_type_lower:
                      # Infrastructure/Road Benchmarking (~1.25M KES per km for ESMMP)
                      km_est = float(scale_ha or 1) / 10.0 # Heuristic: 10ha ~ 1km road width corridor
@@ -1083,6 +1159,9 @@ class PredictionEngine:
                      scale_factor = min(2.5, max(1.0, float(scale_ha or 1) / 10.0))
                      random_variance = random.uniform(0.9, 1.2)
                      final_cost = int(base_cost * scale_factor * random_variance)
+
+                # Cap single routine monitoring item at KES 750,000
+                final_cost = min(final_cost, 750000)
 
                 esmp_data.append({
                     "phase": phase,

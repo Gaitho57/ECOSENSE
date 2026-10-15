@@ -18,6 +18,7 @@ import json
 import logging
 import hashlib
 import random
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +46,6 @@ def compile_report_data(project_id: str) -> dict:
     # Safely handle location (handle both GeoDjango objects and string fallbacks)
     loc = project.location
     if isinstance(loc, str) and "POINT" in loc:
-        import re
         match = re.search(r"POINT\(([-\d\.]+) ([-\d\.]+)\)", loc)
         if match:
             from django.contrib.gis.geos import Point
@@ -614,12 +614,14 @@ def compile_report_data(project_id: str) -> dict:
     if preds.count() == 0:
         logger.info(f"No ImpactPrediction records found for project {project.id}. Generating predictions via PredictionEngine...")
         try:
+            clean_proj_name = intake_data.get('projectName') or project.name
+            clean_proj_name = re.sub(r'^(the\s+)?proposed\s+', '', str(clean_proj_name).strip(), flags=re.IGNORECASE).strip()
             raw_preds = pred_engine.predict(
                 project_type=project_type,
                 scale_ha=scale,
                 baseline_data=baseline_data,
                 scenario_name="baseline",
-                project_name=project.name,
+                project_name=clean_proj_name,
                 location_name=f"{county_name} Project Site"
             )
             for rp in raw_preds:
@@ -732,8 +734,16 @@ def compile_report_data(project_id: str) -> dict:
         except (ValueError, AttributeError):
             media_url = "https://via.placeholder.com/600x400?text=No+Photo+Attached"
 
+        media_path = None
+        try:
+            if media.file and hasattr(media.file, 'path') and os.path.exists(media.file.path):
+                media_path = media.file.path
+        except Exception:
+            pass
+
         project_media[media.section_id].append({
             "url": media_url,
+            "path": media_path,
             "caption": media.caption,
             "coords": f"{media.latitude}, {media.longitude}" if media.latitude else None,
             "timestamp": media.captured_at.strftime("%Y-%m-%d") if media.captured_at else None
@@ -782,8 +792,15 @@ def compile_report_data(project_id: str) -> dict:
     cha_data = pred_engine.determine_critical_habitat_status(project_type, baseline_data)
     baseline_data["cha_flag"] = cha_data
     
-    # 5.3 Ecosystem Services Narrative
-    ecosystem_services = "Ecological services provided by the project area include coastal protection, carbon sequestration (if mangrove/forest), and localized nutrient cycling."
+    # 5.3 Ecosystem Services Narrative (Biome-differentiated)
+    county_lower = str(county_name).lower()
+    if any(c in county_lower for c in ["mombasa", "kwale", "kilifi", "lamu", "tana river"]):
+        ecosystem_services = f"Ecological services within the {county_name} coastal littoral zone include marine tidal storm-surge buffering, estuarine sediment stabilization, coastal mangrove carbon sequestration, and intertidal nutrient cycling."
+    elif any(c in county_lower for c in ["nyeri", "meru", "kirinyaga", "embu", "nyandarua", "murang'a", "kericho", "nandi"]):
+        ecosystem_services = f"Ecological services within the {county_name} highland catchment encompass upper-watershed hydrological regulation, montane headwater infiltration, steep slope soil retention, and carbon sequestration in indigenous montane forests."
+    else:
+        ecosystem_services = f"Ecological services provided by the {county_name} semi-arid savanna rangeland include seasonal stormwater infiltration, topsoil erosion attenuation through indigenous acacia-grassland canopy, rangeland biomass cycling, and regional wildlife transit buffering."
+
     if cha_data["is_critical"]:
         ecosystem_services += f" This site is designated as a Critical Habitat based on: {', '.join(cha_data['reasons'])}."
     
